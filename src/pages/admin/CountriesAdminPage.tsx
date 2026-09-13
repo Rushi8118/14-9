@@ -37,6 +37,7 @@ export default function CountriesAdminPage() {
   const [isAiOpen, setIsAiOpen] = useState(false)
   const [aiPrompt, setAiPrompt] = useState('')
   const [isGeneratingAi, setIsGeneratingAi] = useState(false)
+  const [enhancingRules, setEnhancingRules] = useState<'work' | 'study' | null>(null)
 
   const regions = ['All', 'Europe', 'Asia', 'Americas', 'Oceania', 'Middle East']
 
@@ -114,6 +115,24 @@ export default function CountriesAdminPage() {
       eligibility_criteria: cleanWork.length > 0 ? cleanWork : cleanStudy,
     })
     setIsEditOpen(false)
+  }
+
+  const handleEnhanceRules = async (kind: 'work' | 'study') => {
+    const countryName = editingItem?.name?.trim()
+    if (!countryName) { toast.error('Enter a country name first'); return }
+    const rules = kind === 'work' ? workEligibilityRules : studyEligibilityRules
+    if (rules.length === 0) { toast.error(`Add at least one ${kind} rule first, then AI can refine it.`); return }
+    setEnhancingRules(kind)
+    try {
+      const enhanced = await enhanceEligibilityWithAi(countryName, rules)
+      if (kind === 'work') setWorkEligibilityRules(enhanced)
+      else setStudyEligibilityRules(enhanced)
+      toast.success(`AI refined ${kind} eligibility details for ${countryName}`)
+    } catch (err: any) {
+      toast.error(err?.message || 'AI enhancement failed')
+    } finally {
+      setEnhancingRules(null)
+    }
   }
 
   const handleGenerateAi = async () => {
@@ -491,6 +510,18 @@ export default function CountriesAdminPage() {
                   <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">💼 Work Visa Eligibility Rules</p>
                   <p className="text-[11px] text-muted-foreground">Required experience, skill assessments, language tests & PCC for work permits.</p>
                 </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={enhancingRules === 'work'}
+                  onClick={() => void handleEnhanceRules('work')}
+                  className="shrink-0 gap-1.5 border-amber-500/40 text-amber-700 dark:text-amber-300"
+                  title="Use AI to refine and enhance these details"
+                >
+                  {enhancingRules === 'work' ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                  AI details
+                </Button>
               </div>
               <div className="flex gap-2">
                 <Input
@@ -527,6 +558,18 @@ export default function CountriesAdminPage() {
                   <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">🎓 Study Visa Eligibility Rules</p>
                   <p className="text-[11px] text-muted-foreground">University CAS/CoE offer letters, IELTS/PTE scores, blocked account & academic transcripts.</p>
                 </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={enhancingRules === 'study'}
+                  onClick={() => void handleEnhanceRules('study')}
+                  className="shrink-0 gap-1.5 border-blue-500/40 text-blue-700 dark:text-blue-300"
+                  title="Use AI to refine and enhance these details"
+                >
+                  {enhancingRules === 'study' ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                  AI details
+                </Button>
               </div>
               <div className="flex gap-2">
                 <Input placeholder="e.g. CAS Letter / Offer of Place from accredited university..." value={newStudyRuleInput} onChange={(e) => setNewStudyRuleInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddStudyRule())} />

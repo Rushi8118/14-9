@@ -88,8 +88,8 @@ export default function UrgentRequirementsAdminPage() {
   // Form State
   const [title, setTitle] = useState('')
   const [slug, setSlug] = useState('')
-  const [country, setCountry] = useState('United Kingdom')
-  const [countryCode, setCountryCode] = useState('GB')
+  const [country, setCountry] = useState('')
+  const [countryCode, setCountryCode] = useState('')
   const [category, setCategory] = useState('Healthcare / Work Visa')
   const [vacancies, setVacancies] = useState(10)
   const [salary, setSalary] = useState('£24,500 – £28,000 / year + Overtime')
@@ -143,8 +143,8 @@ export default function UrgentRequirementsAdminPage() {
     setEditingId(null)
     setTitle('')
     setSlug('')
-    setCountry('United Kingdom')
-    setCountryCode('GB')
+    setCountry('')
+    setCountryCode('')
     setCategory('Healthcare / Work Visa')
     setVacancies(10)
     setSalary('£24,500 – £28,000 / year + Overtime')
@@ -268,6 +268,10 @@ export default function UrgentRequirementsAdminPage() {
     e.preventDefault()
     if (!title.trim() || !content.trim()) {
       toast.error('Title and Content are required')
+      return
+    }
+    if (!country.trim()) {
+      toast.error('Country is required')
       return
     }
 
@@ -738,25 +742,39 @@ export default function UrgentRequirementsAdminPage() {
 
                 <div className="space-y-1">
                   <Label className="text-xs">Country *</Label>
-                  <Select
-                    value={country}
-                    onValueChange={(val) => {
-                      setCountry(val)
-                      const found = COUNTRIES_LIST.find((c) => c.name === val)
-                      if (found) setCountryCode(found.code)
-                    }}
-                  >
-                    <SelectTrigger className="h-9 text-xs">
-                      <SelectValue placeholder="Select Country" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {COUNTRIES_LIST.map((c) => (
-                        <SelectItem key={c.name} value={c.name} className="text-xs">
-                          <FlagIcon country={c.name} code={c.code} className="mr-1.5 inline-block align-[-0.1em]" /> {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-2">
+                    {country && (
+                      <FlagIcon country={country} code={countryCode} className="shrink-0 text-lg rounded-xs border border-border/40" />
+                    )}
+                    <Input
+                      required
+                      list="urgent-country-suggestions"
+                      placeholder="Type or pick any country"
+                      value={country}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setCountry(val)
+                        const found = COUNTRIES_LIST.find((c) => c.name.toLowerCase() === val.toLowerCase())
+                        setCountryCode(found ? found.code : countryCode)
+                      }}
+                      className="h-9 text-xs"
+                    />
+                  </div>
+                  <datalist id="urgent-country-suggestions">
+                    {COUNTRIES_LIST.map((c) => (
+                      <option key={c.name} value={c.name} />
+                    ))}
+                  </datalist>
+                  <div className="flex items-center gap-2 pt-1">
+                    <Label className="text-[10px] text-muted-foreground whitespace-nowrap">ISO code</Label>
+                    <Input
+                      placeholder="e.g. GB"
+                      value={countryCode}
+                      onChange={(e) => setCountryCode(e.target.value.toUpperCase().slice(0, 2))}
+                      className="h-7 w-20 text-xs uppercase"
+                      maxLength={2}
+                    />
+                  </div>
                 </div>
               </div>
 
