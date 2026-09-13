@@ -208,23 +208,36 @@ export function AdminUserProfileDialog({ userId, onClose }: AdminUserProfileDial
     }
   }
 
-  const sendPasswordReset = async () => {
+  const sendAccountEmail = async (type: 'verify' | 'reset') => {
     if (!user || !canUpdate) return
-    setAction('reset')
-    const { error } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: `${window.location.origin}/auth/reset-password` })
-    setAction(null)
-    if (error) toast.error(error.message)
-    else toast.success('Password reset email sent')
+    setAction(type)
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-user-email', {
+        body: { email: user.email, type },
+      })
+      if (error) {
+        // FunctionsHttpError bodies carry the real server-side reason.
+        const context = (error as { context?: Response }).context
+        let message = error.message
+        try {
+          const body = context ? await context.clone().json() : null
+          if (body?.error) message = body.error
+        } catch {
+          // ignore parse failure, fall back to error.message
+        }
+        throw new Error(message)
+      }
+      if (data?.error) throw new Error(data.error)
+      toast.success(type === 'verify' ? 'Verification email sent' : 'Password reset email sent')
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : `Failed to send ${type === 'verify' ? 'verification' : 'password reset'} email`)
+    } finally {
+      setAction(null)
+    }
   }
 
-  const sendVerification = async () => {
-    if (!user || !canUpdate) return
-    setAction('verify')
-    const { error } = await supabase.auth.resend({ type: 'signup', email: user.email })
-    setAction(null)
-    if (error) toast.error(error.message)
-    else toast.success('Verification email sent')
-  }
+  const sendPasswordReset = () => sendAccountEmail('reset')
+  const sendVerification = () => sendAccountEmail('verify')
 
   const softDelete = async () => {
     if (!userId || !canDelete || userId === currentProfile?.id) return

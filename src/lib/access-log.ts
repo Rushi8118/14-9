@@ -108,7 +108,11 @@ export const DEFAULT_ACCESS_LOG_FILTERS: AccessLogFilters = {
   tab: 'all',
   eventTypes: [],
   timeRange: '7d',
-  hideAdmin: false,
+  // Default to hiding admin/super-admin activity (mostly the viewing admin's
+  // own routine page-view logging) so the log opens on the real audit
+  // signal instead of internal noise. Admins can still opt back in via the
+  // "Hide admin logs" toggle, which un-hides them.
+  hideAdmin: true,
   live: true,
 }
 
@@ -210,7 +214,8 @@ export function parseAccessLogSearchParams(params: URLSearchParams): AccessLogFi
       : '7d'
 
   const live = params.get('live') !== '0'
-  const hideAdmin = params.get('hideAdmin') === '1'
+  // Default to hiding admin/system noise unless the URL explicitly turns it off.
+  const hideAdmin = params.get('hideAdmin') !== '0'
 
   // Hydrate event types from tab preset when only ?tab= is present.
   let resolvedTypes = eventTypes
@@ -254,7 +259,9 @@ export function accessLogFiltersToSearchParams(filters: AccessLogFilters): URLSe
   if (filters.timeRange !== '7d') p.set('range', filters.timeRange)
   if (filters.timeRange === 'custom' && filters.from) p.set('from', filters.from)
   if (filters.timeRange === 'custom' && filters.to) p.set('to', filters.to)
-  if (filters.hideAdmin) p.set('hideAdmin', '1')
+  // Persist explicit "show admin logs" choice; hideAdmin=true is the
+  // implicit default so it does not need to be written to the URL.
+  if (!filters.hideAdmin) p.set('hideAdmin', '0')
   if (!filters.live) p.set('live', '0')
   return p
 }
