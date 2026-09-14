@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { subscribePostgresChanges } from '@/lib/supabase/realtime'
+import { countries as ISO_COUNTRY_CODES } from 'country-flag-icons'
 
 export type AdminCountryItem = {
   id: string
@@ -38,8 +39,11 @@ export type AdminCountryItem = {
   sort_order: number
   created_at: string
   updated_at: string
-  /** 'database' rows are stored in Supabase; 'starter' rows are bundled defaults not saved yet. */
-  source: 'database' | 'starter'
+  /**
+   * 'database' rows are stored in Supabase. 'starter' rows are bundled defaults and 'world'
+   * rows are every other ISO country; neither is saved until an admin saves it.
+   */
+  source: 'database' | 'starter' | 'world'
   /** Original JSON columns, so saving preserves keys this editor does not manage. */
   raw?: { visa_stats: unknown; cost_of_living: unknown; climate: unknown }
 }
@@ -1086,6 +1090,61 @@ function fromStarter(starter: StarterCountry): AdminCountryItem {
 
 export const STARTER_COUNTRIES: AdminCountryItem[] = STARTER_ROWS.map(fromStarter)
 
+const flagFromAlpha2 = (code: string) =>
+  String.fromCodePoint(...[...code.toUpperCase()].map((ch) => 0x1f1e6 + ch.charCodeAt(0) - 65))
+
+const toSlug = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+
+/** Every ISO 3166 country, so admins can add any destination, not just the bundled ones. */
+export const WORLD_COUNTRIES: AdminCountryItem[] = (() => {
+  let names: Intl.DisplayNames | null = null
+  try {
+    names = new Intl.DisplayNames(['en'], { type: 'region' })
+  } catch {
+    return []
+  }
+  const now = new Date().toISOString()
+  return ISO_COUNTRY_CODES.filter((code) => /^[A-Z]{2}$/.test(code))
+    .map((code) => ({ code, name: names?.of(code) ?? '' }))
+    .filter(({ code, name }) => name && name !== code && !/unknown/i.test(name))
+    .map(({ code, name }) => ({
+      ...fromStarter({
+        id: `world-${code.toLowerCase()}`,
+        name,
+        slug: toSlug(name),
+        code,
+        flag_emoji: flagFromAlpha2(code),
+        capital: '',
+        region: '',
+        language: '',
+        description: '',
+        why_work: '',
+        why_study: '',
+        lifestyle: '',
+        has_work_visa: false,
+        has_study_visa: false,
+        eligibility_criteria: [],
+        work_eligibility_criteria: [],
+        study_eligibility_criteria: [],
+        success_rate: 0,
+        avg_processing_days: 0,
+        monthly_living_cost: 0,
+        is_active: false,
+        sort_order: 1000,
+        created_at: now,
+        updated_at: now,
+      }),
+      source: 'world' as const,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+})()
+
 export function countryToInput(item: AdminCountryItem, overrides: Partial<CountryInput> = {}): CountryInput {
   const { id: _id, created_at: _created, updated_at: _updated, source: _source, raw: _raw, ...rest } = item
   return { ...rest, ...overrides }
@@ -1230,12 +1289,18 @@ export function useAdminCountries() {
 
   const dbCountries = useMemo(() => query.data ?? [], [query.data])
   const isFallback = query.isError || (query.isSuccess && dbCountries.length === 0)
-  const countries = isFallback ? STARTER_COUNTRIES : dbCountries
-
-  const starterCountries = useMemo(() => {
-    if (isFallback) return STARTER_COUNTRIES
-    const known = new Set(dbCountries.flatMap((c) => [countryKey(c.slug), countryKey(c.name)]))
-    return STARTER_COUNTRIES.filter((s) => !known.has(countryKey(s.slug)) && !known.has(countryKey(s.name)))
+  const { countries, starterCountries } = useMemo(() => {
+    const saved = isFallback ? [] : dbCountries
+    const known = new Set(saved.flatMap((c) => [countryKey(c.slug), countryKey(c.name), c.code.toUpperCase()]))
+    const isNew = (c: AdminCountryItem) => {
+      const keys = [countryKey(c.slug), countryKey(c.name), c.code.toUpperCase()]
+      if (keys.some((k) => known.has(k))) return false
+      keys.forEach((k) => known.add(k))
+      return true
+    }
+    const starters = STARTER_COUNTRIES.filter(isNew)
+    const world = WORLD_COUNTRIES.filter(isNew)
+    return { countries: [...saved, ...starters, ...world], starterCountries: starters }
   }, [dbCountries, isFallback])
 
   const saveMutation = useMutation({
