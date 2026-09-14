@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
+import { warmRoutesWhenIdle } from '@/lib/route-prefetch'
 import { useLocation } from 'react-router-dom'
 import { MotionConfig } from 'framer-motion'
 import { useAuth } from '@/hooks/use-auth'
@@ -20,6 +21,7 @@ function readCollapsed() {
 }
 
 export default function DashboardShell({ children }: { children: ReactNode }) {
+  useEffect(() => warmRoutesWhenIdle('/dashboard'), [])
   const { user } = useAuth()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(readCollapsed)
@@ -85,7 +87,9 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
               className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 outline-none sm:px-6 lg:px-8 lg:py-8"
             >
               <div className="mx-auto w-full max-w-[1320px]">
-                <AdminErrorBoundary key={location.pathname}>{children}</AdminErrorBoundary>
+                <AdminErrorBoundary key={location.pathname}>
+                  <Suspense fallback={<ShellContentSkeleton />}>{children}</Suspense>
+                </AdminErrorBoundary>
               </div>
             </main>
           </div>
@@ -93,5 +97,20 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
         </MfaChallengeGate>
       </TooltipProvider>
     </MotionConfig>
+  )
+}
+
+/** Shown in the content area only, so the shell stays mounted while a page chunk loads. */
+function ShellContentSkeleton() {
+  return (
+    <div role="status" aria-label="Loading page" className="space-y-4 animate-pulse">
+      <div className="h-8 w-64 max-w-full rounded-lg bg-[var(--desk-line)]/60" />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} className="h-24 rounded-2xl bg-[var(--desk-line)]/50" />
+        ))}
+      </div>
+      <div className="h-72 rounded-2xl bg-[var(--desk-line)]/40" />
+    </div>
   )
 }
