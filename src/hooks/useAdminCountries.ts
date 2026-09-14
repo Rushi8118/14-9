@@ -1,8 +1,53 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useId, useMemo } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
-import { toast } from 'sonner'
+import { subscribePostgresChanges } from '@/lib/supabase/realtime'
 
 export type AdminCountryItem = {
+  id: string
+  name: string
+  slug: string
+  code: string
+  flag_emoji: string
+  capital: string
+  region: string
+  subregion: string
+  language: string
+  currency: string
+  currency_code: string
+  latitude: number | null
+  longitude: number | null
+  description: string
+  why_work: string
+  why_study: string
+  lifestyle: string
+  climate_summary: string
+  has_work_visa: boolean
+  has_study_visa: boolean
+  eligibility_criteria: string[]
+  work_eligibility_criteria: string[]
+  study_eligibility_criteria: string[]
+  success_rate: number
+  avg_processing_days: number
+  monthly_living_cost: number
+  monthly_family_cost: number | null
+  images: string[]
+  meta_title: string
+  meta_desc: string
+  is_active: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+  /** 'database' rows are stored in Supabase; 'starter' rows are bundled defaults not saved yet. */
+  source: 'database' | 'starter'
+  /** Original JSON columns, so saving preserves keys this editor does not manage. */
+  raw?: { visa_stats: unknown; cost_of_living: unknown; climate: unknown }
+}
+
+export type CountryInput = Omit<AdminCountryItem, 'id' | 'created_at' | 'updated_at' | 'source' | 'raw'>
+
+/** Shape of the bundled starter data used before countries are stored in the database. */
+type StarterCountry = {
   id: string
   name: string
   slug: string
@@ -29,9 +74,7 @@ export type AdminCountryItem = {
   updated_at: string
 }
 
-const LOCAL_COUNTRIES_KEY = 'svo_admin_countries_v5'
-
-const DEFAULT_COUNTRIES: AdminCountryItem[] = [
+const STARTER_ROWS: StarterCountry[] = [
   // --- CORE WORK & STUDY DESTINATIONS ---
   {
     id: 'country-germany',
@@ -921,272 +964,374 @@ const DEFAULT_COUNTRIES: AdminCountryItem[] = [
   } as AdminCountryItem,
 ]
 
-function normalizeKey(str: string): string {
-  return (str || '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]/g, '')
+const LEGACY_CACHE_KEY = 'svo_admin_countries_v5'
+const QUERY_KEY = 'admin-countries'
+
+type CountryRow = {
+  id: string
+  code: string
+  name: string
+  slug: string
+  capital: string | null
+  region: string | null
+  subregion: string | null
+  latitude: number | string | null
+  longitude: number | string | null
+  currency: string | null
+  currency_code: string | null
+  language: string | null
+  flag_emoji: string | null
+  description: string | null
+  why_study: string | null
+  why_work: string | null
+  lifestyle: string | null
+  cost_of_living: unknown
+  climate: unknown
+  images: unknown
+  visa_stats: unknown
+  is_active: boolean
+  sort_order: number | null
+  meta_title: string | null
+  meta_desc: string | null
+  created_at: string
+  updated_at: string
 }
 
-function getInitialCountries(): AdminCountryItem[] {
-  try {
-    const cached = localStorage.getItem(LOCAL_COUNTRIES_KEY)
-    if (cached) {
-      const parsed = JSON.parse(cached)
-      if (Array.isArray(parsed) && parsed.length >= 10) return parsed
-    }
-  } catch {}
-  return DEFAULT_COUNTRIES
+type Json = Record<string, unknown>
+
+const asObject = (value: unknown): Json =>
+  value && typeof value === 'object' && !Array.isArray(value) ? (value as Json) : {}
+
+const asStrings = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value
+        .map((entry) => (typeof entry === 'string' ? entry : asObject(entry).url))
+        .filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+    : []
+
+const asNumber = (value: unknown): number | null => {
+  const n = typeof value === 'string' && value.trim() !== '' ? Number(value) : value
+  return typeof n === 'number' && Number.isFinite(n) ? n : null
 }
 
+export const countryKey = (value: string) => (value || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+
+const bySortOrder = (a: AdminCountryItem, b: AdminCountryItem) =>
+  a.sort_order - b.sort_order || a.name.localeCompare(b.name)
+
+function fromRow(row: CountryRow): AdminCountryItem {
+  const stats = asObject(row.visa_stats)
+  const cost = asObject(row.cost_of_living)
+  const climate = asObject(row.climate)
+  const general = asStrings(stats.eligibility)
+  const work = asStrings(stats.work_eligibility)
+  const study = asStrings(stats.study_eligibility)
+
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    code: row.code ?? '',
+    flag_emoji: row.flag_emoji ?? '',
+    capital: row.capital ?? '',
+    region: row.region ?? '',
+    subregion: row.subregion ?? '',
+    language: row.language ?? '',
+    currency: row.currency ?? '',
+    currency_code: row.currency_code ?? '',
+    latitude: asNumber(row.latitude),
+    longitude: asNumber(row.longitude),
+    description: row.description ?? '',
+    why_work: row.why_work ?? '',
+    why_study: row.why_study ?? '',
+    lifestyle: row.lifestyle ?? '',
+    climate_summary: typeof climate.summary === 'string' ? climate.summary : '',
+    has_work_visa: typeof stats.has_work_visa === 'boolean' ? stats.has_work_visa : work.length > 0 || general.length > 0,
+    has_study_visa: typeof stats.has_study_visa === 'boolean' ? stats.has_study_visa : study.length > 0,
+    eligibility_criteria: general.length ? general : work.length ? work : study,
+    work_eligibility_criteria: work.length ? work : general,
+    study_eligibility_criteria: study.length ? study : general,
+    success_rate: asNumber(stats.success_rate) ?? 0,
+    avg_processing_days: asNumber(stats.avg_processing_days) ?? 0,
+    monthly_living_cost: asNumber(cost.monthly_single) ?? 0,
+    monthly_family_cost: asNumber(cost.monthly_family),
+    images: asStrings(row.images),
+    meta_title: row.meta_title ?? '',
+    meta_desc: row.meta_desc ?? '',
+    is_active: row.is_active,
+    sort_order: row.sort_order ?? 0,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    source: 'database',
+    raw: { visa_stats: row.visa_stats, cost_of_living: row.cost_of_living, climate: row.climate },
+  }
+}
+
+function fromStarter(starter: StarterCountry): AdminCountryItem {
+  return {
+    ...starter,
+    subregion: '',
+    currency: '',
+    currency_code: '',
+    latitude: null,
+    longitude: null,
+    climate_summary: '',
+    monthly_family_cost: null,
+    images: [],
+    meta_title: '',
+    meta_desc: '',
+    source: 'starter',
+  }
+}
+
+export const STARTER_COUNTRIES: AdminCountryItem[] = STARTER_ROWS.map(fromStarter)
+
+export function countryToInput(item: AdminCountryItem, overrides: Partial<CountryInput> = {}): CountryInput {
+  const { id: _id, created_at: _created, updated_at: _updated, source: _source, raw: _raw, ...rest } = item
+  return { ...rest, ...overrides }
+}
+
+const blankToNull = (value: string) => (value.trim() === '' ? null : value.trim())
+
+function toPayload(input: CountryInput, raw?: AdminCountryItem['raw']) {
+  const work = input.work_eligibility_criteria.map((rule) => rule.trim()).filter(Boolean)
+  const study = input.study_eligibility_criteria.map((rule) => rule.trim()).filter(Boolean)
+
+  const climate: Json = { ...asObject(raw?.climate) }
+  if (input.climate_summary.trim()) climate.summary = input.climate_summary.trim()
+  else delete climate.summary
+
+  const cost: Json = { ...asObject(raw?.cost_of_living), monthly_single: input.monthly_living_cost }
+  if (input.monthly_family_cost === null) delete cost.monthly_family
+  else cost.monthly_family = input.monthly_family_cost
+
+  return {
+    name: input.name.trim(),
+    slug: input.slug.trim(),
+    code: input.code.trim().toUpperCase(),
+    flag_emoji: input.flag_emoji.trim() || '🌍',
+    capital: blankToNull(input.capital),
+    region: blankToNull(input.region),
+    subregion: blankToNull(input.subregion),
+    language: blankToNull(input.language),
+    currency: blankToNull(input.currency),
+    currency_code: blankToNull(input.currency_code.toUpperCase()),
+    latitude: input.latitude,
+    longitude: input.longitude,
+    description: blankToNull(input.description),
+    why_work: blankToNull(input.why_work),
+    why_study: blankToNull(input.why_study),
+    lifestyle: blankToNull(input.lifestyle),
+    meta_title: blankToNull(input.meta_title),
+    meta_desc: blankToNull(input.meta_desc),
+    is_active: input.is_active,
+    sort_order: input.sort_order,
+    images: input.images.map((url) => url.trim()).filter(Boolean),
+    climate,
+    cost_of_living: cost,
+    visa_stats: {
+      ...asObject(raw?.visa_stats),
+      success_rate: input.success_rate,
+      avg_processing_days: input.avg_processing_days,
+      has_work_visa: input.has_work_visa,
+      has_study_visa: input.has_study_visa,
+      eligibility: work.length ? work : study,
+      work_eligibility: work,
+      study_eligibility: study,
+    },
+  }
+}
+
+export class CountrySaveError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'CountrySaveError'
+  }
+}
+
+function friendlyDbError(error: { code?: string }) {
+  switch (error.code) {
+    case '42501':
+      return "You don't have permission to change countries."
+    case '23505':
+      return 'Another country already uses this URL slug or ISO code.'
+    case '23514':
+      return 'Some values are out of range. Latitude and longitude must both be set or both be empty.'
+    case '23503':
+      return 'This country is linked to applications or visa programmes. Hide it instead of deleting it.'
+    case '22001':
+      return 'One of the values is longer than the database allows.'
+    case '23502':
+      return 'A required field is missing.'
+    default:
+      return 'We could not save this country. Please try again.'
+  }
+}
+
+/**
+ * Countries are read straight from the `countries` table and kept fresh through realtime,
+ * window-focus refetches and cache invalidation, so every page that uses this hook shows
+ * the latest saved data. Bundled starter data is shown only if the table is empty or unreachable.
+ */
 export function useAdminCountries() {
-  const [countries, setCountries] = useState<AdminCountryItem[]>(getInitialCountries)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const queryClient = useQueryClient()
+  const channelId = useId()
+  const queryKey = useMemo(() => [QUERY_KEY], [])
 
-  const saveToLocal = useCallback((items: AdminCountryItem[]) => {
+  useEffect(() => {
     try {
-      localStorage.setItem(LOCAL_COUNTRIES_KEY, JSON.stringify(items))
-    } catch {}
+      localStorage.removeItem(LEGACY_CACHE_KEY)
+    } catch {
+      // storage unavailable
+    }
   }, [])
 
-  const fetchCountries = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
-    try {
-      const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))
-      const query = supabase
+  const query = useQuery<AdminCountryItem[], Error>({
+    queryKey,
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from('countries')
         .select('*')
         .order('sort_order', { ascending: true })
+        .order('name', { ascending: true })
+      if (error) throw error
+      return ((data ?? []) as CountryRow[]).map(fromRow)
+    },
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 5 * 60 * 1000,
+    retry: 1,
+  })
 
-      const result = await Promise.race([query, timeout])
+  const invalidateAll = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: [QUERY_KEY] })
+    void queryClient.invalidateQueries({ queryKey: ['countries'] })
+    void queryClient.invalidateQueries({ queryKey: ['country'] })
+  }, [queryClient])
 
-      const defaultMap = new Map<string, AdminCountryItem>()
-      DEFAULT_COUNTRIES.forEach(c => {
-        defaultMap.set(normalizeKey(c.slug), c)
-        defaultMap.set(normalizeKey(c.name), c)
-        if (c.code) defaultMap.set(normalizeKey(c.code), c)
-      })
+  useEffect(
+    () =>
+      subscribePostgresChanges(
+        supabase,
+        `countries-sync-${channelId}`,
+        { event: '*', schema: 'public', table: 'countries' },
+        invalidateAll,
+      ),
+    [channelId, invalidateAll],
+  )
 
-      if (result && 'data' in result && result.data && result.data.length > 0) {
-        const processedSlugs = new Set<string>()
-
-        const mapped: AdminCountryItem[] = result.data.map((c: any) => {
-          const normSlug = normalizeKey(c.slug)
-          const normName = normalizeKey(c.name)
-          const normCode = normalizeKey(c.code)
-          const defaultMatch = defaultMap.get(normSlug) || defaultMap.get(normName) || defaultMap.get(normCode)
-
-          if (defaultMatch) {
-            processedSlugs.add(normalizeKey(defaultMatch.slug))
-            processedSlugs.add(normalizeKey(defaultMatch.name))
-          }
-
-          let criteria: string[] = []
-          if (Array.isArray(c.eligibility_criteria) && c.eligibility_criteria.length > 0) {
-            criteria = c.eligibility_criteria
-          } else if (c.visa_stats?.eligibility && Array.isArray(c.visa_stats.eligibility) && c.visa_stats.eligibility.length > 0) {
-            criteria = c.visa_stats.eligibility
-          } else if (defaultMatch && defaultMatch.eligibility_criteria.length > 0) {
-            criteria = defaultMatch.eligibility_criteria
-          }
-
-          let workCriteria: string[] = []
-          if (Array.isArray(c.work_eligibility_criteria) && c.work_eligibility_criteria.length > 0) {
-            workCriteria = c.work_eligibility_criteria
-          } else if (c.visa_stats?.work_eligibility && Array.isArray(c.visa_stats.work_eligibility) && c.visa_stats.work_eligibility.length > 0) {
-            workCriteria = c.visa_stats.work_eligibility
-          } else if (defaultMatch && defaultMatch.work_eligibility_criteria.length > 0) {
-            workCriteria = defaultMatch.work_eligibility_criteria
-          } else {
-            workCriteria = criteria
-          }
-
-          let studyCriteria: string[] = []
-          if (Array.isArray(c.study_eligibility_criteria) && c.study_eligibility_criteria.length > 0) {
-            studyCriteria = c.study_eligibility_criteria
-          } else if (c.visa_stats?.study_eligibility && Array.isArray(c.visa_stats.study_eligibility) && c.visa_stats.study_eligibility.length > 0) {
-            studyCriteria = c.visa_stats.study_eligibility
-          } else if (defaultMatch && defaultMatch.study_eligibility_criteria.length > 0) {
-            studyCriteria = defaultMatch.study_eligibility_criteria
-          } else {
-            studyCriteria = criteria
-          }
-
-          return {
-            id: c.id,
-            name: c.name || defaultMatch?.name || 'Country',
-            slug: c.slug || defaultMatch?.slug || 'country',
-            code: c.code || defaultMatch?.code || 'XX',
-            flag_emoji: c.flag_emoji || defaultMatch?.flag_emoji || '🌍',
-            capital: c.capital || defaultMatch?.capital || '',
-            region: c.region || defaultMatch?.region || 'Europe',
-            language: c.language || defaultMatch?.language || 'English',
-            description: c.description || defaultMatch?.description || '',
-            why_work: c.why_work || defaultMatch?.why_work || '',
-            why_study: c.why_study || defaultMatch?.why_study || '',
-            lifestyle: c.lifestyle || defaultMatch?.lifestyle || '',
-            has_work_visa: c.has_work_visa ?? defaultMatch?.has_work_visa ?? true,
-            has_study_visa: c.has_study_visa ?? defaultMatch?.has_study_visa ?? true,
-            eligibility_criteria: criteria.length > 0 ? criteria : (defaultMatch?.eligibility_criteria || []),
-            work_eligibility_criteria: workCriteria,
-            study_eligibility_criteria: studyCriteria,
-            success_rate: c.visa_stats?.success_rate || defaultMatch?.success_rate || 95,
-            avg_processing_days: c.visa_stats?.avg_processing_days || defaultMatch?.avg_processing_days || 30,
-            monthly_living_cost: c.cost_of_living?.monthly_single || defaultMatch?.monthly_living_cost || 65000,
-            is_active: c.is_active ?? true,
-            sort_order: c.sort_order || defaultMatch?.sort_order || 99,
-            created_at: c.created_at || new Date().toISOString(),
-            updated_at: c.updated_at || new Date().toISOString(),
-          }
-        })
-
-        DEFAULT_COUNTRIES.forEach(dc => {
-          if (!processedSlugs.has(normalizeKey(dc.slug)) && !processedSlugs.has(normalizeKey(dc.name))) {
-            mapped.push(dc)
-          }
-        })
-
-        mapped.sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99))
-        setCountries(mapped)
-        saveToLocal(mapped)
-      } else {
-        setCountries(DEFAULT_COUNTRIES)
-        saveToLocal(DEFAULT_COUNTRIES)
-      }
-    } catch (err: any) {
-      console.warn('[useAdminCountries] Database fetch warning:', err)
-      setCountries(DEFAULT_COUNTRIES)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [saveToLocal])
-
+  // Staff see hidden rows through RLS, so refetch when the signed-in user changes.
   useEffect(() => {
-    fetchCountries()
-  }, [fetchCountries])
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') window.setTimeout(invalidateAll, 0)
+    })
+    return () => data.subscription.unsubscribe()
+  }, [invalidateAll])
 
-  const saveCountry = async (item: Partial<AdminCountryItem> & { name: string; slug: string }) => {
-    try {
-      const now = new Date().toISOString()
-      const existing = countries.find(c => c.id === item.id || c.slug === item.slug)
+  const dbCountries = useMemo(() => query.data ?? [], [query.data])
+  const isFallback = query.isError || (query.isSuccess && dbCountries.length === 0)
+  const countries = isFallback ? STARTER_COUNTRIES : dbCountries
 
-      const fullItem: AdminCountryItem = {
-        id: item.id || existing?.id || `country-${Date.now()}`,
-        name: item.name,
-        slug: item.slug,
-        code: item.code || existing?.code || 'XX',
-        flag_emoji: item.flag_emoji || existing?.flag_emoji || '🌍',
-        capital: item.capital || existing?.capital || '',
-        region: item.region || existing?.region || 'Europe',
-        language: item.language || existing?.language || 'English',
-        description: item.description || existing?.description || '',
-        why_work: item.why_work || existing?.why_work || '',
-        why_study: item.why_study || existing?.why_study || '',
-        lifestyle: item.lifestyle || existing?.lifestyle || '',
-        has_work_visa: item.has_work_visa ?? existing?.has_work_visa ?? true,
-        has_study_visa: item.has_study_visa ?? existing?.has_study_visa ?? true,
-        eligibility_criteria: item.eligibility_criteria || existing?.eligibility_criteria || [],
-        work_eligibility_criteria: item.work_eligibility_criteria || existing?.work_eligibility_criteria || item.eligibility_criteria || [],
-        study_eligibility_criteria: item.study_eligibility_criteria || existing?.study_eligibility_criteria || item.eligibility_criteria || [],
-        success_rate: item.success_rate || existing?.success_rate || 95,
-        avg_processing_days: item.avg_processing_days || existing?.avg_processing_days || 30,
-        monthly_living_cost: item.monthly_living_cost || existing?.monthly_living_cost || 65000,
-        is_active: item.is_active ?? true,
-        sort_order: item.sort_order || existing?.sort_order || countries.length + 1,
-        created_at: existing?.created_at || now,
-        updated_at: now,
+  const starterCountries = useMemo(() => {
+    if (isFallback) return STARTER_COUNTRIES
+    const known = new Set(dbCountries.flatMap((c) => [countryKey(c.slug), countryKey(c.name)]))
+    return STARTER_COUNTRIES.filter((s) => !known.has(countryKey(s.slug)) && !known.has(countryKey(s.name)))
+  }, [dbCountries, isFallback])
+
+  const saveMutation = useMutation({
+    mutationFn: async ({ input, existing }: { input: CountryInput; existing?: AdminCountryItem | null }) => {
+      const payload = toPayload(input, existing?.raw)
+      const { data, error } =
+        existing?.source === 'database'
+          ? await supabase.from('countries').update(payload).eq('id', existing.id).select('*').maybeSingle()
+          : await supabase.from('countries').insert(payload).select('*').maybeSingle()
+      if (error) throw new CountrySaveError(friendlyDbError(error))
+      if (!data) throw new CountrySaveError("The change wasn't saved. Your account may not have permission to edit countries.")
+      return fromRow(data as CountryRow)
+    },
+    onSuccess: (item) => {
+      queryClient.setQueryData<AdminCountryItem[]>(queryKey, (prev = []) => {
+        const exists = prev.some((c) => c.id === item.id)
+        return (exists ? prev.map((c) => (c.id === item.id ? item : c)) : [...prev, item]).sort(bySortOrder)
+      })
+      invalidateAll()
+    },
+  })
+
+  const { mutateAsync: saveAsync } = saveMutation
+
+  const saveCountry = useCallback(
+    (input: CountryInput, existing?: AdminCountryItem | null) => saveAsync({ input, existing }),
+    [saveAsync],
+  )
+
+  const toggleCountryActive = useCallback(
+    async (item: AdminCountryItem) => {
+      const previous = queryClient.getQueryData<AdminCountryItem[]>(queryKey)
+      if (item.source === 'database') {
+        queryClient.setQueryData<AdminCountryItem[]>(queryKey, (prev = []) =>
+          prev.map((c) => (c.id === item.id ? { ...c, is_active: !c.is_active } : c)),
+        )
       }
-
-      const nextList = existing
-        ? countries.map(c => (c.id === fullItem.id || c.slug === fullItem.slug ? fullItem : c))
-        : [fullItem, ...countries]
-
-      setCountries(nextList)
-      saveToLocal(nextList)
-
-      const payload = {
-        name: fullItem.name,
-        slug: fullItem.slug,
-        code: fullItem.code,
-        flag_emoji: fullItem.flag_emoji,
-        capital: fullItem.capital,
-        region: fullItem.region,
-        language: fullItem.language,
-        description: fullItem.description,
-        why_work: fullItem.why_work,
-        why_study: fullItem.why_study,
-        lifestyle: fullItem.lifestyle,
-        is_active: fullItem.is_active,
-        sort_order: fullItem.sort_order,
-        visa_stats: {
-          success_rate: fullItem.success_rate,
-          avg_processing_days: fullItem.avg_processing_days,
-          eligibility: fullItem.eligibility_criteria,
-          work_eligibility: fullItem.work_eligibility_criteria,
-          study_eligibility: fullItem.study_eligibility_criteria,
-        },
-        cost_of_living: {
-          monthly_single: fullItem.monthly_living_cost,
-        },
-        updated_at: now,
+      try {
+        return await saveAsync({ input: countryToInput(item, { is_active: !item.is_active }), existing: item })
+      } catch (err) {
+        if (previous) queryClient.setQueryData(queryKey, previous)
+        throw err
       }
+    },
+    [queryClient, queryKey, saveAsync],
+  )
 
-      const { error: dbErr } = await supabase
+  const deleteMutation = useMutation({
+    mutationFn: async (item: AdminCountryItem) => {
+      if (item.source !== 'database') {
+        throw new CountrySaveError('This starter country is not stored in the database, so there is nothing to delete.')
+      }
+      const { data, error } = await supabase.from('countries').delete().eq('id', item.id).select('id')
+      if (error) throw new CountrySaveError(friendlyDbError(error))
+      if (!data?.length) {
+        throw new CountrySaveError(
+          'Your database rules do not allow deleting countries yet. Hide the country instead, or apply the countries admin migration.',
+        )
+      }
+      return item.id
+    },
+    onSuccess: (id) => {
+      queryClient.setQueryData<AdminCountryItem[]>(queryKey, (prev = []) => prev.filter((c) => c.id !== id))
+      invalidateAll()
+    },
+  })
+
+  const importMutation = useMutation({
+    mutationFn: async (items: AdminCountryItem[]) => {
+      if (!items.length) return 0
+      const rows = items.map((item) => toPayload(countryToInput(item)))
+      const { data, error } = await supabase
         .from('countries')
-        .upsert([payload as any], { onConflict: 'slug' })
-
-      if (dbErr) {
-        console.warn('[useAdminCountries] Supabase upsert notice:', dbErr.message)
-      }
-
-      return fullItem
-    } catch (err: any) {
-      toast.error(err?.message || 'Saved locally!')
-    }
-  }
-
-  const deleteCountry = async (id: string) => {
-    try {
-      const target = countries.find(c => c.id === id || c.slug === id)
-      const nextList = countries.filter(c => c.id !== id && c.slug !== id)
-      setCountries(nextList)
-      saveToLocal(nextList)
-
-      if (target?.slug) {
-        await supabase.from('countries').delete().eq('slug', target.slug)
-      }
-      toast.success('Country removed successfully')
-    } catch (err: any) {
-      toast.error('Failed to delete country from server')
-    }
-  }
-
-  const toggleCountryActive = async (id: string) => {
-    const target = countries.find(c => c.id === id || c.slug === id || c.code?.toLowerCase() === id.toLowerCase())
-    if (!target) return
-    const newStatus = !target.is_active
-    toast.info(`${target.name} is now ${newStatus ? 'Active on website' : 'Hidden from website'}`)
-    await saveCountry({ ...target, is_active: newStatus })
-    
-    // Clear public cache to force fresh data on user-facing pages
-    try {
-      localStorage.removeItem(LOCAL_COUNTRIES_KEY)
-      // Also clear React Query cache for public country queries
-      if (typeof window !== 'undefined' && (window as any).queryClient) {
-        (window as any).queryClient.invalidateQueries(['countries'])
-      }
-    } catch {}
-  }
+        .upsert(rows, { onConflict: 'slug', ignoreDuplicates: true })
+        .select('id')
+      if (error) throw new CountrySaveError(friendlyDbError(error))
+      return data?.length ?? 0
+    },
+    onSuccess: invalidateAll,
+  })
 
   return {
     countries,
-    isLoading,
-    error,
-    refetch: fetchCountries,
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    error: query.error,
+    isFallback,
+    dataUpdatedAt: query.dataUpdatedAt,
+    refetch: query.refetch,
+    starterCountries,
     saveCountry,
-    deleteCountry,
+    isSaving: saveMutation.isPending,
+    deleteCountry: deleteMutation.mutateAsync,
+    isDeleting: deleteMutation.isPending,
     toggleCountryActive,
+    importStarterCountries: importMutation.mutateAsync,
+    isImporting: importMutation.isPending,
   }
 }

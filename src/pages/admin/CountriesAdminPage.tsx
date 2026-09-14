@@ -1,689 +1,649 @@
-import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useMemo, useState } from 'react'
+import { formatDistanceToNow } from 'date-fns'
+import { toast } from 'sonner'
 import {
-  Globe, Plus, Sparkles, Search, Edit3, Trash2, CheckCircle2,
-  X, Save, RefreshCw, Eye, EyeOff,
-  Briefcase, GraduationCap, ChevronRight, Layers,
+  AlertTriangle,
+  Briefcase,
+  CircleDashed,
+  DatabaseZap,
+  Eye,
+  EyeOff,
+  Globe2,
+  GraduationCap,
+  Loader2,
+  MoreHorizontal,
+  PencilLine,
+  Plus,
+  RefreshCw,
+  Search,
+  Sparkles,
+  Trash2,
+  X,
+  type LucideIcon,
 } from 'lucide-react'
+import { useAdminCountries, type AdminCountryItem } from '@/hooks/useAdminCountries'
+import { usePermissions } from '@/hooks/usePermissions'
+import { generateCountryEligibilityWithAi } from '@/lib/ai/country-eligibility-generator'
+import { cn } from '@/lib/utils'
+import { FlagIcon } from '@/components/flag-icon'
+import { ConfirmDialog } from '@/components/admin/ConfirmDialog'
+import CountryEditorDialog, { COUNTRY_REGIONS } from '@/components/admin/countries/CountryEditorDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { useAdminCountries, type AdminCountryItem } from '@/hooks/useAdminCountries'
-import { generateCountryEligibilityWithAi, enhanceEligibilityWithAi } from '@/lib/ai/country-eligibility-generator'
-import { FlagIcon } from '@/components/flag-icon'
-import { toast } from 'sonner'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import PageHeader, { Reveal } from '@/components/dashboard/PageHeader'
+import EmptyState from '@/components/dashboard/EmptyState'
+import InlineError from '@/components/dashboard/InlineError'
+import { StatusPill } from '@/components/dashboard/StatusPill'
+
+type StatusFilter = 'all' | 'published' | 'hidden' | 'attention'
+type VisaFilter = 'all' | 'work' | 'study'
+type SortKey = 'order' | 'name' | 'updated'
+
+const COMPANY_CONTEXT =
+  'Siddhivinayak Overseas is a leading visa consultancy in Surat, Gujarat, India specializing in work and study visa applications for destinations worldwide. We help Indian students and professionals with visa applications, document verification, and immigration guidance.'
+
+function attentionReasons(country: AdminCountryItem) {
+  const reasons: string[] = []
+  if (!country.description.trim()) reasons.push('No overview')
+  if (country.has_work_visa && country.work_eligibility_criteria.length === 0) reasons.push('No work rules')
+  if (country.has_study_visa && country.study_eligibility_criteria.length === 0) reasons.push('No study rules')
+  if (!country.capital.trim()) reasons.push('No capital')
+  if (country.source === 'starter') reasons.push('Not in database')
+  return reasons
+}
+
+function Stat({
+  label,
+  value,
+  icon: Icon,
+  tone,
+  active,
+  onClick,
+  loading,
+}: {
+  label: string
+  value: number
+  icon: LucideIcon
+  tone: string
+  active?: boolean
+  onClick?: () => void
+  loading: boolean
+}) {
+  const content = (
+    <>
+      <span className={cn('grid h-9 w-9 place-items-center rounded-lg', tone)}>
+        <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+      </span>
+      <span>
+        {loading ? (
+          <Skeleton className="h-7 w-10 bg-[var(--desk-line)]/60" />
+        ) : (
+          <span className="desk-display block text-2xl font-semibold tabular-nums text-[var(--desk-navy)]">{value}</span>
+        )}
+        <span className="block text-sm text-[var(--desk-muted)]">{label}</span>
+      </span>
+    </>
+  )
+  const className = cn('desk-card flex h-full w-full items-center gap-3 p-4 text-left', onClick && 'desk-card-interactive', active && 'ring-2 ring-[var(--desk-gold)]/60')
+  return onClick ? (
+    <button type="button" onClick={onClick} aria-pressed={active} className={className}>
+      {content}
+    </button>
+  ) : (
+    <div className={className}>{content}</div>
+  )
+}
 
 export default function CountriesAdminPage() {
-  const { countries, isLoading, saveCountry, deleteCountry, toggleCountryActive } = useAdminCountries()
+  const {
+    countries,
+    isLoading,
+    isFetching,
+    error,
+    isFallback,
+    dataUpdatedAt,
+    refetch,
+    starterCountries,
+    saveCountry,
+    isSaving,
+    deleteCountry,
+    isDeleting,
+    toggleCountryActive,
+    importStarterCountries,
+    isImporting,
+  } = useAdminCountries()
+  const { can } = usePermissions()
+  const canCreate = can('countries.create')
+  const canUpdate = can('countries.update')
+  const canDelete = can('countries.delete')
 
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedRegion, setSelectedRegion] = useState('All')
-  const [activeVisaTab, setActiveVisaTab] = useState<'all' | 'work' | 'study'>('all')
+  const [search, setSearch] = useState('')
+  const [region, setRegion] = useState('all')
+  const [status, setStatus] = useState<StatusFilter>('all')
+  const [visa, setVisa] = useState<VisaFilter>('all')
+  const [sort, setSort] = useState<SortKey>('order')
 
-  const [isEditOpen, setIsEditOpen] = useState(false)
-  const [editingItem, setEditingItem] = useState<Partial<AdminCountryItem> | null>(null)
+  const [editorOpen, setEditorOpen] = useState(false)
+  const [editing, setEditing] = useState<AdminCountryItem | null>(null)
+  const [seed, setSeed] = useState<Partial<AdminCountryItem> | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<AdminCountryItem | null>(null)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
 
-  const [workEligibilityRules, setWorkEligibilityRules] = useState<string[]>([])
-  const [studyEligibilityRules, setStudyEligibilityRules] = useState<string[]>([])
-
-  const [newWorkRuleInput, setNewWorkRuleInput] = useState('')
-  const [newStudyRuleInput, setNewStudyRuleInput] = useState('')
-
-  const [isAiOpen, setIsAiOpen] = useState(false)
+  const [aiOpen, setAiOpen] = useState(false)
   const [aiPrompt, setAiPrompt] = useState('')
-  const [isGeneratingAi, setIsGeneratingAi] = useState(false)
-  const [enhancingRules, setEnhancingRules] = useState<'work' | 'study' | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
 
-  const regions = ['All', 'Europe', 'Asia', 'Americas', 'Oceania', 'Middle East']
+  const regions = useMemo(
+    () => [...new Set([...COUNTRY_REGIONS, ...countries.map((c) => c.region).filter(Boolean)])].sort(),
+    [countries],
+  )
 
-  const filteredCountries = countries.filter(c => {
-    const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.capital.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.code.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesRegion = selectedRegion === 'All' || c.region === selectedRegion
-    return matchesSearch && matchesRegion
-  })
+  const stats = useMemo(
+    () => ({
+      total: countries.length,
+      published: countries.filter((c) => c.is_active).length,
+      hidden: countries.filter((c) => !c.is_active).length,
+      work: countries.filter((c) => c.has_work_visa).length,
+      study: countries.filter((c) => c.has_study_visa).length,
+      attention: countries.filter((c) => attentionReasons(c).length > 0).length,
+    }),
+    [countries],
+  )
 
-  const handleOpenEdit = (item?: AdminCountryItem) => {
-    if (item) {
-      setEditingItem({ ...item })
-      setWorkEligibilityRules([...(item.work_eligibility_criteria || item.eligibility_criteria || [])])
-      setStudyEligibilityRules([...(item.study_eligibility_criteria || item.eligibility_criteria || [])])
-    } else {
-      setEditingItem({
-        name: '', slug: '', code: 'DE', flag_emoji: '🌍',
-        capital: '', region: 'Europe', language: 'English', description: '',
-        why_work: '', why_study: '', lifestyle: '',
-        success_rate: 95, avg_processing_days: 30, monthly_living_cost: 85000, is_active: true,
-      })
-      setWorkEligibilityRules([
-        'Valid Passport with at least 18 months validity.',
-        'Relevant Skill Assessment / Trade Certification.',
-        'Proof of Work Experience letters.',
-        'PCC from Regional Passport Office.',
-      ])
-      setStudyEligibilityRules([
-        'Official University Offer Letter / CAS / CoE.',
-        'IELTS Academic / PTE score certificate.',
-        'Sufficient Liquid Financial Funds in bank account.',
-        'Academic Transcripts and Marksheets.',
-      ])
-    }
-    setNewWorkRuleInput('')
-    setNewStudyRuleInput('')
-    setIsEditOpen(true)
-  }
-
-  const handleAddWorkRule = () => {
-    if (!newWorkRuleInput.trim()) return
-    setWorkEligibilityRules([...workEligibilityRules, newWorkRuleInput.trim()])
-    setNewWorkRuleInput('')
-  }
-  const handleRemoveWorkRule = (index: number) => {
-    setWorkEligibilityRules(workEligibilityRules.filter((_, i) => i !== index))
-  }
-  const handleWorkRuleChange = (index: number, text: string) => {
-    const next = [...workEligibilityRules]; next[index] = text; setWorkEligibilityRules(next)
-  }
-
-  const handleAddStudyRule = () => {
-    if (!newStudyRuleInput.trim()) return
-    setStudyEligibilityRules([...studyEligibilityRules, newStudyRuleInput.trim()])
-    setNewStudyRuleInput('')
-  }
-  const handleRemoveStudyRule = (index: number) => {
-    setStudyEligibilityRules(studyEligibilityRules.filter((_, i) => i !== index))
-  }
-  const handleStudyRuleChange = (index: number, text: string) => {
-    const next = [...studyEligibilityRules]; next[index] = text; setStudyEligibilityRules(next)
-  }
-
-  const handleSaveForm = async () => {
-    if (!editingItem?.name) { toast.error('Country name is required'); return }
-    const slug = editingItem.slug || editingItem.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-    const cleanWork = workEligibilityRules.filter(r => r.trim().length > 0)
-    const cleanStudy = studyEligibilityRules.filter(r => r.trim().length > 0)
-    await saveCountry({
-      ...editingItem, name: editingItem.name, slug,
-      work_eligibility_criteria: cleanWork,
-      study_eligibility_criteria: cleanStudy,
-      eligibility_criteria: cleanWork.length > 0 ? cleanWork : cleanStudy,
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    const rows = countries.filter((c) => {
+      if (term && ![c.name, c.capital, c.code, c.slug, c.language].some((v) => v.toLowerCase().includes(term))) return false
+      if (region !== 'all' && c.region !== region) return false
+      if (visa === 'work' && !c.has_work_visa) return false
+      if (visa === 'study' && !c.has_study_visa) return false
+      if (status === 'published' && !c.is_active) return false
+      if (status === 'hidden' && c.is_active) return false
+      if (status === 'attention' && attentionReasons(c).length === 0) return false
+      return true
     })
-    setIsEditOpen(false)
+    return [...rows].sort((a, b) => {
+      if (sort === 'name') return a.name.localeCompare(b.name)
+      if (sort === 'updated') return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      return a.sort_order - b.sort_order || a.name.localeCompare(b.name)
+    })
+  }, [countries, search, region, visa, status, sort])
+
+  const hasFilters = !!search || region !== 'all' || visa !== 'all' || status !== 'all'
+  const clearFilters = () => {
+    setSearch('')
+    setRegion('all')
+    setVisa('all')
+    setStatus('all')
   }
 
-  const handleEnhanceRules = async (kind: 'work' | 'study') => {
-    const countryName = editingItem?.name?.trim()
-    if (!countryName) { toast.error('Enter a country name first'); return }
-    const rules = kind === 'work' ? workEligibilityRules : studyEligibilityRules
-    if (rules.length === 0) { toast.error(`Add at least one ${kind} rule first, then AI can refine it.`); return }
-    setEnhancingRules(kind)
+  const openEditor = (country: AdminCountryItem | null, seedData: Partial<AdminCountryItem> | null = null) => {
+    setEditing(country)
+    setSeed(seedData)
+    setEditorOpen(true)
+  }
+
+  const handleToggle = async (country: AdminCountryItem) => {
+    if (togglingId) return
+    setTogglingId(country.id)
     try {
-      const enhanced = await enhanceEligibilityWithAi(countryName, rules)
-      if (kind === 'work') setWorkEligibilityRules(enhanced)
-      else setStudyEligibilityRules(enhanced)
-      toast.success(`AI refined ${kind} eligibility details for ${countryName}`)
-    } catch (err: any) {
-      toast.error(err?.message || 'AI enhancement failed')
+      const saved = await toggleCountryActive(country)
+      toast.success(`${saved.name} is now ${saved.is_active ? 'published' : 'hidden'}.`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'We could not change the visibility.')
     } finally {
-      setEnhancingRules(null)
+      setTogglingId(null)
     }
   }
 
-  const handleGenerateAi = async () => {
-    if (!aiPrompt.trim()) { toast.error('Please enter a country or visa prompt'); return }
-    setIsGeneratingAi(true)
+  const handleDelete = async () => {
+    if (!deleteTarget) return
     try {
-      const generated = await generateCountryEligibilityWithAi(aiPrompt, undefined, 'Siddhivinayak Overseas is a leading visa consultancy in Surat, Gujarat, India specializing in work and study visa applications for destinations worldwide. We help Indian students and professionals with visa applications, document verification, and immigration guidance.')
-      setEditingItem(generated)
-      setWorkEligibilityRules(generated.eligibility_criteria)
-      setStudyEligibilityRules(generated.eligibility_criteria)
-      setIsAiOpen(false)
-      setIsEditOpen(true)
-      toast.success(`Generated accurate profile and eligibility for ${generated.name}!`)
-    } catch (err: any) {
-      toast.error('AI generation failed')
-    } finally {
-      setIsGeneratingAi(false)
+      await deleteCountry(deleteTarget)
+      toast.success(`${deleteTarget.name} was deleted.`)
+      setDeleteTarget(null)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'We could not delete this country.')
+      setDeleteTarget(null)
     }
   }
+
+  const handleImport = async () => {
+    try {
+      const count = await importStarterCountries(starterCountries)
+      toast.success(`${count} starter ${count === 1 ? 'country' : 'countries'} saved to the database.`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Import failed. Please try again.')
+    }
+  }
+
+  const handleGenerate = async () => {
+    if (!aiPrompt.trim() || aiLoading) return
+    setAiLoading(true)
+    try {
+      const generated = await generateCountryEligibilityWithAi(aiPrompt, undefined, COMPANY_CONTEXT)
+      setAiOpen(false)
+      setAiPrompt('')
+      const existing = countries.find((c) => c.slug === generated.slug)
+      if (existing) {
+        toast.info(`${existing.name} already exists. Opening it so you can merge the AI suggestions.`)
+        openEditor(existing)
+        return
+      }
+      openEditor(null, { ...generated, has_work_visa: true, has_study_visa: generated.study_eligibility_criteria.length > 0 })
+      toast.success('AI draft ready. Review every field before saving.')
+    } catch {
+      toast.error('AI generation is unavailable right now. Please try again.')
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const statusTabs: { value: StatusFilter; label: string; count: number }[] = [
+    { value: 'all', label: 'All', count: stats.total },
+    { value: 'published', label: 'Published', count: stats.published },
+    { value: 'hidden', label: 'Hidden', count: stats.hidden },
+    { value: 'attention', label: 'Needs attention', count: stats.attention },
+  ]
+
+  const selectClass = 'h-11 w-full rounded-xl border-[var(--desk-line)] bg-[var(--desk-surface)] text-sm sm:w-44'
 
   return (
-    <div className="space-y-8 pb-12">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-border/60 p-6 md:p-8">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-        <div className="relative">
-          <div className="flex items-center gap-2 mb-3">
-            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse mr-1.5" />
-              Live Synchronized
-            </Badge>
+    <div className="applicant-desk space-y-6 pb-10">
+      <PageHeader
+        title="Countries & eligibility"
+        description="Edit every country detail in one place. Changes save to the database and refresh the public pages automatically."
+        meta={
+          <>
+            <StatusPill tone={isFallback ? 'warning' : 'success'} icon={DatabaseZap}>
+              {isFallback ? 'Showing starter data' : 'Connected to database'}
+            </StatusPill>
+            {dataUpdatedAt > 0 && (
+              <StatusPill tone="neutral" icon={RefreshCw}>
+                {isFetching ? 'Syncing…' : `Synced ${formatDistanceToNow(dataUpdatedAt, { addSuffix: true })}`}
+              </StatusPill>
+            )}
+          </>
+        }
+        actions={
+          <>
+            <Button type="button" variant="outline" onClick={() => void refetch()} disabled={isFetching} className="min-h-11 rounded-full border-[var(--desk-line)] bg-[var(--desk-surface)] text-[var(--desk-navy)]">
+              <RefreshCw className={cn('mr-2 h-4 w-4', isFetching && 'animate-spin')} aria-hidden="true" />
+              Refresh
+            </Button>
+            {canCreate && (
+              <>
+                <Button type="button" variant="outline" onClick={() => setAiOpen(true)} className="min-h-11 rounded-full border-[var(--desk-gold)]/50 bg-[var(--desk-gold)]/10 text-[#7a5c12] hover:bg-[var(--desk-gold)]/20">
+                  <Sparkles className="mr-2 h-4 w-4" aria-hidden="true" />
+                  AI draft
+                </Button>
+                <Button type="button" onClick={() => openEditor(null)} className="min-h-11 rounded-full bg-[var(--desk-navy)] px-5 text-[#fff8e7] hover:bg-[var(--desk-navy-soft)]">
+                  <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Add country
+                </Button>
+              </>
+            )}
+          </>
+        }
+      />
+
+      {error && (
+        <InlineError
+          title="We could not reach the countries database."
+          description="You are seeing bundled starter data, and edits cannot be saved until the connection returns."
+          onRetry={() => void refetch()}
+          isRetrying={isFetching}
+        />
+      )}
+
+      {!isLoading && !error && starterCountries.length > 0 && (
+        <div className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-[var(--desk-warning)]" aria-hidden="true" />
+            <div>
+              <p className="text-sm font-semibold text-[var(--desk-navy)]">
+                {starterCountries.length} starter {starterCountries.length === 1 ? 'country is' : 'countries are'} not in the database
+              </p>
+              <p className="text-sm text-[var(--desk-muted)]">
+                {isFallback
+                  ? 'The database has no countries yet, so the website is using bundled data.'
+                  : 'They won’t appear on the website until you save them to the database.'}{' '}
+                {starterCountries.slice(0, 4).map((c) => c.name).join(', ')}
+                {starterCountries.length > 4 ? '…' : ''}
+              </p>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-foreground sm:text-3xl mb-2">Countries & Eligibility Manager</h1>
-          <p className="text-sm text-muted-foreground max-w-xl">
-            Manage Work & Study Visa rules independently. Updates sync live to public website pages without rebuilds.
-          </p>
-          <div className="flex flex-wrap items-center gap-3 mt-6">
-            <Button
-              onClick={() => setIsAiOpen(true)}
-              className="bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700 shadow-lg shadow-amber-500/20 gap-2"
-            >
-              <Sparkles className="h-4 w-4" />
-              AI Generate Country
+          {canCreate && (
+            <Button type="button" onClick={() => void handleImport()} disabled={isImporting} className="min-h-11 shrink-0 rounded-full bg-[var(--desk-navy)] text-[#fff8e7] hover:bg-[var(--desk-navy-soft)]">
+              {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <DatabaseZap className="mr-2 h-4 w-4" aria-hidden="true" />}
+              Import to database
             </Button>
-            <Button onClick={() => handleOpenEdit()} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Country
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Top Visa Category Switcher Tabs */}
-      <div className="flex items-center gap-1 border-b border-border/60 pb-1">
-        <Button
-          variant={activeVisaTab === 'all' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => setActiveVisaTab('all')}
-          className="gap-2 rounded-xl"
-        >
-          <Globe className="h-4 w-4" />
-          All Visas ({countries.length})
-        </Button>
-        <div className="w-px h-6 bg-border/40 mx-1" />
-        <Button
-          variant={activeVisaTab === 'work' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => setActiveVisaTab('work')}
-          className="gap-2 rounded-xl text-amber-600 dark:text-amber-400 data-[state=active]:bg-amber-500/10"
-        >
-          <Briefcase className="h-4 w-4" />
-          Work Visa Pathways
-        </Button>
-        <div className="w-px h-6 bg-border/40 mx-1" />
-        <Button
-          variant={activeVisaTab === 'study' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => setActiveVisaTab('study')}
-          className="gap-2 rounded-xl text-blue-600 dark:text-blue-400 data-[state=active]:bg-blue-500/10"
-        >
-          <GraduationCap className="h-4 w-4" />
-          Study Visa Pathways
-        </Button>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-card/80 backdrop-blur-sm p-4 rounded-xl border border-border/60 shadow-sm">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search country by name, capital, or code..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-background/50"
-          />
-        </div>
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-          {regions.map((reg) => (
-            <Button
-              key={reg}
-              variant={selectedRegion === reg ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedRegion(reg)}
-              className="rounded-full text-xs shrink-0"
-            >
-              {reg}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      {/* Countries Grid */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-          <span className="ml-3 text-sm text-muted-foreground">Loading countries & eligibility data...</span>
-        </div>
-      ) : filteredCountries.length === 0 ? (
-        <div className="text-center py-16 bg-card rounded-2xl border border-border/60 p-8">
-          <Globe className="h-12 w-12 text-muted-foreground/40 mx-auto mb-3" />
-          <h3 className="text-lg font-semibold">No countries found</h3>
-          <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-            No country matched your search query. Click "Add Country" or use "AI Generate Country" to create one.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-2">
-          {filteredCountries.map((country) => {
-            const displayWorkRules = country.work_eligibility_criteria || country.eligibility_criteria || []
-            const displayStudyRules = country.study_eligibility_criteria || country.eligibility_criteria || []
-
-            return (
-              <motion.div
-                key={country.id}
-                layout
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className={`relative rounded-2xl border bg-card p-6 shadow-sm flex flex-col justify-between transition-all hover:shadow-md ${
-                  country.is_active
-                    ? 'border-border/80 hover:border-primary/40 hover:shadow-md'
-                    : 'border-border/40 opacity-60 bg-muted/15'
-                }`}
-              >
-                {/* Glow effect for active cards */}
-                {country.is_active && (
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/[0.02] to-transparent pointer-events-none" />
-                )}
-
-                <div className="space-y-4 relative">
-                  {/* Header */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="relative flex items-center justify-center p-1 bg-muted/30 rounded-lg border border-border/50 shrink-0">
-                        <FlagIcon country={country.name} code={country.code} className="text-3xl rounded-xs shadow-xs" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-lg font-bold text-foreground truncate">{country.name}</h3>
-                          <Badge variant="secondary" className="text-[10px] font-mono uppercase px-1.5 py-0.2 shrink-0">
-                          </Badge>
-                          {country.has_work_visa && (
-                            <Badge variant="outline" className="text-[9px] gap-1 border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-400 dark:border-amber-500/20 dark:bg-amber-500/10">
-                              <Briefcase className="h-2 w-2" /> Work
-                            </Badge>
-                          )}
-                          {country.has_study_visa && (
-                            <Badge variant="outline" className="text-[9px] gap-1 border-blue-500/30 bg-blue-500/5 text-blue-700 dark:text-blue-400 dark:border-blue-500/20 dark:bg-blue-500/10">
-                              <GraduationCap className="h-2 w-2" /> Study
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {country.capital ? `${country.capital} · ` : ''}{country.region}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-0.5 shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => toggleCountryActive(country.id)}
-                        title={country.is_active ? 'Active on website (click to hide)' : 'Hidden (click to show)'}
-                        className={`h-8 w-8 transition-all ${country.is_active ? 'text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
-                      >
-                        {country.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleOpenEdit(country)}
-                        title="Edit country & eligibility"
-                        className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          if (confirm(`Delete country profile for "${country.name}"?`)) {
-                            deleteCountry(country.id)
-                          }
-                        }}
-                        title="Delete country"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Description */}
-                  <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                    {country.description || 'No description provided.'}
-                  </p>
-
-                  {/* WORK VISA ELIGIBILITY SECTION */}
-                  {(activeVisaTab === 'all' || activeVisaTab === 'work') && (
-                    <div className="space-y-2 pt-3 border-t border-amber-500/15 dark:border-amber-500/25 bg-amber-500/[0.03] dark:bg-amber-500/[0.06] p-3 rounded-xl">
-                      <div className="flex items-center justify-between text-xs font-semibold text-foreground">
-                        <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
-                          <Briefcase className="h-4 w-4" />
-                          Work Visa Requirements ({displayWorkRules.length})
-                        </span>
-                        <button
-                          onClick={() => handleOpenEdit(country)}
-                          className="text-[11px] text-primary hover:underline flex items-center gap-0.5"
-                        >
-                          Manage <ChevronRight className="h-3 w-3" />
-                        </button>
-                      </div>
-                      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                        {displayWorkRules.map((rule, idx) => (
-                          <div key={idx} className="flex items-start gap-2 text-xs text-muted-foreground group">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5 opacity-70 group-hover:opacity-100 transition-opacity" />
-                            <span className="line-clamp-1">{rule}</span>
-                          </div>
-                        ))}
-                        {displayWorkRules.length === 0 && (
-                          <p className="text-[11px] text-muted-foreground italic pl-5">No work criteria defined.</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* STUDY VISA ELIGIBILITY SECTION */}
-                  {(activeVisaTab === 'all' || activeVisaTab === 'study') && (
-                    <div className="space-y-2 pt-3 border-t border-blue-500/15 dark:border-blue-500/25 bg-blue-500/[0.03] dark:bg-blue-500/[0.06] p-3 rounded-xl">
-                      <div className="flex items-center justify-between text-xs font-semibold text-foreground">
-                        <span className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400">
-                          <GraduationCap className="h-4 w-4" />
-                          Study Visa Requirements ({displayStudyRules.length})
-                        </span>
-                        <button
-                          onClick={() => handleOpenEdit(country)}
-                          className="text-[11px] text-primary hover:underline flex items-center gap-0.5"
-                        >
-                          Manage <ChevronRight className="h-3 w-3" />
-                        </button>
-                      </div>
-                      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                        {displayStudyRules.map((rule, idx) => (
-                          <div key={idx} className="flex items-start gap-2 text-xs text-muted-foreground group">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-0.5 opacity-70 group-hover:opacity-100 transition-opacity" />
-                            <span className="line-clamp-1">{rule}</span>
-                          </div>
-                        ))}
-                        {displayStudyRules.length === 0 && (
-                          <p className="text-[11px] text-muted-foreground italic pl-5">No study criteria defined.</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Stats Footer */}
-                <div className="mt-6 pt-3 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground">
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1">
-                      <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                      Success: <strong className="text-foreground">{country.success_rate}%</strong>
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                      Processing: <strong className="text-foreground">{country.avg_processing_days}d</strong>
-                    </span>
-                  </div>
-                  <Badge variant={country.is_active ? 'default' : 'outline'} className="text-[10px]">
-                    {country.is_active ? 'Published' : 'Draft'}
-                  </Badge>
-                </div>
-              </motion.div>
-            )
-          })}
+          )}
         </div>
       )}
 
-      {/* AI Generator Modal */}
-      <Dialog open={isAiOpen} onOpenChange={setIsAiOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-amber-500" />
-              AI Country & Eligibility Generator
-            </DialogTitle>
-            <DialogDescription>
-              Enter a country or visa prompt (e.g. "Germany Opportunity Card" or "Japan SSW"). AI will auto-create both Work & Study visa rules.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <Label>Country or Visa Target</Label>
+      <Reveal className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <Stat label="Countries" value={stats.total} icon={Globe2} tone="bg-[#c49a2b]/12 text-[#8a6a1a]" loading={isLoading} active={status === 'all' && visa === 'all'} onClick={clearFilters} />
+        <Stat label="Published" value={stats.published} icon={Eye} tone="bg-emerald-100/80 text-[#20875a]" loading={isLoading} active={status === 'published'} onClick={() => setStatus('published')} />
+        <Stat label="Hidden" value={stats.hidden} icon={EyeOff} tone="bg-slate-100 text-slate-600" loading={isLoading} active={status === 'hidden'} onClick={() => setStatus('hidden')} />
+        <Stat label="Work routes" value={stats.work} icon={Briefcase} tone="bg-amber-100/80 text-[#a66a00]" loading={isLoading} active={visa === 'work'} onClick={() => setVisa('work')} />
+        <Stat label="Study routes" value={stats.study} icon={GraduationCap} tone="bg-sky-100/80 text-[#2876b8]" loading={isLoading} active={visa === 'study'} onClick={() => setVisa('study')} />
+        <Stat label="Need attention" value={stats.attention} icon={CircleDashed} tone="bg-red-100/80 text-[#b42318]" loading={isLoading} active={status === 'attention'} onClick={() => setStatus('attention')} />
+      </Reveal>
+
+      <Reveal delay={0.05}>
+        <section aria-labelledby="countries-directory-heading" className="desk-card p-4 sm:p-5">
+          <h2 id="countries-directory-heading" className="sr-only">
+            Country directory
+          </h2>
+
+          <div role="tablist" aria-label="Filter by status" className="desk-scroll-x -mx-1 flex gap-1 overflow-x-auto px-1">
+            {statusTabs.map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                role="tab"
+                aria-selected={status === tab.value}
+                onClick={() => setStatus(tab.value)}
+                className={cn(
+                  'flex min-h-10 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-medium transition',
+                  status === tab.value ? 'bg-[var(--desk-navy)] text-[#fff8e7]' : 'text-[var(--desk-muted)] hover:bg-[var(--desk-surface-soft)] hover:text-[var(--desk-navy)]',
+                )}
+              >
+                {tab.label}
+                <span className={cn('rounded-full px-1.5 text-[11px] tabular-nums', status === tab.value ? 'bg-white/15' : 'bg-[var(--desk-line)]/60')}>
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2 lg:flex-row lg:items-center">
+            <div className="relative flex-1">
+              <label htmlFor="countries-search" className="sr-only">
+                Search countries
+              </label>
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--desk-muted)]" aria-hidden="true" />
               <Input
-                placeholder="e.g. Germany, Japan SSW, UK NHS Caregiver, Canada Express Entry"
-                value={aiPrompt}
-                onChange={(e) => setAiPrompt(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleGenerateAi()}
-                className="mt-1.5"
+                id="countries-search"
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name, capital, code or language…"
+                className="h-11 rounded-xl border-[var(--desk-line)] bg-[var(--desk-surface)] pl-10"
               />
             </div>
+            <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-3 sm:flex">
+              <Select value={region} onValueChange={setRegion}>
+                <SelectTrigger aria-label="Filter by region" className={selectClass}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All regions</SelectItem>
+                  {regions.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={visa} onValueChange={(v) => setVisa(v as VisaFilter)}>
+                <SelectTrigger aria-label="Filter by visa type" className={selectClass}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All visa types</SelectItem>
+                  <SelectItem value="work">Work visa</SelectItem>
+                  <SelectItem value="study">Study visa</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
+                <SelectTrigger aria-label="Sort countries" className={selectClass}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="order">Display order</SelectItem>
+                  <SelectItem value="name">Name A–Z</SelectItem>
+                  <SelectItem value="updated">Recently updated</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" onClick={() => setIsAiOpen(false)}>Cancel</Button>
-            <Button
-              onClick={handleGenerateAi}
-              disabled={isGeneratingAi || !aiPrompt.trim()}
-              className="bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700 gap-2"
-            >
-              {isGeneratingAi ? (
-                <><RefreshCw className="h-4 w-4 animate-spin" /> Generating...</>
-              ) : (
-                <><Sparkles className="h-4 w-4" /> Generate Profile</>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
-      {/* Edit / Create Country & Eligibility Modal */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5 text-primary" />
-              {editingItem?.id ? `Edit ${editingItem.name} Work & Study Rules` : 'Add New Country & Eligibility'}
+          {hasFilters && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[var(--desk-muted)]" aria-live="polite">
+              <span>
+                {filtered.length} of {stats.total} countries
+              </span>
+              <button type="button" onClick={clearFilters} className="inline-flex min-h-8 items-center gap-1 rounded-full border border-[var(--desk-line)] px-2.5 font-semibold text-[var(--desk-navy)] hover:bg-[var(--desk-surface-soft)]">
+                <X className="h-3 w-3" aria-hidden="true" />
+                Clear filters
+              </button>
+            </div>
+          )}
+
+          <div className="mt-5">
+            {isLoading ? (
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" role="status">
+                <span className="sr-only">Loading countries…</span>
+                {Array.from({ length: 6 }, (_, i) => (
+                  <Skeleton key={i} className="h-56 rounded-2xl bg-[var(--desk-line)]/50" />
+                ))}
+              </div>
+            ) : filtered.length === 0 ? (
+              <EmptyState
+                icon={hasFilters ? Search : Globe2}
+                title={hasFilters ? 'No countries match these filters' : 'No countries yet'}
+                description={hasFilters ? 'Try another search or clear the filters.' : 'Add your first destination to publish it on the website.'}
+                actions={
+                  hasFilters ? (
+                    <Button type="button" variant="outline" onClick={clearFilters} className="min-h-11 rounded-full border-[var(--desk-line)]">
+                      Clear filters
+                    </Button>
+                  ) : canCreate ? (
+                    <Button type="button" onClick={() => openEditor(null)} className="min-h-11 rounded-full bg-[var(--desk-navy)] text-[#fff8e7]">
+                      <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                      Add country
+                    </Button>
+                  ) : undefined
+                }
+              />
+            ) : (
+              <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {filtered.map((country) => {
+                  const reasons = attentionReasons(country)
+                  return (
+                    <li key={country.id}>
+                      <article
+                        className={cn(
+                          'group flex h-full flex-col rounded-2xl border bg-[var(--desk-surface)] p-4 transition hover:-translate-y-0.5 hover:border-[var(--desk-gold)]/45 hover:shadow-[0_16px_32px_-24px_rgba(26,35,64,0.45)]',
+                          country.is_active ? 'border-[var(--desk-line)]' : 'border-dashed border-[var(--desk-line)] bg-[var(--desk-surface-soft)]',
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className={cn('grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-[var(--desk-line)] bg-white text-3xl', !country.is_active && 'grayscale')}>
+                            <FlagIcon country={country.name} code={country.code} />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="truncate text-base font-semibold text-[var(--desk-navy)]">{country.name}</h3>
+                            <p className="truncate text-xs text-[var(--desk-muted)]">
+                              <span className="font-mono">{country.code}</span>
+                              {country.capital && ` · ${country.capital}`}
+                              {country.region && ` · ${country.region}`}
+                            </p>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button type="button" variant="ghost" size="icon" aria-label={`More actions for ${country.name}`} className="h-10 w-10 shrink-0 rounded-xl text-[var(--desk-muted)]">
+                                <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem onSelect={() => openEditor(country)}>
+                                <PencilLine className="mr-2 h-4 w-4" aria-hidden="true" />
+                                {canUpdate ? 'Edit details' : 'View details'}
+                              </DropdownMenuItem>
+                              {canUpdate && (
+                                <DropdownMenuItem onSelect={() => void handleToggle(country)} disabled={togglingId === country.id}>
+                                  {country.is_active ? <EyeOff className="mr-2 h-4 w-4" aria-hidden="true" /> : <Eye className="mr-2 h-4 w-4" aria-hidden="true" />}
+                                  {country.is_active ? 'Hide from website' : 'Publish on website'}
+                                </DropdownMenuItem>
+                              )}
+                              {country.source === 'database' && country.is_active && (
+                                <DropdownMenuItem asChild>
+                                  <a href={`/countries/${country.slug}`} target="_blank" rel="noreferrer">
+                                    <Globe2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                                    View live page
+                                  </a>
+                                </DropdownMenuItem>
+                              )}
+                              {canDelete && country.source === 'database' && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onSelect={() => setDeleteTarget(country)} className="text-[var(--desk-danger)] focus:bg-red-50 focus:text-[var(--desk-danger)]">
+                                    <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                                    Delete country
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          <StatusPill tone={country.is_active ? 'success' : 'neutral'} icon={country.is_active ? Eye : EyeOff}>
+                            {country.is_active ? 'Published' : 'Hidden'}
+                          </StatusPill>
+                          {country.has_work_visa && (
+                            <StatusPill tone="warning" icon={Briefcase}>
+                              Work · {country.work_eligibility_criteria.length}
+                            </StatusPill>
+                          )}
+                          {country.has_study_visa && (
+                            <StatusPill tone="info" icon={GraduationCap}>
+                              Study · {country.study_eligibility_criteria.length}
+                            </StatusPill>
+                          )}
+                        </div>
+
+                        <p className="mt-3 line-clamp-2 text-sm text-[var(--desk-muted)]">
+                          {country.description || <span className="italic">No overview yet.</span>}
+                        </p>
+
+                        <dl className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-[var(--desk-surface-soft)] p-2.5 text-center text-xs">
+                          <div>
+                            <dt className="text-[var(--desk-muted)]">Success</dt>
+                            <dd className="font-semibold tabular-nums text-[var(--desk-navy)]">{country.success_rate}%</dd>
+                          </div>
+                          <div>
+                            <dt className="text-[var(--desk-muted)]">Processing</dt>
+                            <dd className="font-semibold tabular-nums text-[var(--desk-navy)]">{country.avg_processing_days}d</dd>
+                          </div>
+                          <div>
+                            <dt className="text-[var(--desk-muted)]">Living</dt>
+                            <dd className="font-semibold tabular-nums text-[var(--desk-navy)]">₹{Math.round(country.monthly_living_cost / 1000)}k</dd>
+                          </div>
+                        </dl>
+
+                        {reasons.length > 0 && (
+                          <p className="mt-3 flex items-start gap-1.5 text-xs text-[var(--desk-warning)]">
+                            <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                            {reasons.join(' · ')}
+                          </p>
+                        )}
+
+                        <div className="mt-auto flex items-center justify-between gap-2 pt-4">
+                          <span className="text-xs text-[var(--desk-muted)]">
+                            {country.source === 'database' ? `Updated ${formatDistanceToNow(new Date(country.updated_at), { addSuffix: true })}` : 'Starter data'}
+                          </span>
+                          <Button type="button" onClick={() => openEditor(country)} className="min-h-10 rounded-full bg-[var(--desk-navy)] px-4 text-[#fff8e7] hover:bg-[var(--desk-navy-soft)]">
+                            <PencilLine className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                            {canUpdate ? 'Edit' : 'View'}
+                          </Button>
+                        </div>
+                      </article>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+        </section>
+      </Reveal>
+
+      <CountryEditorDialog
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+        country={editing}
+        seed={seed}
+        allCountries={countries}
+        onSave={saveCountry}
+        isSaving={isSaving}
+        canSave={editing ? canUpdate : canCreate}
+      />
+
+      <Dialog open={aiOpen} onOpenChange={(open) => !aiLoading && setAiOpen(open)}>
+        <DialogContent className="applicant-desk rounded-2xl border-[var(--desk-line)] bg-[var(--desk-surface)] text-[var(--desk-navy)]">
+          <DialogHeader className="text-left">
+            <DialogTitle className="desk-display flex items-center gap-2 text-xl">
+              <Sparkles className="h-5 w-5 text-[var(--desk-gold)]" aria-hidden="true" />
+              Draft a country with AI
             </DialogTitle>
-            <DialogDescription>
-              Separate Work Visa and Study Visa eligibility rules. Changes update live across website pages.
+            <DialogDescription className="text-[var(--desk-muted)]">
+              Describe a destination or visa route. AI prepares a draft in the editor — nothing is saved until you review it.
             </DialogDescription>
           </DialogHeader>
-
-          <Tabs defaultValue="work-rules" className="w-full mt-2">
-            <TabsList className="grid grid-cols-4 w-full mb-4">
-              <TabsTrigger value="work-rules" className="gap-1.5 text-xs text-amber-600 dark:text-amber-400">
-                <Briefcase className="h-3.5 w-3.5" /> Work Rules
-              </TabsTrigger>
-              <TabsTrigger value="study-rules" className="gap-1.5 text-xs text-blue-600 dark:text-blue-400">
-                <GraduationCap className="h-3.5 w-3.5" /> Study Rules
-              </TabsTrigger>
-              <TabsTrigger value="basic" className="gap-1.5 text-xs">
-                <Globe className="h-3.5 w-3.5" /> Basic Info
-              </TabsTrigger>
-              <TabsTrigger value="stats" className="gap-1.5 text-xs">
-                <Layers className="h-3.5 w-3.5" /> Highlights
-              </TabsTrigger>
-            </TabsList>
-
-            {/* TAB 1: WORK VISA RULES */}
-            <TabsContent value="work-rules" className="space-y-4">
-              <div className="flex items-center justify-between bg-gradient-to-r from-amber-500/10 to-amber-500/5 p-3 rounded-xl border border-amber-500/20 dark:border-amber-500/30">
-                <div>
-                  <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">💼 Work Visa Eligibility Rules</p>
-                  <p className="text-[11px] text-muted-foreground">Required experience, skill assessments, language tests & PCC for work permits.</p>
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={enhancingRules === 'work'}
-                  onClick={() => void handleEnhanceRules('work')}
-                  className="shrink-0 gap-1.5 border-amber-500/40 text-amber-700 dark:text-amber-300"
-                  title="Use AI to refine and enhance these details"
-                >
-                  {enhancingRules === 'work' ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                  AI details
-                </Button>
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="e.g. Skill assessment from Engineers Australia / VETASSESS..."
-                  value={newWorkRuleInput}
-                  onChange={(e) => setNewWorkRuleInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddWorkRule())}
-                />
-                <Button onClick={handleAddWorkRule} className="shrink-0 gap-1 bg-amber-600 hover:bg-amber-700 text-white">
-                  <Plus className="h-4 w-4" /> Add Work Rule
-                </Button>
-              </div>
-              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                {workEligibilityRules.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-6 border border-dashed rounded-xl">No work eligibility rules added yet. Add a rule above.</p>
-                ) : (
-                  workEligibilityRules.map((rule, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-card p-2 rounded-xl border border-border/60 hover:border-border">
-                      <span className="text-xs font-semibold text-muted-foreground w-5 text-center">{idx + 1}.</span>
-                      <Input value={rule} onChange={(e) => handleWorkRuleChange(idx, e.target.value)} className="flex-1 text-xs border-none bg-transparent focus-visible:ring-1" />
-                      <Button size="icon" variant="ghost" onClick={() => handleRemoveWorkRule(idx)} className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0">
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </TabsContent>
-
-            {/* TAB 2: STUDY VISA RULES */}
-            <TabsContent value="study-rules" className="space-y-4">
-              <div className="flex items-center justify-between bg-gradient-to-r from-blue-500/10 to-blue-500/5 p-3 rounded-xl border border-blue-500/20 dark:border-blue-500/30">
-                <div>
-                  <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">🎓 Study Visa Eligibility Rules</p>
-                  <p className="text-[11px] text-muted-foreground">University CAS/CoE offer letters, IELTS/PTE scores, blocked account & academic transcripts.</p>
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={enhancingRules === 'study'}
-                  onClick={() => void handleEnhanceRules('study')}
-                  className="shrink-0 gap-1.5 border-blue-500/40 text-blue-700 dark:text-blue-300"
-                  title="Use AI to refine and enhance these details"
-                >
-                  {enhancingRules === 'study' ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                  AI details
-                </Button>
-              </div>
-              <div className="flex gap-2">
-                <Input placeholder="e.g. CAS Letter / Offer of Place from accredited university..." value={newStudyRuleInput} onChange={(e) => setNewStudyRuleInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddStudyRule())} />
-                <Button onClick={handleAddStudyRule} className="shrink-0 gap-1 bg-blue-600 hover:bg-blue-700 text-white">
-                  <Plus className="h-4 w-4" /> Add Study Rule
-                </Button>
-              </div>
-              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                {studyEligibilityRules.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-6 border border-dashed rounded-xl">No study eligibility rules added yet. Add a rule above.</p>
-                ) : (
-                  studyEligibilityRules.map((rule, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-card p-2 rounded-xl border border-border/60 hover:border-border">
-                      <span className="text-xs font-semibold text-muted-foreground w-5 text-center">{idx + 1}.</span>
-                      <Input value={rule} onChange={(e) => handleStudyRuleChange(idx, e.target.value)} className="flex-1 text-xs border-none bg-transparent focus-visible:ring-1" />
-                      <Button size="icon" variant="ghost" onClick={() => handleRemoveStudyRule(idx)} className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0">
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </TabsContent>
-
-            {/* TAB 3: BASIC INFO */}
-            <TabsContent value="basic" className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Country Name *</Label>
-                  <Input value={editingItem?.name || ''} onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })} placeholder="e.g. Germany" />
-                </div>
-                <div>
-                  <Label>URL Slug</Label>
-                  <Input value={editingItem?.slug || ''} onChange={(e) => setEditingItem({ ...editingItem, slug: e.target.value })} placeholder="e.g. germany" />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label>Flag Emoji</Label>
-                  <Input value={editingItem?.flag_emoji || ''} onChange={(e) => setEditingItem({ ...editingItem, flag_emoji: e.target.value })} placeholder="🇩🇪" />
-                </div>
-                <div>
-                  <Label>ISO Code</Label>
-                  <Input value={editingItem?.code || ''} onChange={(e) => setEditingItem({ ...editingItem, code: e.target.value.toUpperCase() })} placeholder="DE" />
-                </div>
-                <div>
-                  <Label>Region</Label>
-                  <Input value={editingItem?.region || ''} onChange={(e) => setEditingItem({ ...editingItem, region: e.target.value })} placeholder="Europe" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Capital City</Label>
-                  <Input value={editingItem?.capital || ''} onChange={(e) => setEditingItem({ ...editingItem, capital: e.target.value })} placeholder="Berlin" />
-                </div>
-                <div>
-                  <Label>Primary Language(s)</Label>
-                  <Input value={editingItem?.language || ''} onChange={(e) => setEditingItem({ ...editingItem, language: e.target.value })} placeholder="German, English" />
-                </div>
-              </div>
-              <div>
-                <Label>Short Overview / Description</Label>
-                <Textarea value={editingItem?.description || ''} onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })} placeholder="Overview of study and work opportunities for Indian candidates..." rows={3} />
-              </div>
-              <div className="flex gap-6 pt-2">
-                <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-                  <Checkbox checked={editingItem?.has_work_visa ?? true} onCheckedChange={(checked) => setEditingItem({ ...editingItem, has_work_visa: !!checked })} />
-                  Has Work Visa
-                </label>
-                <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-                  <Checkbox checked={editingItem?.has_study_visa ?? true} onCheckedChange={(checked) => setEditingItem({ ...editingItem, has_study_visa: !!checked })} />
-                  Has Study Visa
-                </label>
-              </div>
-            </TabsContent>
-
-            {/* TAB 4: HIGHLIGHTS & STATS */}
-            <TabsContent value="stats" className="space-y-4">
-              <div>
-                <Label>Why Work Here (Work Visa Highlights)</Label>
-                <Textarea value={editingItem?.why_work || ''} onChange={(e) => setEditingItem({ ...editingItem, why_work: e.target.value })} placeholder="Salary benefits, sponsorship, PR pathway..." rows={2} />
-              </div>
-              <div>
-                <Label>Why Study Here (Student Visa Highlights)</Label>
-                <Textarea value={editingItem?.why_study || ''} onChange={(e) => setEditingItem({ ...editingItem, why_study: e.target.value })} placeholder="Universities, post-study work permits..." rows={2} />
-              </div>
-              <div>
-                <Label>Lifestyle & Living</Label>
-                <Textarea value={editingItem?.lifestyle || ''} onChange={(e) => setEditingItem({ ...editingItem, lifestyle: e.target.value })} placeholder="Quality of life, cost of living, cultural scene..." rows={2} />
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label>Visa Success Rate (%)</Label>
-                  <Input type="number" value={editingItem?.success_rate || 95} onChange={(e) => setEditingItem({ ...editingItem, success_rate: Number(e.target.value) })} />
-                </div>
-                <div>
-                  <Label>Avg Processing (Days)</Label>
-                  <Input type="number" value={editingItem?.avg_processing_days || 30} onChange={(e) => setEditingItem({ ...editingItem, avg_processing_days: Number(e.target.value) })} />
-                </div>
-                <div>
-                  <Label>Monthly Living Cost (₹)</Label>
-                  <Input type="number" value={editingItem?.monthly_living_cost || 85000} onChange={(e) => setEditingItem({ ...editingItem, monthly_living_cost: Number(e.target.value) })} />
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-          <DialogFooter className="mt-4 gap-2 sm:gap-0">
-            <Button variant="ghost" onClick={() => setIsEditOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveForm} className="gap-2">
-              <Save className="h-4 w-4" /> Save Country & Sync Live
-            </Button>
-          </DialogFooter>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              void handleGenerate()
+            }}
+            className="space-y-4"
+          >
+            <div className="space-y-1.5">
+              <Label htmlFor="ai-country-prompt">Country or visa route</Label>
+              <Input
+                id="ai-country-prompt"
+                autoFocus
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                placeholder="e.g. Germany Opportunity Card, Japan SSW"
+                className="h-11 rounded-xl border-[var(--desk-line)] bg-white"
+              />
+            </div>
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="outline" onClick={() => setAiOpen(false)} disabled={aiLoading} className="min-h-11 rounded-full border-[var(--desk-line)]">
+                Cancel
+              </Button>
+              <Button type="submit" disabled={aiLoading || !aiPrompt.trim()} className="min-h-11 rounded-full bg-[var(--desk-navy)] text-[#fff8e7] hover:bg-[var(--desk-navy-soft)]">
+                {aiLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Sparkles className="mr-2 h-4 w-4" aria-hidden="true" />}
+                {aiLoading ? 'Drafting…' : 'Create draft'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        title={`Delete ${deleteTarget?.name ?? 'this country'}?`}
+        description="This permanently removes the country from the database and every public page. To keep it for later, hide it instead."
+        confirmLabel={isDeleting ? 'Deleting…' : 'Delete country'}
+        variant="destructive"
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

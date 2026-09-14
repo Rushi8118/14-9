@@ -104,8 +104,8 @@ export default function CountryPage() {
         cost_of_living: {
           monthly_single: adminMatch.monthly_living_cost,
         },
-        meta_title: `${adminMatch.name} Work & Study Visa | Siddhivinayak Overseas`,
-        meta_desc: `Work and study visa eligibility criteria, living costs and application guidance for ${adminMatch.name}.`,
+        meta_title: adminMatch.meta_title || `${adminMatch.name} Work & Study Visa | Siddhivinayak Overseas`,
+        meta_desc: adminMatch.meta_desc || `Work and study visa eligibility criteria, living costs and application guidance for ${adminMatch.name}.`,
       }
     }
     return dbCountry
