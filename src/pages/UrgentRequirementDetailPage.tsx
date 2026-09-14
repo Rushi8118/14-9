@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { motion } from 'framer-motion'
 import {
   Flame, Clock, Users, ArrowLeft, Send, CheckCircle2, MessageCircle,
@@ -190,7 +191,8 @@ export default function UrgentRequirementDetailPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col justify-between">
-      <Helmet script={[{ type: 'application/ld+json', innerHTML: JSON.stringify(schemas) }]}>
+      <JsonLd data={schemas} />
+      <Helmet>
         <title>{`${metaTitle} | ${SITE_NAME}`}</title>
         <meta name="description" content={metaDescription} />
         <link rel="canonical" href={canonical} />

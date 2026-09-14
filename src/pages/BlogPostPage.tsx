@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { ArrowLeft } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
@@ -73,7 +74,8 @@ export default function BlogPostPage() {
 
   return (
     <>
-      <Helmet script={[{ type: 'application/ld+json', innerHTML: JSON.stringify(schemas) }]}>
+      <JsonLd data={schemas} />
+      <Helmet>
         <title>{`${title} | ${SITE_NAME}`}</title>
         <meta name="description" content={description} />
         {keywords && <meta name="keywords" content={keywords} />}
