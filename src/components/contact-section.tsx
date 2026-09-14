@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { PhoneInputField } from "@/components/ui/phone-input-field"
+import { PhoneInputField, isValidPhoneNumber } from "@/components/ui/phone-input-field"
 import { supabase } from "@/lib/supabase/client"
 import { trackEvent, GA_EVENTS } from "@/lib/analytics"
 import { NAP } from '@/lib/seo/site'
@@ -112,6 +112,23 @@ export function ContactSection() {
           onClick: () => navigate("/login")
         }
       })
+      return
+    }
+
+    const enteredPhone = type === "work" ? workPhone : studyPhone
+    const enteredWhatsapp = type === "work" ? workWhatsapp : studyWhatsapp
+    if (!isValidPhoneNumber(enteredPhone)) {
+      toast.error("Please enter a valid phone number", {
+        description: "Enter the country code first (e.g. 91), then the full mobile number — 10 digits for India.",
+      })
+      document.getElementById(type === "work" ? "w-phone" : "s-phone")?.focus()
+      return
+    }
+    if (enteredWhatsapp && !isValidPhoneNumber(enteredWhatsapp)) {
+      toast.error("Please check the WhatsApp number", {
+        description: "Enter the country code first, then the full mobile number, or leave it empty.",
+      })
+      document.getElementById(type === "work" ? "w-whatsapp" : "s-whatsapp")?.focus()
       return
     }
 
