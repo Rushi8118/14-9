@@ -52,8 +52,8 @@ export default function CountriesAdminPage() {
   const handleOpenEdit = (item?: AdminCountryItem) => {
     if (item) {
       setEditingItem({ ...item })
-      setWorkEligibilityRules(item.work_eligibility_criteria || item.eligibility_criteria || [])
-      setStudyEligibilityRules(item.study_eligibility_criteria || item.eligibility_criteria || [])
+      setWorkEligibilityRules([...(item.work_eligibility_criteria || item.eligibility_criteria || [])])
+      setStudyEligibilityRules([...(item.study_eligibility_criteria || item.eligibility_criteria || [])])
     } else {
       setEditingItem({
         name: '', slug: '', code: 'DE', flag_emoji: '🌍',

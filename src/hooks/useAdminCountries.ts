@@ -757,7 +757,7 @@ const DEFAULT_COUNTRIES: AdminCountryItem[] = [
     sort_order: 17 + i,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-  } as AdminCountryItem)),
+  } as unknown as AdminCountryItem)),
 
   // --- REMAINING WORK-ONLY ASIA / MIDDLE EAST ---
   ...([
@@ -794,7 +794,7 @@ const DEFAULT_COUNTRIES: AdminCountryItem[] = [
     sort_order: 31 + i,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-  } as AdminCountryItem)),
+  } as unknown as AdminCountryItem)),
 
   // --- NEW ZEALAND (Oceania Work + Study) ---
   {

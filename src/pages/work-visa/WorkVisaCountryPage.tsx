@@ -25,6 +25,7 @@ export default function WorkVisaCountryPage() {
   const normalized = slug === 'united-kingdom' ? 'uk' : slug
   const detailed = DETAILED[normalized as keyof typeof DETAILED]
   const baseContent = detailed ?? buildWorkCountryContent(normalized)
+  const baseCountry = baseContent?.country
 
   const liveContent = useMemo(() => {
     if (!baseContent) return null
@@ -34,7 +35,7 @@ export default function WorkVisaCountryPage() {
       (c) =>
         c.slug === slug ||
         c.slug === normalized ||
-        c.name.toLowerCase() === baseContent.country.toLowerCase()
+        c.name.toLowerCase() === baseCountry?.toLowerCase()
     )
 
     if (!matchedAdmin) return baseContent
@@ -50,7 +51,7 @@ export default function WorkVisaCountryPage() {
       processingTime: matchedAdmin.avg_processing_days
         ? `Approximately ${matchedAdmin.avg_processing_days} days`
         : baseContent.processingTime,
-      eligibility: workRules && workRules.length > 0 ? workRules : baseContent.eligibility,
+      eligibility: workRules && workRules.length > 0 ? [...workRules] : baseContent.eligibility,
     }
   }, [baseContent, countries, slug, normalized])
 
