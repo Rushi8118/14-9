@@ -54,8 +54,11 @@ export function useRealtimeMetrics(refreshIntervalMs = 30000) {
         supabase.from('admin_sessions').select('id', { count: 'exact', head: true }).eq('is_active', true),
       ])
 
-      const totalUsers = usersRes.data && usersRes.count ? usersRes.count : 0
-      const totalApplications = appsRes.data && appsRes.count ? appsRes.count : 0
+      if (usersRes.error) throw usersRes.error
+      if (appsRes.error) throw appsRes.error
+
+      const totalUsers = usersRes.count ?? 0
+      const totalApplications = appsRes.count ?? 0
       const activeSessions = sessionsRes.error ? 0 : (sessionsRes.count ?? 0)
 
       const roleCounts: Record<string, number> = {}
@@ -70,21 +73,16 @@ export function useRealtimeMetrics(refreshIntervalMs = 30000) {
         ? appsRes.data.filter((a: { status: string }) => a.status === 'pending').length
         : 0
 
-      setMetrics({
+      setMetrics((prev) => ({
+        ...prev,
         activeUsers: activeSessions > 0 ? Math.max(1, Math.floor(activeSessions * 0.6)) : 0,
         activeSessions,
         totalApplications,
         pendingApplications: pending,
         totalUsers,
-        newUsersToday: 0,
-        errorRate: 0,
-        avgResponseMs: 0,
-        recentEvents: [],
         usersByRole,
-        applicationsOverTime: [],
         lastUpdated: new Date().toISOString(),
-      })
-      setConnected(true)
+      }))
     } catch {
       setConnected(false)
     } finally {
@@ -137,8 +135,8 @@ export function useRealtimeMetrics(refreshIntervalMs = 30000) {
             recentEvents: [event, ...prev.recentEvents].slice(0, 20),
           }))
         },
+        (status) => setConnected(status === 'SUBSCRIBED'),
       )
-      setConnected(true)
     } catch {
       setConnected(false)
     }

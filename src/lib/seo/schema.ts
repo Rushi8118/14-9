@@ -137,6 +137,7 @@ export function articleSchema(input: {
   path: string
   datePublished?: string
   dateModified?: string
+  image?: string
 }) {
   const published = input.datePublished ?? '2026-08-25'
   return {
@@ -145,7 +146,7 @@ export function articleSchema(input: {
     headline: input.title,
     description: input.description,
     url: absoluteUrl(input.path),
-    image: DEFAULT_OG_IMAGE,
+    image: input.image || DEFAULT_OG_IMAGE,
     datePublished: published,
     dateModified: input.dateModified ?? published,
     author: { '@id': organizationId() },
@@ -158,6 +159,63 @@ export function articleSchema(input: {
       },
     },
     mainEntityOfPage: absoluteUrl(input.path),
+  }
+}
+
+/**
+ * JobPosting structured data — the caller is responsible for only invoking
+ * this when the underlying fields are real (not "Admin input required"
+ * placeholders), since JobPosting rich results are validated against the
+ * live page content by search engines.
+ */
+export function jobPostingSchema(input: {
+  title: string
+  description: string
+  path: string
+  datePosted: string
+  validThrough?: string | null
+  employmentType?: string
+  hiringOrganizationName?: string
+  countryName: string
+  city?: string
+  salary?: { currency: string; value: string }
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'JobPosting',
+    title: input.title,
+    description: input.description,
+    identifier: {
+      '@type': 'PropertyValue',
+      name: input.hiringOrganizationName || SITE_NAME,
+      value: absoluteUrl(input.path),
+    },
+    datePosted: input.datePosted,
+    ...(input.validThrough ? { validThrough: input.validThrough } : {}),
+    employmentType: input.employmentType || 'FULL_TIME',
+    hiringOrganization: {
+      '@type': 'Organization',
+      name: input.hiringOrganizationName || SITE_NAME,
+      sameAs: SITE_URL,
+    },
+    jobLocation: {
+      '@type': 'Place',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: input.city || input.countryName,
+        addressCountry: input.countryName,
+      },
+    },
+    ...(input.salary
+      ? {
+          baseSalary: {
+            '@type': 'MonetaryAmount',
+            currency: input.salary.currency,
+            value: { '@type': 'QuantitativeValue', value: input.salary.value, unitText: 'YEAR' },
+          },
+        }
+      : {}),
+    directApply: false,
   }
 }
 

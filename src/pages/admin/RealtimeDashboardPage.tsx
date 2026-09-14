@@ -29,10 +29,10 @@ export default function RealtimeDashboardPage() {
   const maxRoleCount = Math.max(...metrics.usersByRole.map(r => r.count), 1)
 
   const metricCards = [
-    { title: 'Active Users', value: metrics.activeUsers, sub: 'right now', icon: Activity, trend: 'up' as const, trendLabel: '+12%', accent: 'green' as const },
-    { title: 'Active Sessions', value: metrics.activeSessions, sub: 'open sessions', icon: Wifi, trend: 'flat' as const, trendLabel: 'stable', accent: 'blue' as const },
-    { title: 'Total Users', value: metrics.totalUsers.toLocaleString(), sub: `+${metrics.newUsersToday} today`, icon: Users, trend: 'up' as const, trendLabel: '+8%', accent: 'gold' as const },
-    { title: 'Applications', value: metrics.totalApplications.toLocaleString(), sub: `${metrics.pendingApplications} pending`, icon: Briefcase, trend: 'up' as const, trendLabel: '+5%', accent: 'purple' as const },
+    { title: 'Active Users', value: metrics.activeUsers, subtitle: 'right now', icon: Activity, trend: 'up' as const, trendLabel: '+12%', accent: 'green' as const },
+    { title: 'Active Sessions', value: metrics.activeSessions, subtitle: 'open sessions', icon: Wifi, trend: 'flat' as const, trendLabel: 'stable', accent: 'blue' as const },
+    { title: 'Total Users', value: metrics.totalUsers.toLocaleString(), subtitle: `+${metrics.newUsersToday} today`, icon: Users, trend: 'up' as const, trendLabel: '+8%', accent: 'gold' as const },
+    { title: 'Applications', value: metrics.totalApplications.toLocaleString(), subtitle: `${metrics.pendingApplications} pending`, icon: Briefcase, trend: 'up' as const, trendLabel: '+5%', accent: 'purple' as const },
   ]
 
   return (

@@ -2,22 +2,47 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
+export type UrgentRequirementFaqItem = { question: string; answer: string }
+
 export type UrgentRequirement = {
   id: string
   title: string
   slug: string
+  employer?: string
   country: string
   country_code: string
+  city?: string
+  visa_type?: string
   category: string
   vacancies: number
   salary: string
+  currency?: string
   experience_required?: string
+  education?: string
+  skills?: string[]
+  benefits?: string[]
+  contract_type?: string
+  working_hours?: string
   image_url?: string
   detail_image_url?: string
+  image_alt?: string
   summary: string
   content: string
-  status: 'active' | 'closed' | 'expired'
+  application_instructions?: string
+  eligibility?: string[]
+  required_documents?: string[]
+  seo_title?: string
+  meta_description?: string
+  focus_keyword?: string
+  related_keywords?: string[]
+  long_tail_keywords?: string[]
+  tags?: string[]
+  faq?: UrgentRequirementFaqItem[]
+  admin_input_required?: string[]
+  ai_generated?: boolean
+  status: 'draft' | 'active' | 'closed' | 'expired'
   expires_at: string | null
+  deadline_at?: string | null
   created_at: string
   updated_at: string
 }
@@ -26,19 +51,42 @@ export type UrgentRequirementInput = {
   id?: string
   title: string
   slug: string
+  employer?: string
   country: string
   country_code: string
+  city?: string
+  visa_type?: string
   category: string
   vacancies: number
   salary: string
+  currency?: string
   experience_required?: string
+  education?: string
+  skills?: string[]
+  benefits?: string[]
+  contract_type?: string
+  working_hours?: string
   image_url?: string
   detail_image_url?: string
+  image_alt?: string
   summary: string
   content: string
-  status?: 'active' | 'closed' | 'expired'
+  application_instructions?: string
+  eligibility?: string[]
+  required_documents?: string[]
+  seo_title?: string
+  meta_description?: string
+  focus_keyword?: string
+  related_keywords?: string[]
+  long_tail_keywords?: string[]
+  tags?: string[]
+  faq?: UrgentRequirementFaqItem[]
+  admin_input_required?: string[]
+  ai_generated?: boolean
+  status?: 'draft' | 'active' | 'closed' | 'expired'
   duration_days?: number
   expires_at?: string | null
+  deadline_at?: string | null
 }
 
 const LOCAL_URGENT_KEY = 'svo_admin_urgent_reqs_v3'
@@ -657,85 +705,78 @@ export function useAdminUrgentRequirements() {
     fetchAll()
   }, [fetchAll])
 
-  // Save (Create or Update)
+  // Save (Create or Update) — routed through the save_urgent_requirement
+  // SECURITY DEFINER RPC, which enforces the admin-tier role check and a
+  // server-side slug-uniqueness check. State/local-cache are only updated
+  // from the confirmed saved row, never optimistically, so a failed or
+  // still-draft save can never leak into the public fallback cache.
   const saveRequirement = async (input: UrgentRequirementInput): Promise<UrgentRequirement> => {
     setSaving(true)
     try {
-      let expires_at = input.expires_at
-
+      let expires_at = input.expires_at ?? null
       if (input.duration_days && !expires_at) {
         const d = new Date()
         d.setDate(d.getDate() + Number(input.duration_days))
         expires_at = d.toISOString()
       }
 
-      const now = new Date().toISOString()
-      const existing = requirements.find(r => r.id === input.id || r.slug === input.slug)
-
-      const fullItem: UrgentRequirement = {
-        id: input.id || existing?.id || `req-${Date.now()}`,
+      const payload = {
+        id: input.id || null,
         title: input.title,
         slug: input.slug,
+        employer: input.employer || null,
         country: input.country,
         country_code: input.country_code || 'XX',
+        city: input.city || null,
+        visa_type: input.visa_type || null,
         category: input.category,
         vacancies: Number(input.vacancies) || 1,
         salary: input.salary,
-        experience_required: input.experience_required || '',
-        image_url: input.image_url || 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&auto=format&fit=crop&q=80',
-        detail_image_url: input.detail_image_url || input.image_url || existing?.detail_image_url || '',
+        currency: input.currency || null,
+        experience_required: input.experience_required || null,
+        education: input.education || null,
+        skills: input.skills || [],
+        benefits: input.benefits || [],
+        contract_type: input.contract_type || null,
+        working_hours: input.working_hours || null,
+        image_url: input.image_url || null,
+        detail_image_url: input.detail_image_url || input.image_url || null,
+        image_alt: input.image_alt || null,
         summary: input.summary || '',
         content: input.content,
-        status: input.status || 'active',
-        expires_at: expires_at || existing?.expires_at || null,
-        created_at: existing?.created_at || now,
-        updated_at: now,
+        application_instructions: input.application_instructions || null,
+        eligibility: input.eligibility || [],
+        required_documents: input.required_documents || [],
+        seo_title: input.seo_title || null,
+        meta_description: input.meta_description || null,
+        focus_keyword: input.focus_keyword || null,
+        related_keywords: input.related_keywords || [],
+        long_tail_keywords: input.long_tail_keywords || [],
+        tags: input.tags || [],
+        faq: input.faq || [],
+        admin_input_required: input.admin_input_required || [],
+        ai_generated: Boolean(input.ai_generated),
+        status: input.status || 'draft',
+        expires_at,
+        deadline_at: input.deadline_at ?? null,
       }
 
-      const nextList = existing
-        ? requirements.map(r => (r.id === fullItem.id || r.slug === fullItem.slug ? fullItem : r))
-        : [fullItem, ...requirements]
+      const { data, error: rpcError } = await supabase.rpc('save_urgent_requirement', { payload })
+      if (rpcError) throw new Error(rpcError.message)
 
-      setRequirements(nextList)
-      saveToLocal(nextList)
+      const saved = data as UrgentRequirement
+      setRequirements((current) => {
+        const exists = current.some((r) => r.id === saved.id)
+        return exists ? current.map((r) => (r.id === saved.id ? saved : r)) : [saved, ...current]
+      })
 
-      const payload = {
-        id: fullItem.id,
-        title: fullItem.title,
-        slug: fullItem.slug,
-        country: fullItem.country,
-        country_code: fullItem.country_code,
-        category: fullItem.category,
-        vacancies: fullItem.vacancies,
-        salary: fullItem.salary,
-        experience_required: fullItem.experience_required,
-        image_url: fullItem.image_url,
-        detail_image_url: fullItem.detail_image_url,
-        summary: fullItem.summary,
-        content: fullItem.content,
-        status: fullItem.status,
-        expires_at: fullItem.expires_at,
-        created_at: fullItem.created_at,
-        updated_at: now,
-      }
-
-      console.log('[saveRequirement] Upserting:', { id: fullItem.id, status: fullItem.status })
-
-      const { data: upsertData, error: dbErr } = await supabase
-        .from('urgent_requirements')
-        .upsert(payload, { onConflict: 'id' })
-        .select()
-
-      if (dbErr) {
-        console.error('[saveRequirement] Database error:', dbErr)
-        throw new Error(`Database update failed: ${dbErr.message}`)
-      }
-
-      console.log('[saveRequirement] Success:', upsertData)
-      toast.success(`Urgent requirement "${fullItem.title}" updated live!`)
-      return fullItem
+      toast.success(
+        saved.status === 'active'
+          ? `"${saved.title}" is now live.`
+          : `"${saved.title}" saved as ${saved.status}.`,
+      )
+      return saved
     } catch (err: any) {
-      console.error('[saveRequirement] Error:', err)
       toast.error(err?.message || 'Failed to save!')
       throw err
     } finally {

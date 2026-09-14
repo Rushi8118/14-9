@@ -17,6 +17,7 @@ export function subscribePostgresChanges(
   channelName: string,
   filters: ChangeFilter | ChangeFilter[],
   onChange: (payload: unknown) => void,
+  onStatusChange?: (status: string) => void,
 ): () => void {
   const list = Array.isArray(filters) ? filters : [filters]
   const uniqueName = `${channelName}:${Math.random().toString(36).slice(2, 9)}`
@@ -42,7 +43,7 @@ export function subscribePostgresChanges(
     )
   }
 
-  channel.subscribe()
+  channel.subscribe((status) => onStatusChange?.(status))
 
   return () => {
     void client.removeChannel(channel)

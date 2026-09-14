@@ -5,7 +5,7 @@ import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { BlogContent } from '@/components/blog/BlogContent'
 import { usePublicBlogPost } from '@/hooks/useAdminBlogPosts'
-import { articleSchema, breadcrumbSchema } from '@/lib/seo/schema'
+import { articleSchema, breadcrumbSchema, faqSchema } from '@/lib/seo/schema'
 import { SITE_NAME, absoluteUrl } from '@/lib/seo/site'
 import { format } from 'date-fns'
 
@@ -52,6 +52,7 @@ export default function BlogPostPage() {
   const description = post.meta_desc || post.excerpt || ''
   const canonical = post.canonical_url || absoluteUrl(`/blog/${post.slug}`)
   const keywords = (post.keywords || []).join(', ')
+  const faqItems = (post.faq || []).filter((f) => f.question?.trim() && f.answer?.trim())
 
   const schemas = [
     breadcrumbSchema([
@@ -65,7 +66,9 @@ export default function BlogPostPage() {
       path: `/blog/${post.slug}`,
       datePublished: post.published_at || post.created_at,
       dateModified: post.updated_at || post.published_at || post.created_at,
+      image: post.featured_image || undefined,
     }),
+    ...(faqItems.length > 0 ? [faqSchema(faqItems)] : []),
   ]
 
   return (
@@ -79,6 +82,10 @@ export default function BlogPostPage() {
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
         <meta property="og:url" content={canonical} />
+        {post.featured_image && <meta property="og:image" content={post.featured_image} />}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
         <script type="application/ld+json">{JSON.stringify(schemas)}</script>
       </Helmet>
       <SiteHeader />
@@ -102,12 +109,39 @@ export default function BlogPostPage() {
             )}
             {post.published_at && (
               <p className="mt-4 text-xs text-muted-foreground">
-                Published {format(new Date(post.published_at), 'MMMM d, yyyy')} · {SITE_NAME}
+                Published {format(new Date(post.published_at), 'MMMM d, yyyy')}
+                {post.last_reviewed_at && (
+                  <> · Last reviewed {format(new Date(post.last_reviewed_at), 'MMMM d, yyyy')}</>
+                )}
+                {post.reading_time_minutes && <> · {post.reading_time_minutes} min read</>}
+                {' '}· {SITE_NAME}
               </p>
             )}
           </header>
+          {post.featured_image && (
+            <div className="mt-8 overflow-hidden rounded-2xl border border-border">
+              <img src={post.featured_image} alt={post.image_alt || post.title} className="w-full object-cover" loading="lazy" />
+              {post.image_caption && (
+                <p className="bg-muted/40 px-4 py-2 text-center text-xs text-muted-foreground">{post.image_caption}</p>
+              )}
+            </div>
+          )}
           <div className="py-8">
             <BlogContent html={post.content} />
+            {faqItems.length > 0 && (
+              <div className="mt-10 space-y-4 border-t border-border pt-6">
+                <h2 className="text-xl font-semibold text-foreground">Frequently asked questions</h2>
+                {faqItems.map((item, i) => (
+                  <div key={i}>
+                    <p className="font-medium text-foreground">{item.question}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{item.answer}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {post.disclaimer && (
+              <p className="mt-8 border-t border-border pt-4 text-xs italic text-muted-foreground">{post.disclaimer}</p>
+            )}
           </div>
           <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
             <p className="font-semibold text-foreground">Need personal guidance?</p>
