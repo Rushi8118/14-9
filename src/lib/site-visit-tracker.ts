@@ -55,6 +55,8 @@ export type TrackEventInput = {
   path?: string
   title?: string
   userId?: string | null
+  /** Signed-in administrator: store in the separate admin_access_logs table, never the visitor log. */
+  admin?: boolean
   metadata?: Record<string, unknown>
 }
 
@@ -89,7 +91,7 @@ export async function trackSiteEvent(input: TrackEventInput): Promise<void> {
       : (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${input.eventType}_${now}_${Math.random().toString(36).slice(2)}`)
 
   try {
-    const { error } = await supabase.from('interactions').upsert(
+    const { error } = await supabase.from(input.admin && input.userId ? 'admin_access_logs' : 'interactions').upsert(
       {
         event_type: input.eventType,
         page_path: path.slice(0, 500),
