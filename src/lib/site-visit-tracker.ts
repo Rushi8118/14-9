@@ -91,7 +91,10 @@ export async function trackSiteEvent(input: TrackEventInput): Promise<void> {
       : (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${input.eventType}_${now}_${Math.random().toString(36).slice(2)}`)
 
   try {
-    const { error } = await supabase.from(input.admin && input.userId ? 'admin_access_logs' : 'interactions').upsert(
+    // Plain insert, not upsert: `ON CONFLICT` makes Postgres also apply SELECT row-level
+    // security, and visitors (anon) cannot read the log, so upserts were rejected with 401.
+    // The unique request_id index still de-duplicates; a duplicate just returns 23505.
+    const { error } = await supabase.from(input.admin && input.userId ? 'admin_access_logs' : 'interactions').insert(
       {
         event_type: input.eventType,
         page_path: path.slice(0, 500),
@@ -108,9 +111,8 @@ export async function trackSiteEvent(input: TrackEventInput): Promise<void> {
           ...(input.metadata || {}),
         },
       },
-      { onConflict: 'request_id', ignoreDuplicates: true },
     )
-    if (error) {
+    if (error && error.code !== '23505') {
       // Common cause: CHECK constraint missing application_submitted / logout / failed_login
       console.warn('[site-visit-tracker] insert failed:', error.message)
     }

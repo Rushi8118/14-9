@@ -55,7 +55,7 @@ export function useCountry(slug: string) {
           .from("countries")
           .select("*")
           .eq("slug", slug)
-          .single()
+          .maybeSingle()
 
         if (countryError) throw countryError
         setCountry(countryData)
@@ -138,7 +138,7 @@ export function useVisaProgram(countrySlug: string, programSlug: string) {
           .select("*")
           .eq("country_slug", countrySlug)
           .eq("slug", programSlug)
-          .single()
+          .maybeSingle()
 
         if (error) throw error
         setProgram(data)

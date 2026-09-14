@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { ArrowLeft } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
@@ -73,6 +74,7 @@ export default function BlogPostPage() {
 
   return (
     <>
+      <JsonLd data={schemas} />
       <Helmet>
         <title>{`${title} | ${SITE_NAME}`}</title>
         <meta name="description" content={description} />
@@ -86,7 +88,6 @@ export default function BlogPostPage() {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
-        <script type="application/ld+json">{JSON.stringify(schemas)}</script>
       </Helmet>
       <SiteHeader />
       <main className="min-h-screen bg-background">

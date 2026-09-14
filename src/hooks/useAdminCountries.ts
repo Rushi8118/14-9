@@ -969,7 +969,9 @@ const STARTER_ROWS: StarterCountry[] = [
 ]
 
 const LEGACY_CACHE_KEY = 'svo_admin_countries_v5'
-const QUERY_KEY = 'admin-countries'
+// Must not collide with other `['admin-countries']` queries (the applications pages cache
+// only { id, name } there), or this hook would read rows without code/slug and crash.
+const QUERY_KEY = 'admin-country-catalog'
 
 type CountryRow = {
   id: string
@@ -1291,9 +1293,13 @@ export function useAdminCountries() {
   const isFallback = query.isError || (query.isSuccess && dbCountries.length === 0)
   const { countries, starterCountries } = useMemo(() => {
     const saved = isFallback ? [] : dbCountries
-    const known = new Set(saved.flatMap((c) => [countryKey(c.slug), countryKey(c.name), c.code.toUpperCase()]))
+    // Rows can have missing fields (older data), so skip blank keys instead of crashing
+    // or treating every blank value as the same country.
+    const keysOf = (c: AdminCountryItem) =>
+      [countryKey(c.slug ?? ''), countryKey(c.name ?? ''), (c.code ?? '').trim().toUpperCase()].filter(Boolean)
+    const known = new Set(saved.flatMap(keysOf))
     const isNew = (c: AdminCountryItem) => {
-      const keys = [countryKey(c.slug), countryKey(c.name), c.code.toUpperCase()]
+      const keys = keysOf(c)
       if (keys.some((k) => known.has(k))) return false
       keys.forEach((k) => known.add(k))
       return true
