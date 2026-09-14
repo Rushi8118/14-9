@@ -131,7 +131,7 @@ export function useCountryBySlug(slug: string) {
         .from("countries")
         .select("*")
         .eq("slug", slug)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.warn("Supabase fetch failed, checking dummy data:", error);
@@ -180,7 +180,7 @@ export function useVisaProgramBySlugs(countrySlug?: string, programSlug?: string
         .select("*")
         .eq("country_slug", countrySlug)
         .eq("slug", programSlug)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.warn("Supabase fetch failed for program:", error);

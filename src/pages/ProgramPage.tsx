@@ -31,19 +31,24 @@ export default function ProgramPage() {
 
   useEffect(() => {
     async function fetchProgramData() {
-      if (!slug || !programSlug) return
+      if (!slug || !programSlug) {
+        setLoading(false)
+        return
+      }
 
       try {
+        // maybeSingle: an unknown program slug is a normal "not found", not an error
+        // (single() makes PostgREST answer 406 and surfaced its raw message to visitors).
         const { data: programData, error: err } = await supabase
           .from('public_visa_programs')
           .select('*')
           .eq('country_slug', slug)
           .eq('slug', programSlug)
-          .single()
+          .maybeSingle()
 
         if (err) {
           console.warn('[ProgramPage] fetch error:', err.message)
-          setError(err.message)
+          setError('We could not load this program right now. Please try again in a moment.')
           return
         }
 
@@ -76,7 +81,7 @@ export default function ProgramPage() {
           <Globe2 className="mx-auto h-12 w-12 text-muted-foreground/40 mb-4" />
           <h1 className="font-serif text-2xl font-semibold text-foreground">Unable to load program</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {error.includes('does not exist') ? 'Table not found — run migrations' : error}
+            {error}
           </p>
           <Button asChild className="mt-4">
             <Link to="/countries">Back to Countries</Link>
