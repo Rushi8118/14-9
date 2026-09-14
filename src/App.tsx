@@ -67,8 +67,8 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 const AuthCallback = lazy(() => import('./pages/AuthCallback'))
 
-const DashboardLayout = lazy(() => import('./components/DashboardLayout'))
-const DashboardHome = lazy(() => import('./pages/DashboardHome'))
+const DashboardShell = lazy(() => import('./components/dashboard/DashboardShell'))
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage'))
 const DocumentsPage = lazy(() => import('./pages/DocumentsPage'))
 const AppointmentsPage = lazy(() => import('./pages/AppointmentsPage'))
@@ -157,13 +157,13 @@ function AppRoutes() {
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <DashboardLayout>
+            <DashboardShell>
               <Outlet />
-            </DashboardLayout>
+            </DashboardShell>
           </ProtectedRoute>
         }
       >
-        <Route index element={<DashboardHome />} />
+        <Route index element={<DashboardPage />} />
         <Route path="applications" element={<ApplicationsPage />} />
         <Route path="documents" element={<DocumentsPage />} />
         <Route path="appointments" element={<AppointmentsPage />} />
