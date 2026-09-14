@@ -4,6 +4,9 @@ import { useAuth } from '@/hooks/use-auth'
 import type { GeneratedBlogPost } from '@/lib/ai/blog-generator'
 import { toast } from 'sonner'
 import { absoluteUrl } from '@/lib/seo/site'
+import { sanitizeRichText } from '@/lib/security/sanitizeHtml'
+
+export type AdminBlogFaqItem = { question: string; answer: string }
 
 export type AdminBlogPost = {
   id: string
@@ -18,16 +21,40 @@ export type AdminBlogPost = {
   meta_desc: string | null
   keywords: string[] | null
   canonical_url: string | null
+  featured_image: string | null
   status: string
   published_at: string | null
   view_count: number
   created_at: string
   updated_at: string
+  focus_keyword: string | null
+  related_keywords: string[]
+  long_tail_keywords: string[]
+  search_intent: string | null
+  faq: AdminBlogFaqItem[]
+  internal_links: string[]
+  related_urgent_requirements: string[]
+  image_alt: string | null
+  image_caption: string | null
+  reading_time_minutes: number | null
+  structured_data: Record<string, unknown>
+  last_reviewed_at: string | null
+  disclaimer: string | null
+  ai_generated: boolean
 }
 
 function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return []
   return value.map((item) => String(item)).filter(Boolean)
+}
+
+function asFaqArray(value: unknown): AdminBlogFaqItem[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((item) => (item && typeof item === 'object' ? item as Record<string, unknown> : null))
+    .filter((item): item is Record<string, unknown> => Boolean(item))
+    .map((item) => ({ question: String(item.question || ''), answer: String(item.answer || '') }))
+    .filter((item) => item.question && item.answer)
 }
 
 function normalizeRow(row: Record<string, unknown>): AdminBlogPost {
@@ -44,11 +71,26 @@ function normalizeRow(row: Record<string, unknown>): AdminBlogPost {
     meta_desc: (row.meta_desc as string) || null,
     keywords: asStringArray(row.keywords),
     canonical_url: (row.canonical_url as string) || null,
+    featured_image: (row.featured_image as string) || null,
     status: String(row.status || 'draft'),
     published_at: (row.published_at as string) || null,
     view_count: Number(row.view_count || 0),
     created_at: String(row.created_at || ''),
     updated_at: String(row.updated_at || ''),
+    focus_keyword: (row.focus_keyword as string) || null,
+    related_keywords: asStringArray(row.related_keywords),
+    long_tail_keywords: asStringArray(row.long_tail_keywords),
+    search_intent: (row.search_intent as string) || null,
+    faq: asFaqArray(row.faq),
+    internal_links: asStringArray(row.internal_links),
+    related_urgent_requirements: asStringArray(row.related_urgent_requirements),
+    image_alt: (row.image_alt as string) || null,
+    image_caption: (row.image_caption as string) || null,
+    reading_time_minutes: row.reading_time_minutes != null ? Number(row.reading_time_minutes) : null,
+    structured_data: (row.structured_data as Record<string, unknown>) || {},
+    last_reviewed_at: (row.last_reviewed_at as string) || null,
+    disclaimer: (row.disclaimer as string) || null,
+    ai_generated: Boolean(row.ai_generated),
   }
 }
 
@@ -76,12 +118,14 @@ export function useAdminBlogPosts() {
     }) => {
       if (!user) throw new Error('Not authenticated')
 
+      const sanitizedContent = sanitizeRichText(input.draft.content)
+
       const rpcPayload = {
         id: input.id || null,
         title: input.draft.title,
         slug: input.draft.slug,
         excerpt: input.draft.excerpt,
-        content: input.draft.content,
+        content: sanitizedContent,
         category: input.draft.category,
         tags: input.draft.tags,
         meta_title: input.draft.meta_title,
@@ -89,22 +133,44 @@ export function useAdminBlogPosts() {
         keywords: input.draft.keywords,
         canonical_url: absoluteUrl(input.draft.canonical_path),
         status: input.status,
+        focus_keyword: input.draft.focus_keyword,
+        related_keywords: input.draft.related_keywords,
+        long_tail_keywords: input.draft.long_tail_keywords,
+        search_intent: input.draft.search_intent,
+        faq: input.draft.faq,
+        internal_links: input.draft.internal_links,
+        related_urgent_requirements: input.draft.related_urgent_requirements,
+        image_alt: input.draft.image_alt,
+        image_caption: input.draft.image_caption,
+        reading_time_minutes: input.draft.reading_time_minutes,
+        last_reviewed_at: new Date().toISOString(),
+        disclaimer: input.draft.disclaimer,
+        ai_generated: true,
       }
 
-      // Prefer SECURITY DEFINER RPC (works even when table RLS is misconfigured)
+      // Prefer SECURITY DEFINER RPC (works even when table RLS is misconfigured,
+      // and does server-side slug-uniqueness + permission checks).
       const rpc = await supabase.rpc('save_blog_post', { payload: rpcPayload })
       if (!rpc.error && rpc.data) {
         return normalizeRow(rpc.data as Record<string, unknown>)
       }
+      const functionMissing = /Could not find the function|schema cache|PGRST202/i.test(rpc.error?.message || '')
+      if (rpc.error && !functionMissing) {
+        // A real validation/authorization error (duplicate slug, missing
+        // title, insufficient role) — surface it rather than silently
+        // falling through to a write path with none of those checks.
+        throw new Error(rpc.error.message)
+      }
 
-      // Fallback: direct table write
+      // Fallback: direct table write (only reached if the RPC itself is
+      // missing from the schema cache, e.g. migration not yet applied).
       const now = new Date().toISOString()
       const row = {
         author_id: user.id,
         title: input.draft.title,
         slug: input.draft.slug,
         excerpt: input.draft.excerpt,
-        content: input.draft.content,
+        content: sanitizedContent,
         category: input.draft.category,
         tags: input.draft.tags,
         meta_title: input.draft.meta_title,

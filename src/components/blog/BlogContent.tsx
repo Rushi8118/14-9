@@ -1,3 +1,5 @@
+import { sanitizeRichText } from '@/lib/security/sanitizeHtml'
+
 type BlogContentProps = {
   html?: string
   content?: string
@@ -17,9 +19,13 @@ function parseMarkdown(text: string): string {
     .replace(/\n\n/g, '</p><p class="mt-4">')
 }
 
-/** Renders trusted admin/AI HTML or Markdown blog bodies with article typography. */
+/** Renders admin/AI-authored HTML or Markdown blog bodies with article
+ *  typography. Content is sanitized here (in addition to at save time) so a
+ *  compromised provider, a prompt-injected response, or a row written before
+ *  server-side sanitization existed can never execute script in a reader's
+ *  browser. */
 export function BlogContent({ html, content, className = '' }: BlogContentProps) {
-  const finalHtml = parseMarkdown(html || content || '')
+  const finalHtml = sanitizeRichText(parseMarkdown(html || content || ''))
 
   return (
     <div

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { motion } from 'framer-motion'
 import {
   Flame, Clock, Users, ArrowLeft, Send, CheckCircle2, MessageCircle,
@@ -15,9 +16,17 @@ import { Label } from '@/components/ui/label'
 import { BlogContent } from '@/components/blog/BlogContent'
 import { useUrgentRequirementBySlug, getRemainingDays, isRequirementExpired } from '@/hooks/useUrgentRequirements'
 import { supabase } from '@/lib/supabase/client'
-import { NAP } from '@/lib/seo/site'
+import { NAP, SITE_NAME, absoluteUrl } from '@/lib/seo/site'
+import { breadcrumbSchema, faqSchema, jobPostingSchema } from '@/lib/seo/schema'
+import { isAdminInputRequired } from '@/lib/ai/guardrails'
 import { toast } from 'sonner'
 import { FlagIcon } from '@/components/flag-icon'
+
+/** Never show the internal "Admin input required" placeholder to the
+ *  public — swap it for a neutral call-to-action instead. */
+function publicText(value: string | null | undefined, fallback: string): string {
+  return isAdminInputRequired(value) ? fallback : (value as string)
+}
 
 export default function UrgentRequirementDetailPage() {
   const { slug } = useParams<{ slug: string }>()
@@ -138,8 +147,65 @@ export default function UrgentRequirementDetailPage() {
     `Hello Siddhivinayak Overseas, I want to apply for the urgent requirement: "${requirement.title}" (${requirement.country}). Please guide me on next steps.`
   )}`
 
+  const path = `/urgent-requirements/${requirement.slug}`
+  const metaTitle = publicText(requirement.seo_title, requirement.title)
+  const metaDescription = publicText(
+    requirement.meta_description,
+    requirement.summary || `${requirement.title} — urgent visa/job opening in ${requirement.country}. Apply through Siddhivinayak Overseas, Surat.`,
+  ).slice(0, 160)
+  const canonical = absoluteUrl(path)
+  const displaySalary = publicText(requirement.salary, 'Contact us for salary details')
+  const displayExperience = publicText(requirement.experience_required, 'Relevant experience — contact us for details')
+  const faqItems = (requirement.faq || []).filter((f) => f.question?.trim() && f.answer?.trim())
+
+  // JobPosting is only rendered when the underlying facts are real (not
+  // "Admin input required" placeholders) — schema.org rich results are
+  // validated against the visible page content, so a placeholder salary/
+  // employer must never be marked up as if it were a real fact.
+  const hasRealSalary = !isAdminInputRequired(requirement.salary) && !isAdminInputRequired(requirement.currency)
+  const schemas = [
+    breadcrumbSchema([
+      { name: 'Home', path: '/' },
+      { name: 'Urgent Requirements', path: '/urgent-requirements' },
+      { name: requirement.title, path },
+    ]),
+    ...(!isClosed
+      ? [
+          jobPostingSchema({
+            title: requirement.title,
+            description: requirement.summary || metaDescription,
+            path,
+            datePosted: requirement.created_at,
+            validThrough: requirement.expires_at,
+            employmentType: requirement.contract_type,
+            hiringOrganizationName: !isAdminInputRequired(requirement.employer) ? requirement.employer : undefined,
+            countryName: requirement.country,
+            city: requirement.city,
+            salary: hasRealSalary ? { currency: requirement.currency!, value: requirement.salary } : undefined,
+          }),
+        ]
+      : []),
+    ...(faqItems.length > 0 ? [faqSchema(faqItems)] : []),
+  ]
+
   return (
     <div className="min-h-screen bg-background flex flex-col justify-between">
+      <Helmet>
+        <title>{`${metaTitle} | ${SITE_NAME}`}</title>
+        <meta name="description" content={metaDescription} />
+        <link rel="canonical" href={canonical} />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={metaTitle} />
+        <meta property="og:description" content={metaDescription} />
+        <meta property="og:url" content={canonical} />
+        {(requirement.detail_image_url || requirement.image_url) && (
+          <meta property="og:image" content={requirement.detail_image_url || requirement.image_url} />
+        )}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={metaTitle} />
+        <meta name="twitter:description" content={metaDescription} />
+        <script type="application/ld+json">{JSON.stringify(schemas)}</script>
+      </Helmet>
       <SiteHeader />
 
       <main className="flex-1 pb-20 pt-28 md:pt-36">
@@ -222,7 +288,7 @@ export default function UrgentRequirementDetailPage() {
                   <DollarSign className="h-3.5 w-3.5 text-emerald-500" /> Salary / Compensation
                 </span>
                 <p className="text-base sm:text-lg font-bold text-foreground">
-                  {requirement.salary}
+                  {displaySalary}
                 </p>
               </div>
 
@@ -231,7 +297,7 @@ export default function UrgentRequirementDetailPage() {
                   <Briefcase className="h-3.5 w-3.5 text-blue-500" /> Experience
                 </span>
                 <p className="text-base sm:text-lg font-bold text-foreground">
-                  {requirement.experience_required || 'Relevant Experience'}
+                  {displayExperience}
                 </p>
               </div>
 
@@ -267,6 +333,22 @@ export default function UrgentRequirementDetailPage() {
               {/* Article Content */}
               <div className="rounded-2xl border border-border/60 bg-card p-6 sm:p-8 shadow-sm">
                 <BlogContent content={requirement.content} />
+                {faqItems.length > 0 && (
+                  <div className="mt-8 space-y-4 border-t border-border pt-6">
+                    <h2 className="text-lg font-semibold text-foreground">Frequently asked questions</h2>
+                    {faqItems.map((item, i) => (
+                      <div key={i}>
+                        <p className="text-sm font-medium text-foreground">{item.question}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{item.answer}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="mt-8 border-t border-border pt-4 text-xs italic text-muted-foreground">
+                  Visa rules, salaries, and processing times vary by employer and case, and can change without
+                  notice. This listing does not guarantee a job offer, visa approval, or any specific outcome —
+                  confirm current details with our counselors before making decisions.
+                </p>
               </div>
 
               {/* Action Toolbar */}

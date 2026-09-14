@@ -421,7 +421,7 @@ Provide exact, specific, and verifiable information. Never guess or invent rules
     const raw = await generateAiText(activeConfig, [
       { role: 'system', content: system },
       { role: 'user', content: userPrompt },
-    ])
+    ], 'country_eligibility')
 
     const data = extractJsonObject(raw)
     const result = normalizeCountryData(data, prompt)
@@ -474,7 +474,7 @@ Return ONLY the JSON array — no other text.`
     const raw = await generateAiText(activeConfig, [
       { role: 'system', content: system },
       { role: 'user', content: userPrompt },
-    ])
+    ], 'country_eligibility')
     const data = extractJsonObject(raw)
     const arr = Array.isArray(data) ? data : (data.rules || data.criteria || existingRules)
     if (Array.isArray(arr)) return arr.map((s: unknown) => String(s).trim())

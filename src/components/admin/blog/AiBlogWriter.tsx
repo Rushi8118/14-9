@@ -26,9 +26,11 @@ const CATEGORY_OPTIONS: { value: BlogCategory | 'auto'; label: string }[] = [
 
 type AiBlogWriterProps = {
   onGenerated: (draft: GeneratedBlogPost) => void
+  existingPosts?: { title: string; slug: string }[]
+  urgentRequirements?: { title: string; slug: string }[]
 }
 
-export function AiBlogWriter({ onGenerated }: AiBlogWriterProps) {
+export function AiBlogWriter({ onGenerated, existingPosts, urgentRequirements }: AiBlogWriterProps) {
   const { settings, loading } = useAdminAiSettings()
   const [mode, setMode] = useState<BlogGenerateMode>('auto')
   const [keywords, setKeywords] = useState('')
@@ -57,6 +59,8 @@ export function AiBlogWriter({ onGenerated }: AiBlogWriterProps) {
         instructions,
         websiteContext: settings.websiteContext,
         preferredCategory: category === 'auto' ? undefined : category,
+        existingPosts,
+        urgentRequirements,
       })
       onGenerated(draft)
       toast.success('Draft ready — review SEO fields, then publish or save as private draft.')
