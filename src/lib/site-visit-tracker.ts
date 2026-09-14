@@ -25,14 +25,14 @@ export function getVisitSessionId(): string {
   }
 }
 
-function detectDeviceType(): string {
+export function detectDeviceType(): string {
   const ua = navigator.userAgent
   if (/Mobi|Android/i.test(ua)) return 'mobile'
   if (/Tablet|iPad/i.test(ua)) return 'tablet'
   return 'desktop'
 }
 
-function detectBrowser(): string {
+export function detectBrowser(): string {
   const ua = navigator.userAgent
   if (ua.includes('Edg/')) return 'Edge'
   if (ua.includes('Chrome/')) return 'Chrome'
@@ -77,22 +77,37 @@ export async function trackSiteEvent(input: TrackEventInput): Promise<void> {
 
   lastWriteAt = now
 
+  const sessionId = getVisitSessionId()
+  // A stable, deterministic key for page views (session + path + a 10s time
+  // bucket) means a duplicate write — e.g. React StrictMode double-invoking
+  // an effect, or a retried request — collides on the same key instead of
+  // creating a second row. Other event types get a fresh random id since
+  // they are rare enough that a real duplicate almost always means retry.
+  const requestId =
+    input.eventType === 'page_view'
+      ? `pv:${sessionId}:${path}:${Math.floor(now / 10_000)}`.slice(0, 300)
+      : (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${input.eventType}_${now}_${Math.random().toString(36).slice(2)}`)
+
   try {
-    const { error } = await supabase.from('interactions').insert({
-      event_type: input.eventType,
-      page_path: path.slice(0, 500),
-      page_title: (input.title || document.title || '').slice(0, 200) || null,
-      referrer: document.referrer ? document.referrer.slice(0, 500) : null,
-      session_id: getVisitSessionId(),
-      user_id: input.userId || null,
-      device_type: detectDeviceType(),
-      browser: detectBrowser(),
-      metadata: {
-        href: window.location.href,
-        language: navigator.language,
-        ...(input.metadata || {}),
+    const { error } = await supabase.from('interactions').upsert(
+      {
+        event_type: input.eventType,
+        page_path: path.slice(0, 500),
+        page_title: (input.title || document.title || '').slice(0, 200) || null,
+        referrer: document.referrer ? document.referrer.slice(0, 500) : null,
+        session_id: sessionId,
+        user_id: input.userId || null,
+        device_type: detectDeviceType(),
+        browser: detectBrowser(),
+        request_id: requestId,
+        metadata: {
+          href: window.location.href,
+          language: navigator.language,
+          ...(input.metadata || {}),
+        },
       },
-    })
+      { onConflict: 'request_id', ignoreDuplicates: true },
+    )
     if (error) {
       // Common cause: CHECK constraint missing application_submitted / logout / failed_login
       console.warn('[site-visit-tracker] insert failed:', error.message)

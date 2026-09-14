@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { writeAuditLog } from '@/lib/audit-log'
 
 export const MEDIA_BUCKET = 'media'
 
@@ -113,7 +114,7 @@ export function useFileManager(folder = '') {
 
       return { path, publicUrl: buildPublicUrl(path) }
     },
-    onSuccess: (_, { file }) => {
+    onSuccess: (result, { file }) => {
       queryClient.invalidateQueries({ queryKey })
       setTimeout(() => {
         setUploadProgress((prev) => {
@@ -123,6 +124,12 @@ export function useFileManager(folder = '') {
         })
       }, 1500)
       toast.success('File uploaded successfully.')
+      void writeAuditLog({
+        action: 'file.uploaded',
+        resource: 'storage',
+        resourceId: result.path,
+        newValue: { name: file.name, size: file.size, type: file.type },
+      })
     },
     onError: (err: Error, { file }) => {
       setUploadProgress((prev) => {
@@ -138,10 +145,12 @@ export function useFileManager(folder = '') {
     mutationFn: async (filePath: string) => {
       const { error } = await supabase.storage.from(MEDIA_BUCKET).remove([filePath])
       if (error) throw error
+      return filePath
     },
-    onSuccess: () => {
+    onSuccess: (filePath) => {
       queryClient.invalidateQueries({ queryKey })
       toast.success('File deleted.')
+      void writeAuditLog({ action: 'file.deleted', resource: 'storage', resourceId: filePath, severity: 'warning' })
     },
     onError: (err: Error) => {
       toast.error(err.message || 'Delete failed.')

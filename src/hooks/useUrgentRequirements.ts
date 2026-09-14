@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { writeAuditLog } from '@/lib/audit-log'
 
 export type UrgentRequirementFaqItem = { question: string; answer: string }
 
@@ -775,6 +776,14 @@ export function useAdminUrgentRequirements() {
           ? `"${saved.title}" is now live.`
           : `"${saved.title}" saved as ${saved.status}.`,
       )
+      void writeAuditLog({
+        action: input.id
+          ? (saved.status === 'active' ? 'urgent_requirement.published' : saved.status === 'closed' ? 'urgent_requirement.closed' : 'urgent_requirement.updated')
+          : 'urgent_requirement.created',
+        resource: 'urgent_requirements',
+        resourceId: saved.id,
+        newValue: { title: saved.title, slug: saved.slug, status: saved.status },
+      })
       return saved
     } catch (err: any) {
       toast.error(err?.message || 'Failed to save!')
@@ -827,13 +836,20 @@ export function useAdminUrgentRequirements() {
       if (target?.slug) {
         await supabase.from('urgent_requirements').delete().eq('slug', target.slug)
       }
-      
+
       // Clear public cache to force fresh data on user-facing pages
       try {
         localStorage.removeItem(LOCAL_URGENT_KEY)
       } catch {}
-      
+
       toast.success('Urgent requirement deleted')
+      void writeAuditLog({
+        action: 'urgent_requirement.deleted',
+        resource: 'urgent_requirements',
+        resourceId: target?.id || id,
+        severity: 'warning',
+        oldValue: target ? { title: target.title, slug: target.slug } : undefined,
+      })
     } catch (err: any) {
       toast.error('Failed to delete requirement')
     }

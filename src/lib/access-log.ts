@@ -10,6 +10,7 @@ import {
   getStaffRoleSlugs,
   getSuperAdminRoleSlugs,
 } from '@/lib/rbac'
+import { writeAuditLog } from '@/lib/audit-log'
 
 // ---------------------------------------------------------------------------
 // Event types (must stay in sync with interactions_event_type_check)
@@ -39,14 +40,20 @@ export const ACCESS_EVENT_LABELS: Record<AccessEventType, string> = {
   signup: 'Signup',
 }
 
-export type AccessLogTab = 'all' | 'visits' | 'applications' | 'logins'
+export type AccessLogTab = 'all' | 'visits' | 'applications' | 'logins' | 'admin' | 'security'
 
-/** Tab presets seed (and stay in sync with) the event-type filter. */
+/** Tab presets seed (and stay in sync with) the event-type filter.
+ *  `admin` has no interactions-table preset — the panel switches its data
+ *  source to the audit_logs table entirely for that tab (see
+ *  AccessLogPanel's AdminActionsTab), since that's where admin CRUD
+ *  actions with before/after values actually live. */
 export const TAB_EVENT_PRESETS: Record<AccessLogTab, AccessEventType[] | null> = {
   all: null,
   visits: ['page_view'],
   applications: ['application_submitted', 'application_status_change'],
   logins: ['login', 'logout', 'failed_login'],
+  admin: null,
+  security: ['failed_login', 'password_change'],
 }
 
 export type AccessRoleFilter = 'super_admin' | 'admin' | 'staff' | 'user' | 'guest'
@@ -142,7 +149,7 @@ export function resolveEventTypes(filters: AccessLogFilters): AccessEventType[] 
 export function tabForEventTypes(types: AccessEventType[]): AccessLogTab {
   if (types.length === 0) return 'all'
   const sorted = [...types].sort().join(',')
-  for (const tab of ['visits', 'applications', 'logins'] as AccessLogTab[]) {
+  for (const tab of ['visits', 'applications', 'logins', 'security'] as AccessLogTab[]) {
     const preset = TAB_EVENT_PRESETS[tab]
     if (preset && [...preset].sort().join(',') === sorted) return tab
   }
@@ -156,7 +163,8 @@ export function tabForEventTypes(types: AccessEventType[]): AccessLogTab {
 export function parseAccessLogSearchParams(params: URLSearchParams): AccessLogFilters {
   const tabRaw = params.get('tab')
   const tab: AccessLogTab =
-    tabRaw === 'visits' || tabRaw === 'applications' || tabRaw === 'logins' || tabRaw === 'all'
+    tabRaw === 'visits' || tabRaw === 'applications' || tabRaw === 'logins' ||
+    tabRaw === 'admin' || tabRaw === 'security' || tabRaw === 'all'
       ? tabRaw
       : 'all'
 
@@ -487,6 +495,11 @@ export async function searchAccessLogPaths(q: string, limit = 20) {
 
 export async function exportAccessLogsCsv(filters: AccessLogFilters): Promise<Blob> {
   const { rows } = await fetchAccessLogPage(filters, 0, CSV_EXPORT_CAP)
+  void writeAuditLog({
+    action: 'export.csv',
+    resource: 'interactions',
+    newValue: { tab: filters.tab, rowCount: rows.length, timeRange: filters.timeRange },
+  })
   const header = [
     'Time',
     'Event',

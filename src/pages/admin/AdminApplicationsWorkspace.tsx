@@ -28,6 +28,7 @@ import {
   Filter, MoreHorizontal, RefreshCw, Search, ShieldAlert, Trash2, X, Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { writeAuditLog } from '@/lib/audit-log'
 import {
   type AppRow, type DetailData, type Officer,
   STATUSES, TYPES, PRIORITIES, PAGE_SIZES,
@@ -249,7 +250,7 @@ export default function AdminApplicationsWorkspace() {
   }
 
   const clearFilters = () => { setSearch(''); setStatusFilter('all'); setTypeFilter('all'); setCountryFilter('all'); setPriorityFilter('all'); setOfficerFilter('all'); setDateFrom(''); setDateTo('') }
-  const exportRows = (rows: AppRow[]) => { const csv = [['Application ID', 'Applicant', 'Email', 'Type', 'Country', 'Status', 'Priority', 'Created', 'Updated'], ...rows.map(row => [row.application_id || row.id, row.user_profile_full_name || '', row.user_profile_email || '', row.application_type, row.country_name || '', row.status, row.priority, row.created_at, row.updated_at || ''])].map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(',')).join('\n'); const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'applications.csv'; anchor.click(); URL.revokeObjectURL(url) }
+  const exportRows = (rows: AppRow[]) => { const csv = [['Application ID', 'Applicant', 'Email', 'Type', 'Country', 'Status', 'Priority', 'Created', 'Updated'], ...rows.map(row => [row.application_id || row.id, row.user_profile_full_name || '', row.user_profile_email || '', row.application_type, row.country_name || '', row.status, row.priority, row.created_at, row.updated_at || ''])].map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(',')).join('\n'); const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'applications.csv'; anchor.click(); URL.revokeObjectURL(url); void writeAuditLog({ action: 'export.csv', resource: 'applications', newValue: { rowCount: rows.length } }) }
   const sort = (key: string) => { setSortDir(sortKey === key && sortDir === 'asc' ? 'desc' : 'asc'); setSortKey(key) }
   const toggleSelected = (id: string) => setSelected(current => current.includes(id) ? current.filter(value => value !== id) : [...current, id])
   const hasFilters = Boolean(search || statusFilter !== 'all' || typeFilter !== 'all' || countryFilter !== 'all' || priorityFilter !== 'all' || officerFilter !== 'all' || dateFrom || dateTo)
