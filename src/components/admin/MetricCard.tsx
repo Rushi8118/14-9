@@ -31,7 +31,7 @@ export function MetricCard({
   title: string
   value: string | number
   subtitle?: string
-  icon: React.ElementType
+  icon: React.ComponentType<{ className?: string }>
   trend?: 'up' | 'down' | 'flat'
   trendLabel?: string
   accent?: 'gold' | 'blue' | 'green' | 'red' | 'purple'
