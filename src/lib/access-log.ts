@@ -74,6 +74,13 @@ export type AccessTimeRange = '15m' | '1h' | '24h' | '7d' | '30d' | 'custom'
 export const PAGE_SIZE = 25
 export const CSV_EXPORT_CAP = 5000
 
+/** Visitor activity and administrator activity are stored in separate tables. */
+export type AccessLogSource = 'visitors' | 'admins'
+
+export function accessLogTable(source: AccessLogSource): 'interactions' | 'admin_access_logs' {
+  return source === 'admins' ? 'admin_access_logs' : 'interactions'
+}
+
 export type AccessLogFilters = {
   tab: AccessLogTab
   /** Empty / omitted = all types (subject to tab preset). */
@@ -88,8 +95,8 @@ export type AccessLogFilters = {
   timeRange: AccessTimeRange
   from?: string
   to?: string
-  /** Hide administrator and super-administrator activity from the list. */
-  hideAdmin: boolean
+  /** Which log store to read: public visitor activity or the separate admin activity log. */
+  source: AccessLogSource
   /** When false, pause 60s polling. Default true. */
   live: boolean
 }
@@ -115,11 +122,7 @@ export const DEFAULT_ACCESS_LOG_FILTERS: AccessLogFilters = {
   tab: 'all',
   eventTypes: [],
   timeRange: '7d',
-  // Default to hiding admin/super-admin activity (mostly the viewing admin's
-  // own routine page-view logging) so the log opens on the real audit
-  // signal instead of internal noise. Admins can still opt back in via the
-  // "Hide admin logs" toggle, which un-hides them.
-  hideAdmin: true,
+  source: 'visitors',
   live: true,
 }
 
@@ -222,8 +225,7 @@ export function parseAccessLogSearchParams(params: URLSearchParams): AccessLogFi
       : '7d'
 
   const live = params.get('live') !== '0'
-  // Default to hiding admin/system noise unless the URL explicitly turns it off.
-  const hideAdmin = params.get('hideAdmin') !== '0'
+  const source: AccessLogSource = params.get('source') === 'admins' ? 'admins' : 'visitors'
 
   // Hydrate event types from tab preset when only ?tab= is present.
   let resolvedTypes = eventTypes
@@ -248,7 +250,7 @@ export function parseAccessLogSearchParams(params: URLSearchParams): AccessLogFi
     timeRange,
     from: params.get('from') || undefined,
     to: params.get('to') || undefined,
-    hideAdmin,
+    source,
     live,
   }
 }
@@ -267,9 +269,7 @@ export function accessLogFiltersToSearchParams(filters: AccessLogFilters): URLSe
   if (filters.timeRange !== '7d') p.set('range', filters.timeRange)
   if (filters.timeRange === 'custom' && filters.from) p.set('from', filters.from)
   if (filters.timeRange === 'custom' && filters.to) p.set('to', filters.to)
-  // Persist explicit "show admin logs" choice; hideAdmin=true is the
-  // implicit default so it does not need to be written to the URL.
-  if (!filters.hideAdmin) p.set('hideAdmin', '0')
+  if (filters.source === 'admins') p.set('source', 'admins')
   if (!filters.live) p.set('live', '0')
   return p
 }
@@ -347,7 +347,7 @@ export function buildAccessLogQuery(
   options: { head?: boolean } = {},
 ) {
   const needsRoleJoin = Boolean(
-    (filters.role && filters.role !== 'guest') || filters.hideAdmin,
+    filters.role && filters.role !== 'guest',
   )
 
   let select: string
@@ -362,7 +362,7 @@ export function buildAccessLogQuery(
   }
 
   let query = supabase
-    .from('interactions')
+    .from(accessLogTable(filters.source))
     .select(select, { count: 'exact', head: options.head === true })
 
   if (!options.head) {
@@ -383,14 +383,6 @@ export function buildAccessLogQuery(
     if (slugs && slugs.length > 0) {
       query = query.in('user_profiles.user_role', slugs)
     }
-  }
-
-  if (filters.hideAdmin) {
-    query = query.not(
-      'user_profiles.user_role',
-      'in',
-      '(admin,super_admin,superadmin)',
-    )
   }
 
   if (filters.device) query = query.eq('device_type', filters.device)
@@ -468,10 +460,10 @@ export async function searchAccessLogUsers(q: string, limit = 20) {
   return data || []
 }
 
-export async function searchAccessLogPaths(q: string, limit = 20) {
+export async function searchAccessLogPaths(q: string, source: AccessLogSource = 'visitors', limit = 20) {
   const term = q.trim()
   let query = supabase
-    .from('interactions')
+    .from(accessLogTable(source))
     .select('page_path')
     .not('page_path', 'is', null)
     .order('created_at', { ascending: false })
@@ -497,8 +489,8 @@ export async function exportAccessLogsCsv(filters: AccessLogFilters): Promise<Bl
   const { rows } = await fetchAccessLogPage(filters, 0, CSV_EXPORT_CAP)
   void writeAuditLog({
     action: 'export.csv',
-    resource: 'interactions',
-    newValue: { tab: filters.tab, rowCount: rows.length, timeRange: filters.timeRange },
+    resource: accessLogTable(filters.source),
+    newValue: { source: filters.source, tab: filters.tab, rowCount: rows.length, timeRange: filters.timeRange },
   })
   const header = [
     'Time',

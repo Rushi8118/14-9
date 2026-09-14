@@ -9,7 +9,6 @@ import {
   ArrowRight,
   Download,
   Eye,
-  EyeOff,
   Loader2,
   Pause,
   Play,
@@ -185,12 +184,12 @@ export function AccessLogPanel() {
   useEffect(() => {
     if (!pathOpen) return
     const t = window.setTimeout(() => {
-      void searchAccessLogPaths(pathQuery)
+      void searchAccessLogPaths(pathQuery, filters.source)
         .then(setPathOptions)
         .catch(() => setPathOptions([]))
     }, 250)
     return () => window.clearTimeout(t)
-  }, [pathQuery, pathOpen])
+  }, [pathQuery, pathOpen, filters.source])
 
   const chips: Chip[] = useMemo(() => {
     const list: Chip[] = []
@@ -211,13 +210,6 @@ export function AccessLogPanel() {
         key: 'role',
         label: ACCESS_ROLE_LABELS[filters.role],
         clear: () => patchFilters({ role: undefined }),
-      })
-    }
-    if (filters.hideAdmin) {
-      list.push({
-        key: 'hide-admin',
-        label: 'Admin logs hidden',
-        clear: () => patchFilters({ hideAdmin: false }),
       })
     }
     if (filters.userId) {
@@ -329,21 +321,32 @@ export function AccessLogPanel() {
             )}
             Export CSV
           </Button>
-          <Button
-            variant={filters.hideAdmin ? 'default' : 'outline'}
-            size="sm"
-            className="gap-1.5"
-            onClick={() => patchFilters({ hideAdmin: !filters.hideAdmin })}
-            aria-pressed={filters.hideAdmin}
-            title={filters.hideAdmin ? 'Show admin logs' : 'Hide admin logs'}
+          <div
+            role="radiogroup"
+            aria-label="Log store"
+            className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5"
           >
-            {filters.hideAdmin ? (
-              <EyeOff className="h-3.5 w-3.5" />
-            ) : (
-              <Eye className="h-3.5 w-3.5" />
-            )}
-            {filters.hideAdmin ? 'Admin logs hidden' : 'Hide admin logs'}
-          </Button>
+            {([
+              ['visitors', 'Visitor logs', Eye],
+              ['admins', 'Admin logs', ShieldAlert],
+            ] as const).map(([value, label, Icon]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={filters.source === value}
+                onClick={() => patchFilters({ source: value, role: undefined, userId: undefined, userLabel: undefined, path: undefined })}
+                className={`inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium transition-colors ${
+                  filters.source === value
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -366,7 +369,7 @@ export function AccessLogPanel() {
       </div>
 
       {filters.tab === 'admin' ? (
-        <AdminActionsPreview hideAdmin={filters.hideAdmin} />
+        <AdminActionsPreview />
       ) : (
       <>
       {/* Filter bar */}
@@ -814,14 +817,9 @@ const SEVERITY_BADGE: Record<string, string> = {
  *  with a before/after value comparison drawer. The full searchable/paginated
  *  audit log lives at /admin/audit — this is a fast-glance preview embedded
  *  next to the visitor/login activity feed. */
-function AdminActionsPreview({ hideAdmin }: { hideAdmin: boolean }) {
+function AdminActionsPreview() {
   const { logs, loading, error, total } = useAuditLogs({})
   const [selected, setSelected] = useState<(typeof logs)[number] | null>(null)
-
-  // "hideAdmin" here means "hide routine admin browsing noise" elsewhere in
-  // this panel; audit_logs only ever contains admin/staff actions, so there
-  // is nothing to additionally hide — the toggle is simply inert on this tab.
-  void hideAdmin
 
   return (
     <div>

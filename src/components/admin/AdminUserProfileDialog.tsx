@@ -117,12 +117,20 @@ export function AdminUserProfileDialog({ userId, onClose }: AdminUserProfileDial
     queryKey: ['admin-user-profile-dialog', userId],
     enabled: Boolean(userId),
     queryFn: async () => {
-      const [profileResult, rolesResult, activityResult, securityResult] = await Promise.all([
+      // Admin activity is stored separately from visitor activity, so read both logs.
+      const [profileResult, rolesResult, visitorActivityResult, adminActivityResult, securityResult] = await Promise.all([
         supabase.from('user_profiles').select('*').eq('id', userId!).maybeSingle(),
         supabase.from('user_roles').select('role_id, roles(id, name, slug)').eq('user_id', userId!),
         supabase.from('interactions').select('id, event_type, page_path, created_at').eq('user_id', userId!).order('created_at', { ascending: false }).limit(12),
+        supabase.from('admin_access_logs').select('id, event_type, page_path, created_at').eq('user_id', userId!).order('created_at', { ascending: false }).limit(12),
         supabase.rpc('get_admin_user_security_details', { p_user_id: userId! }),
       ])
+      const activityResult = {
+        data: [...(visitorActivityResult.data ?? []), ...(adminActivityResult.error ? [] : adminActivityResult.data ?? [])]
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 12),
+        error: visitorActivityResult.error,
+      }
       if (profileResult.error) throw profileResult.error
       if (!profileResult.data) throw new Error('User not found')
 

@@ -44,7 +44,7 @@ function queryKeyFromFilters(filters: AccessLogFilters): string {
     timeRange: filters.timeRange,
     from: filters.from ?? null,
     to: filters.to ?? null,
-    hideAdmin: filters.hideAdmin,
+    source: filters.source,
   })
 }
 
