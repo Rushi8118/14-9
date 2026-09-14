@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { StatusBadge, roleBadge } from '@/components/admin/StatusBadge'
+import { writeAuditLog } from '@/lib/audit-log'
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -201,6 +202,32 @@ export function AdminUserProfileDialog({ userId, onClose }: AdminUserProfileDial
       toast.success('User profile updated')
       await queryClient.invalidateQueries({ queryKey: ['admin-user-profile-dialog', userId] })
       await queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+
+      if (user) {
+        if (user.user_role !== form.user_role) {
+          void writeAuditLog({
+            action: 'user.role_changed',
+            resource: 'user_profiles',
+            resourceId: userId,
+            oldValue: { user_role: user.user_role },
+            newValue: { user_role: form.user_role },
+            severity: 'warning',
+          })
+        }
+        if (user.status !== form.status) {
+          void writeAuditLog({
+            action: form.status === 'suspended' ? 'user.suspended' : form.status === 'active' ? 'user.activated' : 'user.updated',
+            resource: 'user_profiles',
+            resourceId: userId,
+            oldValue: { status: user.status },
+            newValue: { status: form.status },
+            severity: form.status === 'suspended' ? 'warning' : 'info',
+          })
+        }
+        if (user.user_role === form.user_role && user.status === form.status) {
+          void writeAuditLog({ action: 'user.updated', resource: 'user_profiles', resourceId: userId })
+        }
+      }
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : 'Failed to update user')
     } finally {
@@ -247,6 +274,13 @@ export function AdminUserProfileDialog({ userId, onClose }: AdminUserProfileDial
     else {
       toast.success('User marked as deleted')
       await queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      void writeAuditLog({
+        action: 'user.deleted',
+        resource: 'user_profiles',
+        resourceId: userId,
+        oldValue: user ? { email: user.email, user_role: user.user_role } : undefined,
+        severity: 'critical',
+      })
       onClose()
     }
   }
