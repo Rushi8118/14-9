@@ -657,7 +657,7 @@ export function AccessLogPanel() {
               <button
                 type="button"
                 aria-label={`Remove ${chip.label}`}
-                className="rounded-sm p-0.5 hover:bg-muted-foreground/20"
+                className="grid size-5 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted-foreground/15 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={chip.clear}
               >
                 <X className="h-3 w-3" />
