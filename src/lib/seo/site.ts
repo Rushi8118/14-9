@@ -27,9 +27,21 @@ export const NAP = {
 
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/consultant-office.jpg`
 
-export const SOCIAL_SAME_AS: string[] = [
-  // Add verified profile URLs when available
-]
+/** Official social profiles. Used for footer/contact links and schema.org `sameAs`. */
+export const SOCIAL_LINKS = {
+  instagram: {
+    label: 'Instagram',
+    handle: '@siddhivinyakoverseas',
+    url: 'https://www.instagram.com/siddhivinyakoverseas/',
+  },
+  facebook: {
+    label: 'Facebook',
+    handle: 'Siddhivinayak Overseas',
+    url: 'https://www.facebook.com/share/1EMjNkoty3/',
+  },
+} as const
+
+export const SOCIAL_SAME_AS: string[] = Object.values(SOCIAL_LINKS).map((profile) => profile.url)
 
 export function absoluteUrl(path: string): string {
   if (!path || path === '/') return SITE_URL

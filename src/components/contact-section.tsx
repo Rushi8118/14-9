@@ -18,6 +18,7 @@ import { PhoneInputField } from "@/components/ui/phone-input-field"
 import { supabase } from "@/lib/supabase/client"
 import { trackEvent, GA_EVENTS } from "@/lib/analytics"
 import { NAP } from '@/lib/seo/site'
+import { SocialLinks } from '@/components/social-links'
 import { toast } from "sonner"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { useAuth } from "@/hooks/use-auth"
@@ -281,6 +282,13 @@ export function ContactSection() {
                 </div>
               </li>
             </ul>
+
+            <div className="mt-8 border-t border-border/60 pt-6">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Follow our latest visa updates
+              </p>
+              <SocialLinks source="Contact Section" className="mt-3" />
+            </div>
           </div>
 
           <div className="lg:col-span-7">

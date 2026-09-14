@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { trackEvent, GA_EVENTS } from "@/lib/analytics"
 import { NAP } from "@/lib/seo/site"
+import { SocialLinks } from "@/components/social-links"
 import { Link } from "react-router-dom"
 import {
   Globe2,
@@ -77,6 +78,11 @@ export function SiteFooter() {
                   24/7 Support
                 </span>
               </div>
+            </div>
+
+            <div className="mt-6">
+              <p className="mb-2.5 text-xs font-bold uppercase tracking-[0.15em] text-primary">Follow us</p>
+              <SocialLinks source="Footer" />
             </div>
           </div>
 

@@ -195,21 +195,21 @@ html {
     height: auto;
   }
 
-  /* Minimum touch targets for primary interactive elements */
-  button,
-  [role='button'],
-  a {
-    min-height: 44px;
-    min-width: 44px;
-  }
-
-  /* Compact controls should not inherit large touch targets */
-  nav a,
-  .touch-auto,
-  [data-slot='checkbox'],
-  [role='checkbox'] {
-    min-height: unset;
-    min-width: unset;
+  /*
+   * Touch devices only: give standalone buttons a comfortable height. Components size
+   * themselves on desktop, and small inline controls (chip "×", input clear buttons,
+   * text links) keep their own size so they don't render as oversized grey squares.
+   */
+  @media (pointer: coarse) {
+    button:not(:is([data-slot='badge'], .touch-auto, [role='checkbox'], [role='switch'], [role='tab']) *):not(
+        .touch-auto,
+        [role='checkbox'],
+        [role='switch'],
+        [role='tab'],
+        [data-slot='checkbox']
+      ) {
+      min-height: 40px;
+    }
   }
 
   /* Gold focus ring â€” WCAG 2.1 AA visible focus indicator */
