@@ -205,7 +205,7 @@ function validate(draft: Draft, others: AdminCountryItem[]): DraftErrors {
   else if (others.some((c) => c.slug === draft.slug.trim())) errors.slug = 'Another country already uses this URL slug.'
 
   if (!/^[A-Za-z]{2,5}$/.test(draft.code.trim())) errors.code = 'Use a 2–5 letter code, e.g. DE or DEU.'
-  else if (others.some((c) => c.code.toUpperCase() === draft.code.trim().toUpperCase())) errors.code = 'Another country already uses this code.'
+  else if (others.some((c) => (c.code ?? '').toUpperCase() === draft.code.trim().toUpperCase())) errors.code = 'Another country already uses this code.'
 
   if (!draft.flag_emoji.trim()) errors.flag_emoji = 'Add a flag emoji.'
   if (draft.currency_code.trim() && !/^[A-Za-z]{3}$/.test(draft.currency_code.trim())) errors.currency_code = 'Use a 3-letter code, e.g. EUR.'

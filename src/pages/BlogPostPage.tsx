@@ -73,7 +73,7 @@ export default function BlogPostPage() {
 
   return (
     <>
-      <Helmet>
+      <Helmet script={[{ type: 'application/ld+json', innerHTML: JSON.stringify(schemas) }]}>
         <title>{`${title} | ${SITE_NAME}`}</title>
         <meta name="description" content={description} />
         {keywords && <meta name="keywords" content={keywords} />}
@@ -86,7 +86,6 @@ export default function BlogPostPage() {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
-        <script type="application/ld+json">{JSON.stringify(schemas)}</script>
       </Helmet>
       <SiteHeader />
       <main className="min-h-screen bg-background">

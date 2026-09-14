@@ -190,7 +190,7 @@ export default function UrgentRequirementDetailPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col justify-between">
-      <Helmet>
+      <Helmet script={[{ type: 'application/ld+json', innerHTML: JSON.stringify(schemas) }]}>
         <title>{`${metaTitle} | ${SITE_NAME}`}</title>
         <meta name="description" content={metaDescription} />
         <link rel="canonical" href={canonical} />
@@ -204,7 +204,6 @@ export default function UrgentRequirementDetailPage() {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={metaTitle} />
         <meta name="twitter:description" content={metaDescription} />
-        <script type="application/ld+json">{JSON.stringify(schemas)}</script>
       </Helmet>
       <SiteHeader />
 

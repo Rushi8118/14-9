@@ -27,7 +27,14 @@ export function SeoHead({
   const schemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : []
 
   return (
-    <Helmet>
+    // JSON-LD goes through Helmet's `script` prop: rendering <script> elements inside
+    // React triggers "Encountered a script tag while rendering React component".
+    <Helmet
+      script={schemas.map((schema) => ({
+        type: 'application/ld+json',
+        innerHTML: JSON.stringify(schema),
+      }))}
+    >
       <html lang="en-IN" />
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
@@ -50,11 +57,6 @@ export function SeoHead({
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={image} />
-      {schemas.map((schema, index) => (
-        <script key={index} type="application/ld+json">
-          {JSON.stringify(schema)}
-        </script>
-      ))}
     </Helmet>
   )
 }
