@@ -490,7 +490,7 @@ export default function CountryEditorDialog({
               <div className="flex flex-wrap items-center gap-2">
                 <DialogTitle className="desk-display truncate text-xl font-semibold sm:text-2xl">{title}</DialogTitle>
                 <StatusPill tone={draft.is_active ? 'success' : 'neutral'}>{draft.is_active ? 'Published' : 'Hidden'}</StatusPill>
-                {country?.source === 'starter' && <StatusPill tone="warning">Not in database yet</StatusPill>}
+                {country && country.source !== 'database' && <StatusPill tone="warning">Not in database yet</StatusPill>}
               </div>
               <DialogDescription className="mt-0.5 text-sm text-[var(--desk-muted)]">
                 Every field saves to the database and updates the public country pages automatically.

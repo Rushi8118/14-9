@@ -46,7 +46,7 @@ import EmptyState from '@/components/dashboard/EmptyState'
 import InlineError from '@/components/dashboard/InlineError'
 import { StatusPill } from '@/components/dashboard/StatusPill'
 
-type StatusFilter = 'all' | 'published' | 'hidden' | 'attention'
+type StatusFilter = 'all' | 'published' | 'hidden' | 'unsaved' | 'attention'
 type VisaFilter = 'all' | 'work' | 'study'
 type SortKey = 'order' | 'name' | 'updated'
 
@@ -59,7 +59,7 @@ function attentionReasons(country: AdminCountryItem) {
   if (country.has_work_visa && country.work_eligibility_criteria.length === 0) reasons.push('No work rules')
   if (country.has_study_visa && country.study_eligibility_criteria.length === 0) reasons.push('No study rules')
   if (!country.capital.trim()) reasons.push('No capital')
-  if (country.source === 'starter') reasons.push('Not in database')
+  if (country.source !== 'database') return ['Not added to the database yet']
   return reasons
 }
 
@@ -152,11 +152,12 @@ export default function CountriesAdminPage() {
   const stats = useMemo(
     () => ({
       total: countries.length,
-      published: countries.filter((c) => c.is_active).length,
-      hidden: countries.filter((c) => !c.is_active).length,
+      published: countries.filter((c) => c.source === 'database' && c.is_active).length,
+      hidden: countries.filter((c) => c.source === 'database' && !c.is_active).length,
+      unsaved: countries.filter((c) => c.source !== 'database').length,
       work: countries.filter((c) => c.has_work_visa).length,
       study: countries.filter((c) => c.has_study_visa).length,
-      attention: countries.filter((c) => attentionReasons(c).length > 0).length,
+      attention: countries.filter((c) => c.source === 'database' && attentionReasons(c).length > 0).length,
     }),
     [countries],
   )
@@ -168,9 +169,10 @@ export default function CountriesAdminPage() {
       if (region !== 'all' && c.region !== region) return false
       if (visa === 'work' && !c.has_work_visa) return false
       if (visa === 'study' && !c.has_study_visa) return false
-      if (status === 'published' && !c.is_active) return false
-      if (status === 'hidden' && c.is_active) return false
-      if (status === 'attention' && attentionReasons(c).length === 0) return false
+      if (status === 'published' && (c.source !== 'database' || !c.is_active)) return false
+      if (status === 'hidden' && (c.source !== 'database' || c.is_active)) return false
+      if (status === 'unsaved' && c.source === 'database') return false
+      if (status === 'attention' && (c.source !== 'database' || attentionReasons(c).length === 0)) return false
       return true
     })
     return [...rows].sort((a, b) => {
@@ -254,6 +256,7 @@ export default function CountriesAdminPage() {
     { value: 'all', label: 'All', count: stats.total },
     { value: 'published', label: 'Published', count: stats.published },
     { value: 'hidden', label: 'Hidden', count: stats.hidden },
+    { value: 'unsaved', label: 'Not added yet', count: stats.unsaved },
     { value: 'attention', label: 'Needs attention', count: stats.attention },
   ]
 
@@ -494,7 +497,7 @@ export default function CountriesAdminPage() {
                                 <PencilLine className="mr-2 h-4 w-4" aria-hidden="true" />
                                 {canUpdate ? 'Edit details' : 'View details'}
                               </DropdownMenuItem>
-                              {canUpdate && (
+                              {canUpdate && country.source === 'database' && (
                                 <DropdownMenuItem onSelect={() => void handleToggle(country)} disabled={togglingId === country.id}>
                                   {country.is_active ? <EyeOff className="mr-2 h-4 w-4" aria-hidden="true" /> : <Eye className="mr-2 h-4 w-4" aria-hidden="true" />}
                                   {country.is_active ? 'Hide from website' : 'Publish on website'}
@@ -522,8 +525,8 @@ export default function CountriesAdminPage() {
                         </div>
 
                         <div className="mt-3 flex flex-wrap gap-1.5">
-                          <StatusPill tone={country.is_active ? 'success' : 'neutral'} icon={country.is_active ? Eye : EyeOff}>
-                            {country.is_active ? 'Published' : 'Hidden'}
+                          <StatusPill tone={country.source !== 'database' ? 'warning' : country.is_active ? 'success' : 'neutral'} icon={country.source !== 'database' ? CircleDashed : country.is_active ? Eye : EyeOff}>
+                            {country.source !== 'database' ? 'Not added yet' : country.is_active ? 'Published' : 'Hidden'}
                           </StatusPill>
                           {country.has_work_visa && (
                             <StatusPill tone="warning" icon={Briefcase}>
@@ -565,11 +568,11 @@ export default function CountriesAdminPage() {
 
                         <div className="mt-auto flex items-center justify-between gap-2 pt-4">
                           <span className="text-xs text-[var(--desk-muted)]">
-                            {country.source === 'database' ? `Updated ${formatDistanceToNow(new Date(country.updated_at), { addSuffix: true })}` : 'Starter data'}
+                            {country.source === 'database' ? `Updated ${formatDistanceToNow(new Date(country.updated_at), { addSuffix: true })}` : country.source === 'starter' ? 'Starter data · not saved' : 'Not added yet'}
                           </span>
                           <Button type="button" onClick={() => openEditor(country)} className="min-h-10 rounded-full bg-[var(--desk-navy)] px-4 text-[#fff8e7] hover:bg-[var(--desk-navy-soft)]">
                             <PencilLine className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                            {canUpdate ? 'Edit' : 'View'}
+                            {country.source === 'database' ? (canUpdate ? 'Edit' : 'View') : canCreate ? 'Add & edit' : 'View'}
                           </Button>
                         </div>
                       </article>
