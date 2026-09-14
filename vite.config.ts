@@ -81,6 +81,12 @@ export default defineConfig({
         './src/pages/HomePage.tsx',
         './src/components/hero.tsx',
         './src/components/site-header.tsx',
+        './src/components/AdminLayout.tsx',
+        './src/components/dashboard/DashboardShell.tsx',
+        './src/pages/AdminDashboard.tsx',
+        './src/pages/admin/*.tsx',
+        './src/pages/DashboardPage.tsx',
+        './src/pages/ProfilePage.tsx',
       ],
     },
     watch: {

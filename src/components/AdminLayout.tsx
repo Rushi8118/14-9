@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { usePermissions } from '@/hooks/usePermissions'
+import { warmRoutesWhenIdle } from '@/lib/route-prefetch'
 import {
   LayoutDashboard,
   Users,
@@ -365,11 +366,38 @@ const AdminLayout: React.FC = () => {
         >
           <div className="mx-auto w-full max-w-7xl">
             <AdminErrorBoundary key={location.pathname}>
-              <Outlet />
+              <SuspendedOutlet />
             </AdminErrorBoundary>
           </div>
         </main>
       </div>
+    </div>
+  )
+}
+
+/**
+ * Suspends only the content area while a page chunk loads, so the sidebar and header
+ * stay mounted instead of the whole layout being torn down on every navigation.
+ */
+function SuspendedOutlet() {
+  useEffect(() => warmRoutesWhenIdle('/admin'), [])
+  return (
+    <React.Suspense fallback={<ContentSkeleton />}>
+      <Outlet />
+    </React.Suspense>
+  )
+}
+
+function ContentSkeleton() {
+  return (
+    <div role="status" aria-label="Loading page" className="space-y-4 animate-pulse">
+      <div className="h-8 w-64 max-w-full rounded-lg bg-muted" />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} className="h-24 rounded-2xl bg-muted" />
+        ))}
+      </div>
+      <div className="h-80 rounded-2xl bg-muted" />
     </div>
   )
 }
