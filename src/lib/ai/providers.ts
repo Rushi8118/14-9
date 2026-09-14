@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
+import { writeAuditLog } from '@/lib/audit-log'
 
 export type AiProviderId = 'gemini' | 'openrouter'
 
@@ -48,6 +49,8 @@ export async function generateAiText(
   messages: AiChatMessage[],
   feature: AiFeature,
 ): Promise<string> {
+  // Single choke point for every AI generation call in the app, so this is
+  // also the one place that needs to audit-log "AI generation requests".
   const { data, error } = await supabase.functions.invoke('ai-generate', {
     body: {
       feature,
@@ -60,20 +63,29 @@ export async function generateAiText(
     // supabase-js wraps non-2xx responses in a generic FunctionsHttpError;
     // try to recover the real server-provided message from the response body.
     const context = (error as { context?: Response }).context
+    let message = error.message || 'AI generation failed. Please try again.'
     if (context && typeof context.json === 'function') {
       try {
         const body = await context.clone().json()
-        if (body?.error) throw new Error(body.error)
+        if (body?.error) message = body.error
       } catch {
         // fall through to the generic message below
       }
     }
-    throw new Error(error.message || 'AI generation failed. Please try again.')
+    void writeAuditLog({ action: 'ai.generate_content', resource: feature, severity: 'warning', success: false, errorReason: message.slice(0, 300) })
+    throw new Error(message)
   }
 
-  if (data?.error) throw new Error(data.error)
+  if (data?.error) {
+    void writeAuditLog({ action: 'ai.generate_content', resource: feature, severity: 'warning', success: false, errorReason: String(data.error).slice(0, 300) })
+    throw new Error(data.error)
+  }
   const text = typeof data?.text === 'string' ? data.text.trim() : ''
-  if (!text) throw new Error('The AI provider returned an empty response.')
+  if (!text) {
+    void writeAuditLog({ action: 'ai.generate_content', resource: feature, severity: 'warning', success: false, errorReason: 'Empty response' })
+    throw new Error('The AI provider returned an empty response.')
+  }
+  void writeAuditLog({ action: 'ai.generate_content', resource: feature, newValue: { provider: data?.provider || config.activeProvider, model: data?.model } })
   return text
 }
 

@@ -25,6 +25,7 @@ import { usePermissions } from '@/hooks/usePermissions'
 import { ROLES } from '@/lib/rbac'
 import { supabase } from '@/lib/supabase/client'
 import { StatusBadge, roleBadge } from '@/components/admin/StatusBadge'
+import { writeAuditLog } from '@/lib/audit-log'
 
 type UserProfileRow = {
   id: string
@@ -118,6 +119,7 @@ export default function UserDetailPage() {
 
   const handleSave = async () => {
     if (!id || !canUpdate) return
+    const before = query.data
     setSaving(true)
     try {
       const { data, error } = await supabase
@@ -161,6 +163,44 @@ export default function UserDetailPage() {
       toast.success('User updated')
       await queryClient.invalidateQueries({ queryKey: ['admin-user', id] })
       await queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+
+      if (before) {
+        if (before.user_role !== form.user_role) {
+          void writeAuditLog({
+            action: 'user.role_changed',
+            resource: 'user_profiles',
+            resourceId: id,
+            oldValue: { user_role: before.user_role },
+            newValue: { user_role: form.user_role },
+            severity: 'warning',
+          })
+        }
+        if (before.status !== form.status) {
+          void writeAuditLog({
+            action: form.status === 'suspended' ? 'user.suspended' : form.status === 'active' ? 'user.activated' : 'user.updated',
+            resource: 'user_profiles',
+            resourceId: id,
+            oldValue: { status: before.status },
+            newValue: { status: form.status },
+            severity: form.status === 'suspended' ? 'warning' : 'info',
+          })
+        }
+        const profileFieldsChanged = (
+          before.full_name !== form.full_name ||
+          before.phone !== form.phone ||
+          before.current_city !== form.current_city ||
+          before.current_country !== form.current_country
+        )
+        if (profileFieldsChanged) {
+          void writeAuditLog({
+            action: 'user.updated',
+            resource: 'user_profiles',
+            resourceId: id,
+            oldValue: { full_name: before.full_name, phone: before.phone, current_city: before.current_city, current_country: before.current_country },
+            newValue: { full_name: form.full_name, phone: form.phone, current_city: form.current_city, current_country: form.current_country },
+          })
+        }
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to update user')
     } finally {
@@ -186,6 +226,13 @@ export default function UserDetailPage() {
       if (!data) throw new Error('User could not be deleted. Check your admin permissions.')
       toast.success('User marked as deleted')
       await queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      void writeAuditLog({
+        action: 'user.deleted',
+        resource: 'user_profiles',
+        resourceId: id,
+        oldValue: { email: query.data?.email, user_role: query.data?.user_role },
+        severity: 'critical',
+      })
       navigate('/admin/users')
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete user')

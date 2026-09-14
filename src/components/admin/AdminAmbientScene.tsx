@@ -9,9 +9,9 @@ import { cn } from '@/lib/utils'
  * pure enhancement layer — it never gates or delays real page content.
  */
 
-type Variant = 'header' | 'empty'
+type Variant = 'header' | 'empty' | 'pulse'
 
-const PARTICLE_COUNT: Record<Variant, number> = { header: 90, empty: 160 }
+const PARTICLE_COUNT: Record<'header' | 'empty', number> = { header: 90, empty: 160 }
 
 function supportsWebGL(): boolean {
   try {
@@ -64,34 +64,56 @@ export function AdminAmbientScene({ variant = 'header', className }: { variant?:
 
         const scene = new THREE.Scene()
         const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 20)
-        camera.position.z = variant === 'header' ? 5 : 6.5
+        camera.position.z = variant === 'header' ? 5 : variant === 'pulse' ? 3.2 : 6.5
 
         renderer.setSize(width, height)
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
         renderer.setClearColor(0x000000, 0)
         mount.appendChild(renderer.domElement)
 
-        const count = PARTICLE_COUNT[variant]
-        const positions = new Float32Array(count * 3)
-        const spreadX = variant === 'header' ? 8 : 6
-        const spreadY = variant === 'header' ? 2.6 : 4
-        for (let i = 0; i < count; i++) {
-          positions[i * 3] = (Math.random() - 0.5) * spreadX
-          positions[i * 3 + 1] = (Math.random() - 0.5) * spreadY
-          positions[i * 3 + 2] = (Math.random() - 0.5) * 4
-        }
-        const geometry = new THREE.BufferGeometry()
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+        const disposables: { dispose: () => void }[] = []
+        let mesh: InstanceType<typeof THREE.Object3D> | null = null
 
-        const material = new THREE.PointsMaterial({
-          color: variant === 'header' ? 0xd4af37 : 0x60a5fa,
-          size: variant === 'header' ? 0.045 : 0.06,
-          transparent: true,
-          opacity: variant === 'header' ? 0.45 : 0.35,
-          sizeAttenuation: true,
-        })
-        const points = new THREE.Points(geometry, material)
-        scene.add(points)
+        if (variant === 'pulse') {
+          // A tiny low-poly icosahedron standing in for "live activity" —
+          // no particles, no post-processing, just one cheap mesh.
+          const geometry = new THREE.IcosahedronGeometry(1, 0)
+          const material = new THREE.MeshBasicMaterial({ color: 0x22c55e, wireframe: true, transparent: true, opacity: 0.85 })
+          const core = new THREE.Mesh(geometry, material)
+          scene.add(core)
+          disposables.push(geometry, material)
+          mesh = core
+
+          const glowGeometry = new THREE.IcosahedronGeometry(1.3, 0)
+          const glowMaterial = new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.08 })
+          const glow = new THREE.Mesh(glowGeometry, glowMaterial)
+          scene.add(glow)
+          disposables.push(glowGeometry, glowMaterial)
+        } else {
+          const count = PARTICLE_COUNT[variant]
+          const positions = new Float32Array(count * 3)
+          const spreadX = variant === 'header' ? 8 : 6
+          const spreadY = variant === 'header' ? 2.6 : 4
+          for (let i = 0; i < count; i++) {
+            positions[i * 3] = (Math.random() - 0.5) * spreadX
+            positions[i * 3 + 1] = (Math.random() - 0.5) * spreadY
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 4
+          }
+          const geometry = new THREE.BufferGeometry()
+          geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+
+          const material = new THREE.PointsMaterial({
+            color: variant === 'header' ? 0xd4af37 : 0x60a5fa,
+            size: variant === 'header' ? 0.045 : 0.06,
+            transparent: true,
+            opacity: variant === 'header' ? 0.45 : 0.35,
+            sizeAttenuation: true,
+          })
+          const points = new THREE.Points(geometry, material)
+          scene.add(points)
+          disposables.push(geometry, material)
+          mesh = points
+        }
 
         let frameId = 0
         let isIntersecting = true
@@ -104,8 +126,15 @@ export function AdminAmbientScene({ variant = 'header', className }: { variant?:
           }
           frameId = requestAnimationFrame(animate)
           const t = clock.getElapsedTime()
-          points.rotation.y = t * 0.02
-          points.rotation.x = Math.sin(t * 0.05) * 0.05
+          if (variant === 'pulse' && mesh) {
+            mesh.rotation.y = t * 0.4
+            mesh.rotation.x = t * 0.25
+            const pulse = 1 + Math.sin(t * 2) * 0.08
+            mesh.scale.setScalar(pulse)
+          } else if (mesh) {
+            mesh.rotation.y = t * 0.02
+            mesh.rotation.x = Math.sin(t * 0.05) * 0.05
+          }
           renderer.render(scene, camera)
         }
 
@@ -140,8 +169,7 @@ export function AdminAmbientScene({ variant = 'header', className }: { variant?:
           observer.disconnect()
           document.removeEventListener('visibilitychange', handleVisibility)
           ro?.disconnect()
-          geometry.dispose()
-          material.dispose()
+          disposables.forEach((d) => d.dispose())
           renderer.dispose()
           if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement)
         }
@@ -155,6 +183,23 @@ export function AdminAmbientScene({ variant = 'header', className }: { variant?:
       cleanup()
     }
   }, [mode, variant])
+
+  if (variant === 'pulse') {
+    // Small inline visual (not a full-bleed background) — a static pulsing
+    // dot when 3D is unavailable, so "live" status is still legible.
+    if (mode === 'fallback') {
+      return (
+        <div aria-hidden="true" className={cn('flex h-16 w-16 items-center justify-center', className)}>
+          <span className="h-3 w-3 animate-pulse rounded-full bg-emerald-500" />
+        </div>
+      )
+    }
+    return (
+      <div ref={containerRef} aria-hidden="true" className={cn('pointer-events-none h-16 w-16 overflow-hidden', className)}>
+        <div ref={mountRef} className="h-full w-full" />
+      </div>
+    )
+  }
 
   if (mode === 'fallback') {
     return (

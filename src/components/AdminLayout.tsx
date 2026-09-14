@@ -26,8 +26,9 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AdminErrorBoundary } from '@/components/AdminErrorBoundary'
-import { SearchBar } from '@/components/admin/SearchBar'
 import NotificationBell from '@/components/NotificationBell'
+import { ThemeToggle } from '@/components/admin/ThemeToggle'
+import { AdminGlobalSearch } from '@/components/admin/AdminGlobalSearch'
 import UserAvatar from '@/components/UserAvatar'
 import UserProfileDropdown from '@/components/UserProfileDropdown'
 import type { PermissionSlug } from '@/lib/rbac'
@@ -345,10 +346,11 @@ const AdminLayout: React.FC = () => {
           </div>
 
           <div className="w-full max-w-xs hidden sm:block">
-            <SearchBar value="" onChange={() => {}} placeholder="Search admin…" />
+            <AdminGlobalSearch />
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <ThemeToggle />
             <NotificationBell />
             <div className="hidden sm:block">
               <UserProfileDropdown />

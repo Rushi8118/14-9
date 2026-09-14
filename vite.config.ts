@@ -47,6 +47,7 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules/three')) return 'vendor-three'
+          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) return 'vendor-charts'
           if (id.includes('node_modules/framer-motion')) return 'vendor-framer'
           if (id.includes('node_modules/@supabase')) return 'vendor-supabase'
           if (id.includes('node_modules/@tanstack')) return 'vendor-query'

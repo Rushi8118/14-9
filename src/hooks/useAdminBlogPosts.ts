@@ -5,6 +5,7 @@ import type { GeneratedBlogPost } from '@/lib/ai/blog-generator'
 import { toast } from 'sonner'
 import { absoluteUrl } from '@/lib/seo/site'
 import { sanitizeRichText } from '@/lib/security/sanitizeHtml'
+import { writeAuditLog } from '@/lib/audit-log'
 
 export type AdminBlogFaqItem = { question: string; answer: string }
 
@@ -222,6 +223,15 @@ export function useAdminBlogPosts() {
       toast.success(
         vars.status === 'published' ? 'Blog published.' : 'Blog saved as draft.',
       )
+      void writeAuditLog({
+        action: vars.id ? 'blog.updated' : 'blog.created',
+        resource: 'blog_posts',
+        resourceId: post.id,
+        newValue: { title: post.title, slug: post.slug, status: post.status },
+      })
+      if (vars.status === 'published') {
+        void writeAuditLog({ action: 'blog.published', resource: 'blog_posts', resourceId: post.id, newValue: { slug: post.slug } })
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to save blog')
@@ -240,10 +250,16 @@ export function useAdminBlogPosts() {
       const { error } = await supabase.from('blog_posts').update(patch).eq('id', input.id)
       if (error) throw error
     },
-    onSuccess: () => {
+    onSuccess: (_, input) => {
       queryClient.invalidateQueries({ queryKey: ['admin-blog-posts'] })
       queryClient.invalidateQueries({ queryKey: ['blogPosts'] })
       toast.success('Status updated.')
+      void writeAuditLog({
+        action: input.status === 'published' ? 'blog.published' : 'blog.unpublished',
+        resource: 'blog_posts',
+        resourceId: input.id,
+        newValue: { status: input.status },
+      })
     },
     onError: (error: Error) => toast.error(error.message || 'Failed to update status'),
   })
@@ -252,11 +268,13 @@ export function useAdminBlogPosts() {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('blog_posts').delete().eq('id', id)
       if (error) throw error
+      return id
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
       queryClient.invalidateQueries({ queryKey: ['admin-blog-posts'] })
       queryClient.invalidateQueries({ queryKey: ['blogPosts'] })
       toast.success('Post deleted.')
+      void writeAuditLog({ action: 'blog.deleted', resource: 'blog_posts', resourceId: id, severity: 'warning' })
     },
     onError: (error: Error) => toast.error(error.message || 'Failed to delete post'),
   })

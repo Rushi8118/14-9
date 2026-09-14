@@ -18,6 +18,7 @@ import { ConfirmDialog } from '@/components/admin/ConfirmDialog'
 import { StatusBadge, roleBadge } from '@/components/admin/StatusBadge'
 import { MetricCard } from '@/components/admin/MetricCard'
 import { Empty } from '@/components/ui/empty'
+import { writeAuditLog } from '@/lib/audit-log'
 
 type Role = {
   id: string
@@ -155,6 +156,12 @@ export default function RolesPage() {
           [userId]: [...(prev[userId]?.filter((r) => r !== roleId) ?? []), roleId],
         }))
         toast.success('Role assigned to user')
+        void writeAuditLog({
+          action: 'permission.assigned',
+          resource: 'user_roles',
+          resourceId: userId,
+          newValue: { role_id: roleId, role_slug: role?.slug },
+        })
       } else {
         const { error } = await supabase
           .from('user_roles')
@@ -167,6 +174,12 @@ export default function RolesPage() {
           [userId]: (prev[userId] ?? []).filter((r) => r !== roleId),
         }))
         toast.success('Role removed from user')
+        void writeAuditLog({
+          action: 'permission.revoked',
+          resource: 'user_roles',
+          resourceId: userId,
+          oldValue: { role_id: roleId, role_slug: role?.slug },
+        })
       }
     } catch (err: unknown) {
       toast.error(
@@ -235,6 +248,13 @@ export default function RolesPage() {
           ...prev,
           [role.id]: (prev[role.id] ?? []).filter((id) => id !== perm.id),
         }))
+        void writeAuditLog({
+          action: 'permission.revoked',
+          resource: 'role_permissions',
+          resourceId: role.id,
+          oldValue: { role_slug: role.slug, permission: permKey },
+          severity: 'warning',
+        })
       } else {
         const { error } = await supabase
           .from('role_permissions')
@@ -244,6 +264,13 @@ export default function RolesPage() {
           ...prev,
           [role.id]: [...(prev[role.id] ?? []), perm.id],
         }))
+        void writeAuditLog({
+          action: 'permission.assigned',
+          resource: 'role_permissions',
+          resourceId: role.id,
+          newValue: { role_slug: role.slug, permission: permKey },
+          severity: 'warning',
+        })
       }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to update permission')
@@ -290,6 +317,12 @@ export default function RolesPage() {
           }
         }
         toast.success('Role created successfully')
+        void writeAuditLog({
+          action: 'role.created',
+          resource: 'roles',
+          resourceId: newRole?.id,
+          newValue: { name: formData.name, slug: formData.slug },
+        })
       } else if (editMode === 'edit' && selectedRole) {
         // System roles: only update permissions (DB trigger blocks roles row UPDATE).
         if (!editingRole?.is_system) {
@@ -320,6 +353,13 @@ export default function RolesPage() {
             ? 'System role permissions updated'
             : 'Role updated successfully',
         )
+        void writeAuditLog({
+          action: 'role.updated',
+          resource: 'roles',
+          resourceId: selectedRole,
+          oldValue: editingRole ? { name: editingRole.name, description: editingRole.description } : undefined,
+          newValue: { name: formData.name, description: formData.description, permissionCount: permIds.length },
+        })
       }
       await Promise.all([loadRoles(), loadRolePerms()])
       cancelEdit()
@@ -337,6 +377,7 @@ export default function RolesPage() {
       setDeleteTarget(null)
       return
     }
+    const targetRole = roles.find((r) => r.id === deleteTarget)
     try {
       const { error: permissionError } = await supabase
         .from('role_permissions')
@@ -351,6 +392,13 @@ export default function RolesPage() {
       const { error } = await supabase.from('roles').delete().eq('id', deleteTarget)
       if (error) throw error
       toast.success('Role deleted')
+      void writeAuditLog({
+        action: 'role.deleted',
+        resource: 'roles',
+        resourceId: deleteTarget,
+        oldValue: targetRole ? { name: targetRole.name, slug: targetRole.slug } : undefined,
+        severity: 'critical',
+      })
       await loadRoles()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete role')

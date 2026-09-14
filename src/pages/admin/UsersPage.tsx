@@ -22,6 +22,7 @@ import { AdminUserProfileDialog } from '@/components/admin/AdminUserProfileDialo
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { writeAuditLog } from '@/lib/audit-log'
 import {
   Dialog,
   DialogContent,
@@ -217,6 +218,12 @@ export default function AdminUsersPage() {
       setCreateOpen(false)
       setCreateForm({ email: '', password: '', full_name: '', user_role: 'customer' })
       await queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      void writeAuditLog({
+        action: 'user.created',
+        resource: 'user_profiles',
+        resourceId: signUpData.user.id,
+        newValue: { email: createForm.email.trim(), user_role: createForm.user_role },
+      })
       navigate(`/admin/users/${signUpData.user.id}`)
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to create user')
@@ -246,6 +253,13 @@ export default function AdminUsersPage() {
       return
     }
     toast.success('User marked as deleted')
+    void writeAuditLog({
+      action: 'user.deleted',
+      resource: 'user_profiles',
+      resourceId: deleteTarget.id,
+      oldValue: { email: deleteTarget.email, user_role: deleteTarget.user_role },
+      severity: 'critical',
+    })
     setDeleteTarget(null)
     await queryClient.invalidateQueries({ queryKey: ['admin-users'] })
   }

@@ -5,6 +5,7 @@
 
 import { supabase } from './supabase/client'
 import { logger } from './logger'
+import { getVisitSessionId, detectDeviceType, detectBrowser } from './site-visit-tracker'
 
 type AuditAction =
   | 'user.created'
@@ -31,8 +32,18 @@ type AuditAction =
   | 'settings.updated'
   | 'blog.created'
   | 'blog.published'
+  | 'blog.unpublished'
   | 'blog.updated'
   | 'blog.deleted'
+  | 'urgent_requirement.created'
+  | 'urgent_requirement.updated'
+  | 'urgent_requirement.published'
+  | 'urgent_requirement.closed'
+  | 'urgent_requirement.deleted'
+  | 'ai.generate_content'
+  | 'file.uploaded'
+  | 'file.deleted'
+  | 'export.csv'
   | 'customer.created'
   | 'customer.updated'
   | 'lead.created'
@@ -55,8 +66,17 @@ type AuditLogParams = {
   oldValue?: unknown
   newValue?: unknown
   severity?: Severity
+  /** Idempotency key: a repeated write with the same requestId is treated
+   *  as a retry of the same event, not a new one, by the RPC. */
+  requestId?: string
+  success?: boolean
+  errorReason?: string
 }
 
+/** Best-effort audit write: never throws, never blocks the caller's main
+ *  request. Automatically attaches session id, current URL, referrer,
+ *  device, and browser context. Never pass secrets in oldValue/newValue —
+ *  the RPC stores them as-is. */
 export async function writeAuditLog(params: AuditLogParams): Promise<string | null> {
   try {
     const { data, error } = await supabase.rpc('write_audit_log', {
@@ -66,6 +86,14 @@ export async function writeAuditLog(params: AuditLogParams): Promise<string | nu
       p_old_value: params.oldValue ?? null,
       p_new_value: params.newValue ?? null,
       p_severity: params.severity ?? 'info',
+      p_request_id: params.requestId ?? null,
+      p_session_id: typeof window !== 'undefined' ? getVisitSessionId() : null,
+      p_url: typeof window !== 'undefined' ? window.location.href.slice(0, 500) : null,
+      p_referrer: typeof document !== 'undefined' ? (document.referrer || null)?.slice(0, 500) : null,
+      p_device_type: typeof window !== 'undefined' ? detectDeviceType() : null,
+      p_browser: typeof window !== 'undefined' ? detectBrowser() : null,
+      p_success: params.success ?? true,
+      p_error_reason: params.errorReason ?? null,
     })
 
     if (error) {
