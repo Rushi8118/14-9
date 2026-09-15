@@ -1,5 +1,5 @@
 import { generateAiText, type AiProviderConfig } from './providers'
-import { slugify, extractJson, blogAiSchema } from './schemas'
+import { slugify, extractJson, parseAiOutput, blogAiSchema } from './schemas'
 import { collectAdminInputRequired, findUnsafeClaims, stripUnsafeClaims } from './guardrails'
 
 export type BlogGenerateMode = 'auto' | 'keywords'
@@ -71,7 +71,7 @@ function estimateReadingTime(html: string): number {
 }
 
 function normalizeGenerated(raw: unknown, input: BlogGenerateInput): GeneratedBlogPost {
-  const parsed = blogAiSchema.parse(raw)
+  const parsed = parseAiOutput(blogAiSchema, raw)
 
   const title = parsed.title
   const slug = slugify(parsed.slug || title) || `blog-${Date.now()}`

@@ -14,52 +14,77 @@ export function slugify(value: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
-const faqItemSchema = z.object({
-  question: z.string().trim().min(1),
-  answer: z.string().trim().min(1),
-})
+const TITLE_MISSING = 'AI response missing a usable title. Try a more specific prompt.'
+const CONTENT_TOO_SHORT = 'AI content is too short. Try again.'
+const FRIENDLY_MESSAGES = new Set([TITLE_MISSING, CONTENT_TOO_SHORT])
 
-const stringArray = z
-  .array(z.union([z.string(), z.number()]))
-  .default([])
-  .transform((arr) => arr.map((v) => String(v).trim()).filter(Boolean))
+/** Models often send null, numbers or omit fields; treat all of those as empty text. */
+const text = () =>
+  z.preprocess((value) => (value == null ? '' : typeof value === 'number' ? String(value) : value), z.string().trim())
+
+/** Unknown counts arrive as 0, null, "" or "25 workers"; keep a real positive number or use the fallback. */
+const positiveIntOr = (fallback: number) =>
+  z.preprocess((value) => {
+    const n = typeof value === 'string' ? Number(value.replace(/[^\d.]/g, '')) : Number(value)
+    return Number.isFinite(n) && n >= 1 ? Math.round(n) : fallback
+  }, z.number().int().positive())
+
+const stringArray = z.preprocess(
+  (value) => (value == null ? [] : Array.isArray(value) ? value : [value]),
+  z
+    .array(z.unknown())
+    .transform((arr) => arr.filter((v) => typeof v === 'string' || typeof v === 'number').map((v) => String(v).trim()).filter(Boolean)),
+)
+
+/** Keeps only complete question/answer pairs instead of rejecting the whole response for one bad item. */
+const faqList = z.preprocess(
+  (value) => (Array.isArray(value) ? value : []),
+  z.array(z.unknown()).transform((items) =>
+    items.flatMap((item) => {
+      const entry = item as { question?: unknown; answer?: unknown } | null
+      const question = typeof entry?.question === 'string' ? entry.question.trim() : ''
+      const answer = typeof entry?.answer === 'string' ? entry.answer.trim() : ''
+      return question && answer ? [{ question, answer }] : []
+    }),
+  ),
+)
 
 /** Loosely-typed schema: AI JSON is coerced/defaulted field-by-field rather
  *  than rejected outright on a single bad field, since a wholesale reject
  *  would throw away an otherwise-usable generation. Required identity
  *  fields (title) still fail hard. */
 export const urgentRequirementAiSchema = z.object({
-  title: z.string().trim().min(3, 'AI response missing a usable title.'),
-  slug: z.string().trim().optional().default(''),
-  employer: z.string().trim().optional().default(''),
-  country: z.string().trim().optional().default(''),
-  country_code: z.string().trim().optional().default(''),
-  city: z.string().trim().optional().default(''),
-  visa_type: z.string().trim().optional().default(''),
-  category: z.string().trim().optional().default(''),
-  vacancies: z.coerce.number().int().positive().optional().default(1),
-  salary: z.string().trim().optional().default(''),
-  currency: z.string().trim().optional().default(''),
-  experience_required: z.string().trim().optional().default(''),
-  education: z.string().trim().optional().default(''),
+  title: text().pipe(z.string().min(3, TITLE_MISSING)),
+  slug: text(),
+  employer: text(),
+  country: text(),
+  country_code: text(),
+  city: text(),
+  visa_type: text(),
+  category: text(),
+  vacancies: positiveIntOr(1),
+  salary: text(),
+  currency: text(),
+  experience_required: text(),
+  education: text(),
   skills: stringArray,
   benefits: stringArray,
-  contract_type: z.string().trim().optional().default(''),
-  working_hours: z.string().trim().optional().default(''),
-  duration_days: z.coerce.number().int().positive().optional().default(14),
+  contract_type: text(),
+  working_hours: text(),
+  duration_days: positiveIntOr(14),
   eligibility: stringArray,
   required_documents: stringArray,
-  summary: z.string().trim().optional().default(''),
-  content: z.string().trim().optional().default(''),
-  application_instructions: z.string().trim().optional().default(''),
-  seo_title: z.string().trim().optional().default(''),
-  meta_description: z.string().trim().optional().default(''),
-  focus_keyword: z.string().trim().optional().default(''),
+  summary: text(),
+  content: text(),
+  application_instructions: text(),
+  seo_title: text(),
+  meta_description: text(),
+  focus_keyword: text(),
   related_keywords: stringArray,
   long_tail_keywords: stringArray,
   tags: stringArray,
-  faq: z.array(faqItemSchema).optional().default([]),
-  image_alt: z.string().trim().optional().default(''),
+  faq: faqList,
+  image_alt: text(),
 })
 
 export type UrgentRequirementAiOutput = z.infer<typeof urgentRequirementAiSchema>
@@ -69,31 +94,48 @@ const CATEGORIES = [
   'immigration_news', 'success_story', 'tips', 'document_guide',
 ] as const
 
+/** "Work Visa" / "work-visa" -> "work_visa"; anything unrecognised becomes "general". */
+const blogCategory = z.preprocess((value) => {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase().replace(/[\s-]+/g, '_') : ''
+  return (CATEGORIES as readonly string[]).includes(normalized) ? normalized : 'general'
+}, z.enum(CATEGORIES))
+
 export const blogAiSchema = z.object({
-  title: z.string().trim().min(3, 'AI response missing a usable title.'),
-  slug: z.string().trim().optional().default(''),
-  seo_title: z.string().trim().optional().default(''),
-  meta_title: z.string().trim().optional().default(''),
-  meta_description: z.string().trim().optional().default(''),
-  meta_desc: z.string().trim().optional().default(''),
-  excerpt: z.string().trim().optional().default(''),
-  focus_keyword: z.string().trim().optional().default(''),
+  title: text().pipe(z.string().min(3, TITLE_MISSING)),
+  slug: text(),
+  seo_title: text(),
+  meta_title: text(),
+  meta_description: text(),
+  meta_desc: text(),
+  excerpt: text(),
+  focus_keyword: text(),
   related_keywords: stringArray,
   long_tail_keywords: stringArray,
   keywords: stringArray,
-  search_intent: z.string().trim().optional().default(''),
-  content: z.string().trim().min(150, 'AI content is too short. Try again.'),
-  faq: z.array(faqItemSchema).optional().default([]),
+  search_intent: text(),
+  content: text().pipe(z.string().min(150, CONTENT_TOO_SHORT)),
+  faq: faqList,
   internal_links: stringArray,
   related_urgent_requirements: stringArray,
-  image_alt: z.string().trim().optional().default(''),
-  image_caption: z.string().trim().optional().default(''),
-  category: z.enum(CATEGORIES).optional().default('general'),
+  image_alt: text(),
+  image_caption: text(),
+  category: blogCategory,
   tags: stringArray,
-  disclaimer: z.string().trim().optional().default(''),
+  disclaimer: text(),
 })
 
 export type BlogAiOutput = z.infer<typeof blogAiSchema>
+
+/**
+ * Validates AI JSON and turns validation failures into a plain message.
+ * Raw Zod issue JSON must never reach the admin's screen.
+ */
+export function parseAiOutput<S extends z.ZodTypeAny>(schema: S, json: unknown): z.infer<S> {
+  const result = schema.safeParse(json)
+  if (result.success) return result.data
+  const friendly = result.error.issues.find((issue) => FRIENDLY_MESSAGES.has(issue.message))
+  throw new Error(friendly?.message ?? 'The AI response was incomplete. Please try generating again.')
+}
 
 /** Extracts the first JSON object/array from a raw LLM response, tolerating
  *  markdown code fences and leading/trailing prose. */
@@ -106,7 +148,11 @@ export function extractJson(raw: string): unknown {
     const start = candidate.indexOf('{')
     const end = candidate.lastIndexOf('}')
     if (start >= 0 && end > start) {
-      return JSON.parse(candidate.slice(start, end + 1))
+      try {
+        return JSON.parse(candidate.slice(start, end + 1))
+      } catch {
+        // fall through to the friendly error below
+      }
     }
     throw new Error('The AI did not return valid JSON. Try regenerating.')
   }
