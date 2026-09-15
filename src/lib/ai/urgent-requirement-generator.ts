@@ -1,5 +1,5 @@
 import { generateAiText, getActiveApiKey, type AiProviderConfig } from './providers'
-import { slugify, extractJson, urgentRequirementAiSchema } from './schemas'
+import { slugify, extractJson, parseAiOutput, urgentRequirementAiSchema } from './schemas'
 import { ADMIN_INPUT_REQUIRED, collectAdminInputRequired, stripUnsafeClaims, findUnsafeClaims } from './guardrails'
 
 const LOCAL_AI_KEY = 'svo_admin_ai_settings_v1'
@@ -242,7 +242,7 @@ Agency: Siddhivinayak Overseas (Pragti IT Park, Surat, Gujarat, India)`
   )
 
   const parsedJson = extractJson(raw)
-  const parsed = urgentRequirementAiSchema.parse(parsedJson)
+  const parsed = parseAiOutput(urgentRequirementAiSchema, parsedJson)
 
   const title = parsed.title
   const country = parsed.country || countryHint || ''

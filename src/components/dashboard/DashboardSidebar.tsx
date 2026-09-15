@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { skipToken, useQuery } from '@tanstack/react-query'
 import { ChevronsLeft, ChevronsRight, Globe2, LogOut, X } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { usePermissions } from '@/hooks/usePermissions'
@@ -16,7 +16,8 @@ import { getDashboardNavGroups, isNavItemActive } from './dashboard-nav'
  */
 function useUnreadNotificationCount() {
   const { user } = useAuth()
-  const { data } = useQuery<Notification[]>({ queryKey: ['notifications', user?.id], enabled: false })
+  // skipToken observes the cache without fetching; a bare `enabled: false` logs "No queryFn" on invalidation.
+  const { data } = useQuery<Notification[]>({ queryKey: ['notifications', user?.id], queryFn: skipToken })
   return data?.filter((notification) => !notification.is_read).length ?? 0
 }
 

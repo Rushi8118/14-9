@@ -377,6 +377,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password,
       options: {
         data: { full_name: fullName, role: "user" },
+        // Confirmation links land on the callback page, which finishes sign-in without a second code exchange.
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     })
 
