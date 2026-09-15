@@ -159,6 +159,8 @@ export function useChat() {
     }: {
       text: string
       file?: File
+      /** Don't toast on failure — used when the message was already delivered another way (WhatsApp). */
+      quiet?: boolean
     }) => {
       if (!user) throw new Error('Not authenticated')
 
@@ -230,11 +232,11 @@ export function useChat() {
       }
       return { previous }
     },
-    onError: (err, _variables, context) => {
+    onError: (err, variables, context) => {
       if (context?.previous) {
         queryClient.setQueryData(['messages', user?.id], context.previous)
       }
-      toast.error(friendlyChatError(err))
+      if (!variables.quiet) toast.error(friendlyChatError(err))
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages', user?.id] })

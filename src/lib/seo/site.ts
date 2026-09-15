@@ -19,6 +19,9 @@ export const NAP = {
   phone2INDisplay: '+91 95120 00632',
   email: 'info@siddhivinayakoverseas.com',
   whatsappUrl: 'https://wa.me/919925064666',
+  /** Office WhatsApp that answers the applicant dashboard's Officer Chat. */
+  officeChatWhatsApp: '919773221199',
+  officeChatWhatsAppDisplay: '+91 97732 21199',
   geo: {
     latitude: 21.1702,
     longitude: 72.8311,
@@ -42,6 +45,11 @@ export const SOCIAL_LINKS = {
 } as const
 
 export const SOCIAL_SAME_AS: string[] = Object.values(SOCIAL_LINKS).map((profile) => profile.url)
+
+/** WhatsApp chat link to the Officer Chat number with the message pre-filled. */
+export function officeChatWhatsAppUrl(text: string): string {
+  return `https://wa.me/${NAP.officeChatWhatsApp}?text=${encodeURIComponent(text)}`
+}
 
 export function absoluteUrl(path: string): string {
   if (!path || path === '/') return SITE_URL

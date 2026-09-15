@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { useChat, openChatAttachment } from '@/hooks/useChat'
 import { useAuth } from '@/hooks/use-auth'
+import { NAP, officeChatWhatsAppUrl } from '@/lib/seo/site'
 import UserAvatar from '@/components/UserAvatar'
 import {
   Send,
-  Paperclip,
   Check,
   CheckCheck,
   Smile,
@@ -19,23 +19,20 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 export default function ChatPage() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const {
     messages,
     isError,
     refetch,
     sendMessage,
-    sendLoading,
     officerTyping,
     sendTypingBroadcast,
   } = useChat()
 
   const [text, setText] = useState('')
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [search, setSearch] = useState('')
   
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Auto-scroll to latest message on payload modifications
   const scrollToBottom = () => {
@@ -57,43 +54,25 @@ export default function ChatPage() {
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!text.trim() && !selectedFile) return
+    const body = text.trim()
+    if (!body) return
 
-    sendMessage(
-      {
-        text: text,
-        file: selectedFile || undefined,
-      },
-      {
-        onSuccess: () => {
-          setText('')
-          setSelectedFile(null)
-        },
-      }
-    )
+    // Officer Chat is answered on the office WhatsApp. Open it synchronously inside the
+    // submit handler so the browser treats it as a user action and doesn't block the tab.
+    const sender = profile?.full_name || 'Applicant'
+    const whatsappText = `Hello Siddhivinayak Overseas team,\n\n${body}\n\n— ${sender}${user.email ? ` (${user.email})` : ''}\nSent from the Applicant Dashboard`
+    window.open(officeChatWhatsAppUrl(whatsappText), '_blank', 'noopener,noreferrer')
+    toast.success('Opening WhatsApp — press Send there to deliver your message.')
+
+    // Keep a copy in the dashboard history. WhatsApp is the delivery channel, so a failed copy isn't shown as an error.
+    sendMessage({ text: body, quiet: true })
+    setText('')
   }
 
   // Trigger typing broadcasts
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setText(e.target.value)
     sendTypingBroadcast()
-  }
-
-  const handleAttachmentClick = () => {
-    fileInputRef.current?.click()
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0]
-      // Reset so choosing the same file again still fires onChange.
-      e.target.value = ''
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('That file is larger than 5 MB. Please choose a smaller file.')
-        return
-      }
-      setSelectedFile(file)
-    }
   }
 
   return (
@@ -106,7 +85,9 @@ export default function ChatPage() {
           </div>
           <div className="leading-tight min-w-0">
             <h3 className="text-sm font-bold font-serif truncate">Siddhivinayak Desk</h3>
-            <p className="text-[11px] text-emerald-300 font-semibold mt-0.5">Online Support</p>
+            <p className="text-[11px] text-emerald-300 font-semibold mt-0.5">
+              Replies on WhatsApp · {NAP.officeChatWhatsAppDisplay}
+            </p>
           </div>
         </div>
 
@@ -220,60 +201,31 @@ export default function ChatPage() {
         )}
       </div>
 
+      <p className="shrink-0 border-t border-border/50 bg-emerald-50/70 px-4 py-2 text-[11px] text-emerald-900">
+        Your message opens in WhatsApp to our office on {NAP.officeChatWhatsAppDisplay}. To share documents, attach them in WhatsApp.
+      </p>
+
       {/* 3. Footer Text Box input controls */}
       <form
         onSubmit={handleSend}
         className="px-4 py-3 bg-[#F5F0E8]/40 border-t border-border/50 flex items-center gap-2.5 shrink-0 relative"
       >
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          className="hidden"
-          accept=".pdf, .jpeg, .jpg, .png"
-        />
-
-        {/* Selected file notification banner preview */}
-        {selectedFile && (
-          <div className="absolute left-4 bottom-full mb-2 bg-[#1a1a2e] text-[#F5F0E8] border border-[#C49A2B]/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-2 shadow-lg animate-slideUp">
-            <Paperclip className="h-3.5 w-3.5 text-[#E8C56A]" aria-hidden="true" />
-            <span className="font-bold truncate max-w-[140px]">{selectedFile.name}</span>
-            <button
-              type="button"
-              onClick={() => setSelectedFile(null)}
-              className="text-red-300 hover:text-red-200 font-bold ml-1 min-h-8 min-w-8 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C49A2B]"
-              aria-label="Remove attachment"
-            >
-              ✕
-            </button>
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={handleAttachmentClick}
-          className="p-2.5 min-h-10 min-w-10 text-foreground/60 hover:text-[#8B6914] bg-card border border-border/60 rounded-xl transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C49A2B] focus-visible:ring-offset-2"
-          aria-label="Add Attachment"
-        >
-          <Paperclip className="h-4.5 w-4.5" aria-hidden="true" />
-        </button>
-
         {/* Message Input text field */}
         <Input
           type="text"
-          placeholder="Type your message..."
+          placeholder="Type your message for our office..."
+          aria-label="Message for our office"
           value={text}
           onChange={handleInputChange}
           className="flex-1 h-10 border-border/65 bg-card focus:border-[#C49A2B]/40 rounded-xl text-xs"
-          disabled={sendLoading}
         />
 
         {/* Send Action submit */}
         <Button
           type="submit"
-          disabled={sendLoading || (!text.trim() && !selectedFile)}
+          disabled={!text.trim()}
           className="rounded-xl h-10 w-10 p-0 bg-primary hover:bg-primary/95 text-primary-foreground btn-glow"
-          aria-label="Send Message"
+          aria-label="Send on WhatsApp"
         >
           <Send className="h-4 w-4" />
         </Button>
