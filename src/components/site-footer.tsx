@@ -17,7 +17,7 @@ import {
 
 export function SiteFooter() {
   return (
-    <footer className="footer-gold-border border-t border-primary/10 bg-background/95">
+    <footer className="footer-gold-border border-t border-primary/30 bg-gradient-to-b from-card to-secondary">
       <div className="mx-auto max-w-7xl px-4 py-12 md:px-6">
 
         {/* Main Footer */}

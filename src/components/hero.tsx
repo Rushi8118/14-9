@@ -87,7 +87,7 @@ export function Hero() {
             className="mt-5 font-serif font-semibold leading-[1.08] tracking-tight text-balance text-foreground"
             style={{ fontSize: 'clamp(1.75rem, 8vw, 4rem)' }}
           >
-            Your gateway to a <span className="text-primary">global career</span>
+            Your gateway to a <span className="gold-gradient-text">global career</span>
           </h1>
 
           <p className="mt-5 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:mt-6 md:text-base lg:text-lg">
