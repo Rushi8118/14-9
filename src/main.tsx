@@ -7,7 +7,13 @@ import { AuthProvider } from './components/auth-provider'
 import { ThemeProvider } from './components/theme-provider'
 import { Toaster } from './components/ui/sonner'
 import App from './App'
+import { reloadForNewDeploy } from './lib/chunk-reload'
 import './index.css'
+
+// After a deploy, a tab still running the old build asks for chunks that no longer exist.
+window.addEventListener('vite:preloadError', (event) => {
+  if (reloadForNewDeploy()) event.preventDefault()
+})
 
 const queryClient = new QueryClient({
   defaultOptions: {

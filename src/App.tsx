@@ -1,8 +1,10 @@
-import { lazy, Suspense, useEffect, type ReactNode } from 'react'
+import { Suspense, useEffect, type ReactNode } from 'react'
 import { Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom'
 import { SiteVisitTracker } from './components/SiteVisitTracker'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { RouteProgress } from './components/route-progress'
+import { AppErrorBoundary } from './components/AppErrorBoundary'
+import { lazyWithReload as lazy } from './lib/chunk-reload'
 
 // Eager-load the most-visited public pages so clicks feel instant
 import HomePage from './pages/HomePage'
@@ -203,14 +205,17 @@ function AppRoutes() {
 }
 
 function App() {
+  const { pathname } = useLocation()
   return (
     <>
       <ScrollToTop />
       <RouteProgress />
       <SiteVisitTracker />
-      <Suspense fallback={<SoftFallback />}>
-        <AppRoutes />
-      </Suspense>
+      <AppErrorBoundary resetKey={pathname}>
+        <Suspense fallback={<SoftFallback />}>
+          <AppRoutes />
+        </Suspense>
+      </AppErrorBoundary>
     </>
   )
 }
