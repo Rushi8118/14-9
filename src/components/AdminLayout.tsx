@@ -191,10 +191,17 @@ const AdminLayout: React.FC = () => {
         <Link
           to="/"
           onClick={onNavigate}
-          className="flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--desk-gold)]/15 text-[var(--desk-gold)] ring-1 ring-[var(--desk-gold)]/30 shrink-0"
-          aria-label="Siddhivinayak home"
+          className="flex items-center justify-center w-9 h-9 overflow-hidden rounded-xl bg-white ring-1 ring-[var(--desk-gold)]/40 shrink-0"
+          aria-label="Siddhivinayak Overseas, go to home page"
+          title="Go to home page"
         >
-          <Shield className="w-4.5 h-4.5" aria-hidden="true" />
+          <img
+            src="/favicon/android-chrome-192x192.png"
+            alt=""
+            width={26}
+            height={26}
+            className="h-[26px] w-[26px] object-contain"
+          />
         </Link>
         {!collapsed && (
           <div className="min-w-0 flex-1">
