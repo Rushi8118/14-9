@@ -1,109 +1,97 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Helmet } from "react-helmet-async"
 import { Loader2, CheckCircle2, XCircle } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
+import { logger } from "@/lib/logger"
 import { toast } from "sonner"
+
+type Status = "processing" | "success" | "verified" | "error"
+
+const GENERIC_ERROR = "We couldn't complete sign-in. Please try again."
+
+/** Maps provider/Supabase error codes to plain messages; raw auth errors are never shown. */
+function friendlyAuthError(code: string | null, description: string | null): string {
+  const text = `${code ?? ""} ${description ?? ""}`.toLowerCase()
+  if (/expired|invalid|otp/.test(text)) return "This link is invalid or has expired. Please request a new one."
+  if (/access_denied|cancel/.test(text)) return "Sign-in was cancelled."
+  return GENERIC_ERROR
+}
 
 export default function AuthCallback() {
   const navigate = useNavigate()
-  const [error, setError] = useState<string | null>(null)
-  const [status, setStatus] = useState<"processing" | "success" | "error">("processing")
+  const [status, setStatus] = useState<Status>("processing")
+  const [message, setMessage] = useState("")
+  const settled = useRef(false)
 
   useEffect(() => {
     let mounted = true
-
-    const handleCallback = async () => {
-      try {
-        const params = new URLSearchParams(window.location.search)
-        const errorParam = params.get("error")
-        const errorDescription = params.get("error_description")
-
-        if (errorParam) {
-          const message = errorDescription
-            ? decodeURIComponent(errorDescription.replace(/\+/g, " "))
-            : "Google authentication failed."
-          if (mounted) {
-            setError(message)
-            setStatus("error")
-            toast.error(message)
-            setTimeout(() => navigate("/login"), 2500)
-          }
-          return
-        }
-
-        // PKCE flow code exchange
-        const code = params.get("code")
-        if (code) {
-          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-          if (exchangeError) {
-            console.error("Exchange code error:", exchangeError)
-            if (mounted) {
-              setError(exchangeError.message)
-              setStatus("error")
-              toast.error(exchangeError.message || "Failed to exchange auth token.")
-              setTimeout(() => navigate("/login"), 2500)
-            }
-            return
-          }
-
-          if (data?.session && mounted) {
-            setStatus("success")
-            toast.success("Successfully signed in with Google!")
-            setTimeout(() => navigate("/"), 500)
-            return
-          }
-        }
-
-        // Check if session already active or from hash fragment
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-        if (sessionError) {
-          if (mounted) {
-            setError(sessionError.message)
-            setStatus("error")
-            setTimeout(() => navigate("/login"), 2500)
-          }
-          return
-        }
-
-        if (sessionData?.session && mounted) {
-          setStatus("success")
-          toast.success("Successfully signed in with Google!")
-          setTimeout(() => navigate("/"), 500)
-          return
-        }
-      } catch (err: any) {
-        console.error("Auth callback exception:", err)
-        if (mounted) {
-          setError(err?.message || "Unexpected authentication error")
-          setStatus("error")
-          setTimeout(() => navigate("/login"), 2500)
-        }
-      }
+    settled.current = false
+    const timers: number[] = []
+    const later = (fn: () => void, ms: number) => {
+      timers.push(window.setTimeout(fn, ms))
     }
 
-    void handleCallback()
+    const finish = (next: Status, text: string, to: string, delay: number, notify?: () => void) => {
+      if (!mounted || settled.current) return
+      settled.current = true
+      setStatus(next)
+      setMessage(text)
+      notify?.()
+      later(() => navigate(to, { replace: true }), delay)
+    }
 
-    // Listen to onAuthStateChange as a backup
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session && mounted) {
-        setStatus("success")
-        setTimeout(() => navigate("/"), 500)
+    const params = new URLSearchParams(window.location.search)
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""))
+    const errorCode = params.get("error") || hash.get("error")
+    const errorDescription = params.get("error_description") || hash.get("error_description")
+    const hadCode = params.has("code")
+
+    const run = async () => {
+      if (errorCode) {
+        const text = friendlyAuthError(errorCode, errorDescription)
+        finish("error", text, "/login", 2500, () => toast.error(text, { id: "auth-callback" }))
+        return
+      }
+
+      // The Supabase client already exchanges ?code= on page load (detectSessionInUrl).
+      // getSession waits for that exchange; exchanging the code again here would fail
+      // with "PKCE code verifier not found" even though sign-in succeeded.
+      const { data } = await supabase.auth.getSession()
+      if (data.session) {
+        finish("success", "Redirecting to your dashboard...", "/dashboard", 600, () => toast.success("You're signed in.", { id: "auth-callback" }))
+        return
+      }
+
+      if (hadCode) {
+        // Link opened in another browser or inside the email app: the account is verified,
+        // but a session can only be created in the browser where sign-up started.
+        finish("verified", "Your account is verified. Please sign in to continue.", "/login", 2500)
+        return
+      }
+
+      finish("error", GENERIC_ERROR, "/login", 2500)
+    }
+
+    run().catch((err: unknown) => {
+      logger.error("Auth callback failed:", err)
+      finish("error", GENERIC_ERROR, "/login", 2500)
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        finish("success", "Redirecting to your dashboard...", "/dashboard", 600)
       }
     })
 
-    const timeout = setTimeout(() => {
-      if (mounted && status === "processing") {
-        setError("Authentication took too long. Redirecting to login...")
-        setStatus("error")
-        setTimeout(() => navigate("/login"), 2000)
-      }
-    }, 10000)
+    later(() => finish("error", "Sign-in is taking too long. Please try again.", "/login", 2000), 15000)
 
     return () => {
       mounted = false
       subscription.unsubscribe()
-      clearTimeout(timeout)
+      timers.forEach((id) => window.clearTimeout(id))
     }
   }, [navigate])
 
@@ -114,28 +102,38 @@ export default function AuthCallback() {
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        {status === "processing" && (
-          <div className="flex flex-col items-center gap-4 text-center max-w-sm">
-            <Loader2 className="h-10 w-10 text-primary animate-spin" />
-            <h2 className="text-lg font-semibold text-foreground">Completing Sign-In</h2>
-            <p className="text-sm text-muted-foreground">Authenticating your Google account, please wait a moment...</p>
-          </div>
-        )}
-        {status === "success" && (
-          <div className="flex flex-col items-center gap-4 text-center max-w-sm">
-            <CheckCircle2 className="h-10 w-10 text-emerald-500" />
-            <h2 className="text-lg font-semibold text-foreground">Signed In Successfully!</h2>
-            <p className="text-sm text-emerald-600 font-medium">Redirecting to your dashboard...</p>
-          </div>
-        )}
-        {status === "error" && (
-          <div className="flex flex-col items-center gap-4 text-center max-w-sm">
-            <XCircle className="h-10 w-10 text-destructive" />
-            <h2 className="text-lg font-semibold text-foreground">Authentication Failed</h2>
-            <p className="text-sm text-destructive">{error}</p>
-            <p className="text-xs text-muted-foreground">Redirecting to login page...</p>
-          </div>
-        )}
+        <div role="status" aria-live="polite" className="flex flex-col items-center gap-4 text-center max-w-sm">
+          {status === "processing" && (
+            <>
+              <Loader2 className="h-10 w-10 text-primary animate-spin" aria-hidden="true" />
+              <h2 className="text-lg font-semibold text-foreground">Completing sign-in</h2>
+              <p className="text-sm text-muted-foreground">Please wait a moment...</p>
+            </>
+          )}
+          {status === "success" && (
+            <>
+              <CheckCircle2 className="h-10 w-10 text-emerald-500" aria-hidden="true" />
+              <h2 className="text-lg font-semibold text-foreground">You're signed in</h2>
+              <p className="text-sm text-emerald-600 font-medium">{message}</p>
+            </>
+          )}
+          {status === "verified" && (
+            <>
+              <CheckCircle2 className="h-10 w-10 text-primary" aria-hidden="true" />
+              <h2 className="text-lg font-semibold text-foreground">Account verified</h2>
+              <p className="text-sm text-muted-foreground">{message}</p>
+              <p className="text-xs text-muted-foreground">Taking you to the login page...</p>
+            </>
+          )}
+          {status === "error" && (
+            <>
+              <XCircle className="h-10 w-10 text-destructive" aria-hidden="true" />
+              <h2 className="text-lg font-semibold text-foreground">Sign-in not completed</h2>
+              <p className="text-sm text-destructive">{message}</p>
+              <p className="text-xs text-muted-foreground">Taking you to the login page...</p>
+            </>
+          )}
+        </div>
       </div>
     </>
   )
