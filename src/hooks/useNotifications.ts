@@ -37,8 +37,12 @@ export function useNotifications() {
       return data as Notification[]
     },
     enabled: !!userId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
     gcTime: 10 * 60 * 1000,
+    // Realtime pushes new rows instantly; polling is the fallback if the realtime connection drops
+    // or the notifications table isn't in the supabase_realtime publication yet.
+    refetchInterval: 60 * 1000,
+    refetchOnWindowFocus: true,
   })
 
   useEffect(() => {

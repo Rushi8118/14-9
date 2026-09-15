@@ -53,7 +53,12 @@ DECLARE
     ELSE 'your application'
   END;
 BEGIN
-  IF NEW.status IS NOT DISTINCT FROM OLD.status OR NEW.status = 'draft' THEN
+  IF NEW.status = 'draft'
+     OR (TG_OP = 'UPDATE' AND NEW.status IS NOT DISTINCT FROM OLD.status) THEN
+    RETURN NEW;
+  END IF;
+  -- Applicants get a receipt for their own submission, but not for their own withdrawals.
+  IF auth.uid() = NEW.user_id AND NEW.status <> 'submitted' THEN
     RETURN NEW;
   END IF;
 
@@ -86,7 +91,8 @@ $$;
 
 DROP TRIGGER IF EXISTS trg_notify_application_status_change ON public.applications;
 CREATE TRIGGER trg_notify_application_status_change
-  AFTER UPDATE OF status ON public.applications
+  -- INSERT too: the dashboard creates applications already 'submitted'.
+  AFTER INSERT OR UPDATE OF status ON public.applications
   FOR EACH ROW EXECUTE FUNCTION public.notify_application_status_change();
 
 -- ─── Applications: case officer needs something ──────────────
@@ -163,6 +169,10 @@ DECLARE
 BEGIN
   IF NEW.user_id IS NULL THEN
     RETURN NEW; -- website enquiries without an account have nobody to notify
+  END IF;
+  -- Don't tell clients about changes they made themselves (e.g. cancelling their own slot).
+  IF TG_OP = 'UPDATE' AND auth.uid() = NEW.user_id THEN
+    RETURN NEW;
   END IF;
 
   IF TG_OP = 'INSERT' THEN
