@@ -20,8 +20,8 @@ export const NAP = {
   email: 'info@siddhivinayakoverseas.com',
   whatsappUrl: 'https://wa.me/919925064666',
   /** Office WhatsApp that answers the applicant dashboard's Officer Chat. */
-  officeChatWhatsApp: '919773221199',
-  officeChatWhatsAppDisplay: '+91 97732 21199',
+  officeChatWhatsApp: '919925064666',
+  officeChatWhatsAppDisplay: '+91 99250 64666',
   geo: {
     latitude: 21.1702,
     longitude: 72.8311,
