@@ -36,6 +36,7 @@ const DESTINATIONS: Destination[] = [
   { name: "Singapore", short: "Singapore", flag: "🇸🇬", code: "sg", lat: 1.3521, lng: 103.8198, category: "both" },
   { name: "New Zealand", short: "NZ", flag: "🇳🇿", code: "nz", lat: -36.8485, lng: 174.7633, category: "both" },
   { name: "France", short: "France", flag: "🇫🇷", code: "fr", lat: 48.8566, lng: 2.3522, category: "study" },
+  { name: "Russia", short: "Russia", flag: "🇷🇺", code: "ru", lat: 55.7558, lng: 37.6173, category: "work" },
 ]
 
 function latLngToVec3(lat: number, lng: number, radius = 1): THREE.Vector3 {
@@ -235,7 +236,210 @@ export function InteractiveGlobe({
       })
     })
 
-    // 6. Lighting
+    // 6. Signature stars: a twinkling gold star belt orbiting the planet, and
+    // shooting stars that fall onto destination cities facing the viewer.
+    const starTexture = (() => {
+      const s = 64
+      const canvas = document.createElement("canvas")
+      canvas.width = canvas.height = s
+      const ctx = canvas.getContext("2d")!
+      const glow = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2)
+      glow.addColorStop(0, "rgba(255,255,255,1)")
+      glow.addColorStop(0.16, "rgba(255,255,255,0.95)")
+      glow.addColorStop(0.42, "rgba(255,255,255,0.2)")
+      glow.addColorStop(1, "rgba(255,255,255,0)")
+      ctx.fillStyle = glow
+      ctx.fillRect(0, 0, s, s)
+      // Four-point sparkle rays that fade toward their tips
+      const horizontal = ctx.createLinearGradient(0, 0, s, 0)
+      const vertical = ctx.createLinearGradient(0, 0, 0, s)
+      for (const gradient of [horizontal, vertical]) {
+        gradient.addColorStop(0, "rgba(255,255,255,0)")
+        gradient.addColorStop(0.5, "rgba(255,255,255,0.9)")
+        gradient.addColorStop(1, "rgba(255,255,255,0)")
+      }
+      ctx.fillStyle = horizontal
+      ctx.beginPath()
+      ctx.ellipse(s / 2, s / 2, s / 2, 1.5, 0, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = vertical
+      ctx.beginPath()
+      ctx.ellipse(s / 2, s / 2, 1.5, s / 2, 0, 0, Math.PI * 2)
+      ctx.fill()
+      return new THREE.CanvasTexture(canvas)
+    })()
+
+    const beltCount = width < 640 ? 170 : 340
+    const beltPositions = new Float32Array(beltCount * 3)
+    const beltColors = new Float32Array(beltCount * 3)
+    const beltSizes = new Float32Array(beltCount)
+    const beltPhases = new Float32Array(beltCount)
+    // Brand golds read on both the cream page and the dark planet; a few blues for depth.
+    const starPalette = [
+      new THREE.Color(0xd99a1e),
+      new THREE.Color(0xf2b632),
+      new THREE.Color(0xb8741a),
+      new THREE.Color(0x4f9fe0),
+    ]
+    for (let i = 0; i < beltCount; i++) {
+      const angle = Math.random() * Math.PI * 2
+      const radius = 1.3 + Math.pow(Math.random(), 1.6) * 0.32
+      beltPositions.set([Math.cos(angle) * radius, (Math.random() - 0.5) * 0.08, Math.sin(angle) * radius], i * 3)
+      const color = starPalette[i % 9 === 0 ? 3 : i % 3]
+      beltColors.set([color.r, color.g, color.b], i * 3)
+      beltSizes[i] = i % 17 === 0 ? 30 : 9 + Math.random() * 11
+      beltPhases[i] = Math.random() * Math.PI * 2
+    }
+    const beltGeo = new THREE.BufferGeometry()
+    beltGeo.setAttribute("position", new THREE.BufferAttribute(beltPositions, 3))
+    beltGeo.setAttribute("aColor", new THREE.BufferAttribute(beltColors, 3))
+    beltGeo.setAttribute("aSize", new THREE.BufferAttribute(beltSizes, 1))
+    beltGeo.setAttribute("aPhase", new THREE.BufferAttribute(beltPhases, 1))
+    const starUniforms = {
+      uTime: { value: 0 },
+      uMap: { value: starTexture },
+      uPixelRatio: { value: renderer.getPixelRatio() },
+    }
+    const beltMat = new THREE.ShaderMaterial({
+      uniforms: starUniforms,
+      vertexShader: /* glsl */ `
+        attribute vec3 aColor;
+        attribute float aSize;
+        attribute float aPhase;
+        uniform float uTime;
+        uniform float uPixelRatio;
+        varying vec3 vColor;
+        varying float vTwinkle;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          gl_Position = projectionMatrix * mv;
+          vTwinkle = 0.35 + 0.65 * pow(0.5 + 0.5 * sin(uTime * 1.7 + aPhase), 2.0);
+          vColor = aColor;
+          gl_PointSize = aSize * uPixelRatio * (0.7 + 0.45 * vTwinkle) * (3.45 / -mv.z);
+        }`,
+      fragmentShader: /* glsl */ `
+        uniform sampler2D uMap;
+        varying vec3 vColor;
+        varying float vTwinkle;
+        void main() {
+          float alpha = texture2D(uMap, gl_PointCoord).a;
+          gl_FragColor = vec4(vColor, alpha * vTwinkle);
+          #include <colorspace_fragment>
+        }`,
+      transparent: true,
+      depthWrite: false,
+    })
+    const starBelt = new THREE.Points(beltGeo, beltMat)
+    const beltPivot = new THREE.Group()
+    beltPivot.rotation.set(0.38, 0, -0.24)
+    beltPivot.add(starBelt)
+    scene.add(beltPivot)
+    // Shrink the belt on narrow (phone) frames to reduce side clipping, but never below
+    // 0.85 — the belt's inner edge (1.3 × scale) must stay outside the planet (radius 1),
+    // otherwise the earth hides it completely.
+    const fitBelt = () => {
+      const halfHeight = camera.position.z * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
+      const fit = (halfHeight * camera.aspect * 0.96) / 1.62
+      beltPivot.scale.setScalar(Math.max(0.85, Math.min(1, fit)))
+    }
+    fitBelt()
+
+    type ShootingStar = {
+      line: THREE.Line
+      material: THREE.ShaderMaterial
+      head: THREE.Sprite
+      flash: THREE.Sprite
+      curve: THREE.QuadraticBezierCurve3
+      progress: number
+      active: boolean
+      flashLife: number
+    }
+    const TRAIL_POINTS = 40
+    const trailT = new Float32Array(TRAIL_POINTS).map((_, i) => i / (TRAIL_POINTS - 1))
+    const shootingStars: ShootingStar[] = reducedMotion
+      ? []
+      : Array.from({ length: 3 }, () => {
+          const geo = new THREE.BufferGeometry()
+          geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(TRAIL_POINTS * 3), 3))
+          geo.setAttribute("aT", new THREE.BufferAttribute(trailT, 1))
+          const material = new THREE.ShaderMaterial({
+            uniforms: { uHead: { value: 0 }, uColor: { value: new THREE.Color(0xf4b43c) } },
+            vertexShader: /* glsl */ `
+              attribute float aT;
+              varying float vT;
+              void main() {
+                vT = aT;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+              }`,
+            fragmentShader: /* glsl */ `
+              uniform float uHead;
+              uniform vec3 uColor;
+              varying float vT;
+              void main() {
+                float tail = smoothstep(uHead - 0.35, uHead, vT) * step(vT, uHead);
+                gl_FragColor = vec4(uColor, tail);
+                #include <colorspace_fragment>
+              }`,
+            transparent: true,
+            depthWrite: false,
+          })
+          const line = new THREE.Line(geo, material)
+          line.visible = false
+          line.frustumCulled = false
+          const head = new THREE.Sprite(
+            new THREE.SpriteMaterial({ map: starTexture, color: 0xffd98a, transparent: true, depthWrite: false }),
+          )
+          head.scale.setScalar(0.1)
+          head.visible = false
+          const flash = new THREE.Sprite(
+            new THREE.SpriteMaterial({ map: starTexture, color: 0xf2a91f, transparent: true, depthWrite: false }),
+          )
+          flash.visible = false
+          globeGroup.add(line, head, flash)
+          return {
+            line,
+            material,
+            head,
+            flash,
+            curve: new THREE.QuadraticBezierCurve3(),
+            progress: 0,
+            active: false,
+            flashLife: 0,
+          }
+        })
+
+    const launchShootingStar = (star: ShootingStar) => {
+      // Only land on cities currently turned toward the viewer, so every impact is seen.
+      const candidates = destinations.filter(
+        (d) => latLngToVec3(d.lat, d.lng, 1).applyQuaternion(globeGroup.quaternion).z > 0.35,
+      )
+      if (!candidates.length) return false
+      const target = candidates[Math.floor(Math.random() * candidates.length)]
+      const end = latLngToVec3(target.lat, target.lng, 1.01)
+      const start = end
+        .clone()
+        .multiplyScalar(2.3)
+        .add(new THREE.Vector3(Math.random() - 0.5, 0.9 + Math.random() * 0.5, Math.random() - 0.5))
+      const control = start.clone().lerp(end, 0.5).normalize().multiplyScalar(1.9)
+      star.curve.v0.copy(start)
+      star.curve.v1.copy(control)
+      star.curve.v2.copy(end)
+      const positions = star.line.geometry.getAttribute("position") as THREE.BufferAttribute
+      for (let i = 0; i < TRAIL_POINTS; i++) {
+        const point = star.curve.getPoint(trailT[i])
+        positions.setXYZ(i, point.x, point.y, point.z)
+      }
+      positions.needsUpdate = true
+      star.progress = 0
+      star.active = true
+      star.line.visible = true
+      star.head.visible = true
+      return true
+    }
+    let nextShootAt = 1.2
+    const clock = new THREE.Clock()
+
+    // 7. Lighting
     // Bright, mostly frontal light so the day-side texture reads on the light page.
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.15)
     scene.add(ambientLight)
@@ -368,6 +572,43 @@ export function InteractiveGlobe({
         })
       }
 
+      // Star belt twinkle + slow independent orbit
+      const elapsed = clock.getElapsedTime()
+      if (!reducedMotion) {
+        starUniforms.uTime.value = elapsed
+        starBelt.rotation.y += 0.0009
+      }
+
+      // Shooting stars: streak in, land on a city, then a short burst of light
+      if (shootingStars.length) {
+        if (elapsed > nextShootAt) {
+          const idle = shootingStars.find((star) => !star.active && star.flashLife <= 0)
+          const launched = idle ? launchShootingStar(idle) : false
+          nextShootAt = elapsed + (launched ? 2.2 + Math.random() * 2.8 : 0.6)
+        }
+        shootingStars.forEach((star) => {
+          if (star.active) {
+            star.progress = Math.min(1, star.progress + 0.022)
+            const eased = Math.pow(star.progress, 1.6)
+            star.material.uniforms.uHead.value = eased
+            star.head.position.copy(star.curve.getPoint(eased))
+            if (star.progress >= 1) {
+              star.active = false
+              star.line.visible = false
+              star.head.visible = false
+              star.flash.position.copy(star.curve.v2)
+              star.flash.visible = true
+              star.flashLife = 1
+            }
+          } else if (star.flashLife > 0) {
+            star.flashLife = Math.max(0, star.flashLife - 0.035)
+            star.flash.scale.setScalar(0.05 + (1 - star.flashLife) * 0.24)
+            ;(star.flash.material as THREE.SpriteMaterial).opacity = star.flashLife
+            if (star.flashLife === 0) star.flash.visible = false
+          }
+        })
+      }
+
       renderer.render(scene, camera)
     }
 
@@ -400,6 +641,7 @@ export function InteractiveGlobe({
       height = mount.clientHeight || size
       camera.aspect = width / height
       camera.updateProjectionMatrix()
+      fitBelt()
       renderer.setSize(width, height, false)
       // Keep a correct frame on screen even while the loop is paused.
       if (!frameId) renderer.render(scene, camera)
@@ -433,6 +675,7 @@ export function InteractiveGlobe({
       normalMap.dispose()
       specularMap.dispose()
       cloudMap.dispose()
+      starTexture.dispose()
       renderer.dispose()
 
       if (renderer.domElement.parentNode === mount) {
