@@ -63,7 +63,12 @@ export async function generateAiText(
     // supabase-js wraps non-2xx responses in a generic FunctionsHttpError;
     // try to recover the real server-provided message from the response body.
     const context = (error as { context?: Response }).context
-    let message = error.message || 'AI generation failed. Please try again.'
+    let message = 'AI generation failed. Please try again.'
+    // FunctionsFetchError: the request never reached a running function (not deployed,
+    // network blocked, or the function crashed before answering the CORS preflight).
+    if ((error as { name?: string }).name === 'FunctionsFetchError') {
+      message = 'The AI service is not reachable right now. Please contact the site administrator.'
+    }
     if (context && typeof context.json === 'function') {
       try {
         const body = await context.clone().json()

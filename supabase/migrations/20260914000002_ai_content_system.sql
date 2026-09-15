@@ -61,6 +61,10 @@ CREATE INDEX IF NOT EXISTS idx_urgent_requirements_deadline ON public.urgent_req
 -- user can do anything", which fails "enforce admin authorization") ───
 DROP POLICY IF EXISTS "Authenticated users can manage urgent requirements" ON public.urgent_requirements;
 DROP POLICY IF EXISTS "Public can view active urgent requirements" ON public.urgent_requirements;
+DROP POLICY IF EXISTS "Admin staff can view all urgent requirements" ON public.urgent_requirements;
+DROP POLICY IF EXISTS "Admin staff can write urgent requirements" ON public.urgent_requirements;
+DROP POLICY IF EXISTS "Admin staff can update urgent requirements" ON public.urgent_requirements;
+DROP POLICY IF EXISTS "Admin staff can delete urgent requirements" ON public.urgent_requirements;
 
 CREATE POLICY "Public can view active urgent requirements" ON public.urgent_requirements
   FOR SELECT TO anon, authenticated
