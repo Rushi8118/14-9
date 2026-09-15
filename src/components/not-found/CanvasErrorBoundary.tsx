@@ -15,7 +15,7 @@ export class CanvasErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.warn('[NotFoundPage] 3D globe unavailable, showing static fallback:', error.message, info.componentStack)
+    console.warn('[3D scene] unavailable, showing static fallback:', error.message, info.componentStack)
   }
 
   render() {

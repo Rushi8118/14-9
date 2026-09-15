@@ -1,110 +1,140 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import { Link, useNavigate, Navigate, useSearchParams } from "react-router-dom"
+import { useEffect, useRef, useState, type FormEvent } from "react"
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom"
 import { Helmet } from "react-helmet-async"
-import { motion } from "framer-motion"
-import { Mail, Lock, LogIn, ArrowLeft, Loader2, Eye, EyeOff } from "lucide-react"
-import { useAuth } from "@/hooks/use-auth"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { GoogleSignInButton } from "@/components/GoogleSignInButton"
-import { SiteHeader } from "@/components/site-header"
-import { SiteFooter } from "@/components/site-footer"
+import { FileCheck2, FolderLock, LogIn, Mail, MessagesSquare } from "lucide-react"
 import { toast } from "sonner"
+import { useAuth } from "@/hooks/use-auth"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { GoogleSignInButton } from "@/components/GoogleSignInButton"
+import { AuthLayout } from "@/components/auth/AuthLayout"
+import { AuthField } from "@/components/auth/AuthField"
+import { PasswordField } from "@/components/auth/PasswordField"
+import { FormAlert } from "@/components/auth/FormAlert"
+import { LoadingButton } from "@/components/auth/LoadingButton"
+import { AuthDivider } from "@/components/auth/AuthDivider"
+import type { AuthVisualContent } from "@/components/auth/AuthVisualPanel"
+import {
+  focusFirstInvalid,
+  isValidEmail,
+  normalizeEmail,
+  safeRedirectPath,
+  useInitialFocus,
+} from "@/components/auth/auth-form"
+import { OFFLINE_ERROR, toFriendlyAuthError, type FriendlyAuthError } from "@/lib/auth-errors"
+
+type LoginField = "email" | "password" | "terms"
+type Status = "idle" | "email" | "google"
+
+const VISUAL: AuthVisualContent = {
+  heading: "Pick up right where your journey left off.",
+  text: "Track applications, manage documents and stay in touch with your advisor, all in one place.",
+  highlights: [
+    { icon: FileCheck2, title: "Application tracking", text: "See the latest status of every visa file" },
+    { icon: FolderLock, title: "Your documents, organised", text: "Upload and review paperwork securely" },
+    { icon: MessagesSquare, title: "Direct advisor access", text: "Questions answered by real consultants" },
+  ],
+}
+
+function validateLogin(values: { email: string; password: string; agreeTerms: boolean }) {
+  const errors: Partial<Record<LoginField, string>> = {}
+  const email = values.email.trim()
+  if (!email) errors.email = "Enter your email address."
+  else if (!isValidEmail(email)) errors.email = "Enter a valid email address, like name@example.com."
+  if (!values.password) errors.password = "Enter your password."
+  if (!values.agreeTerms) errors.terms = "Please agree to the Terms & Conditions to continue."
+  return errors
+}
 
 export default function LoginPage() {
   const { signIn, signInWithGoogle, user, profile, isLoading, canAccessAdmin } = useAuth()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [agreeTerms, setAgreeTerms] = useState(true)
-  const [loading, setLoading] = useState(false)
-  const [googleLoading, setGoogleLoading] = useState(false)
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const redirectParam = searchParams.get("redirect")
+  const redirectTarget = safeRedirectPath(searchParams.get("redirect"))
 
-  const postLoginPath = () => {
-    if (redirectParam) return redirectParam
-    if (canAccessAdmin) return "/admin"
-    return "/dashboard"
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [agreeTerms, setAgreeTerms] = useState(true)
+  const [attempted, setAttempted] = useState(false)
+  const [status, setStatus] = useState<Status>("idle")
+  const [formError, setFormError] = useState<FriendlyAuthError | null>(null)
+  const [signedIn, setSignedIn] = useState(false)
+
+  const submittingRef = useRef(false)
+  const emailRef = useRef<HTMLInputElement>(null)
+  const passwordRef = useRef<HTMLInputElement>(null)
+  const termsRef = useRef<HTMLButtonElement>(null)
+  useInitialFocus(emailRef)
+
+  // Errors appear after the first submit, then update live as the user types.
+  const errors = attempted ? validateLogin({ email, password, agreeTerms }) : {}
+  const busy = status !== "idle"
+  const destination = redirectTarget ?? (canAccessAdmin ? "/admin" : "/dashboard")
+
+  // AuthProvider hydrates the profile and roles before signIn resolves, so the
+  // destination above is role-aware by the time this runs.
+  useEffect(() => {
+    if (signedIn && !isLoading) navigate(destination, { replace: true })
+  }, [signedIn, isLoading, destination, navigate])
+
+  if (user && !isLoading && profile && !signedIn && !busy) {
+    return <Navigate to={destination} replace />
   }
 
-  // If already logged in (and profile hydrated), send them onward.
-  if (user && !isLoading && profile) {
-    return <Navigate to={postLoginPath()} replace />
-  }
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (submittingRef.current) return
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email || !password) {
-      toast.error("Please enter both email and password.")
+    setAttempted(true)
+    setFormError(null)
+    const validation = validateLogin({ email, password, agreeTerms })
+    if (Object.keys(validation).length > 0) {
+      focusFirstInvalid(validation, [["email", emailRef], ["password", passwordRef], ["terms", termsRef]])
       return
     }
-    if (!agreeTerms) {
-      toast.error("Please agree to the Terms & Conditions to continue.")
+    if (!navigator.onLine) {
+      setFormError(OFFLINE_ERROR)
       return
     }
 
-    setLoading(true)
+    submittingRef.current = true
+    setStatus("email")
     try {
-      const { error } = await signIn(email, password)
+      const { error } = await signIn(normalizeEmail(email), password)
       if (error) {
-        toast.error((error as { message?: string })?.message || "Failed to log in.")
+        setFormError(toFriendlyAuthError(error.message, "login"))
         return
       }
-      toast.success("Welcome back!", {
-        description: "Successfully logged in to your account.",
-      })
-      // AuthProvider hydrates the profile before resolving signIn, so choose the
-      // destination from the current role instead of briefly routing to /dashboard.
-      navigate(redirectParam || (canAccessAdmin ? "/admin" : "/dashboard"), { replace: true })
-    } catch (err: unknown) {
-      toast.error("An unexpected error occurred.")
-      console.error(err)
+      toast.success("Welcome back!", { description: "You're signed in." })
+      setSignedIn(true)
+    } catch {
+      setFormError(toFriendlyAuthError(null, "login"))
     } finally {
-      setLoading(false)
+      submittingRef.current = false
+      setStatus("idle")
     }
   }
 
-  // After successful password login, AuthProvider updates canAccessAdmin — redirect once ready.
-  useEffect(() => {
-    if (!loading && user && !isLoading && profile) {
-      navigate(postLoginPath(), { replace: true })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, profile, isLoading, canAccessAdmin])
-
-  const handleGoogleLogin = async () => {
+  const handleGoogle = async () => {
+    if (submittingRef.current) return
+    setFormError(null)
     if (!agreeTerms) {
-      toast.error("Please agree to the Terms & Conditions to continue.")
+      setAttempted(true)
+      termsRef.current?.focus()
       return
     }
-    setGoogleLoading(true)
+
+    submittingRef.current = true
+    setStatus("google")
     try {
+      // On success the browser leaves for Google, so only errors come back here.
       const { error } = await signInWithGoogle()
-      if (error) {
-        const msg = (error as { message?: string })?.message || ""
-        if (msg.includes("popup_closed")) {
-          toast.error("Sign-in cancelled.", {
-            description: "You closed the popup before completing sign-in.",
-          })
-        } else if (msg.includes("access_denied")) {
-          toast.error("Access denied.", {
-            description: "You denied the permission request.",
-          })
-        } else {
-          toast.error(msg || "Google sign-in failed.")
-        }
-      }
-    } catch (err: unknown) {
-      toast.error("An unexpected error occurred during Google Sign-In.")
-      console.error(err)
+      if (error) setFormError(toFriendlyAuthError(error.message, "google"))
+    } catch {
+      setFormError(toFriendlyAuthError(null, "google"))
     } finally {
-      setGoogleLoading(false)
+      submittingRef.current = false
+      setStatus("idle")
     }
   }
 
@@ -118,155 +148,117 @@ export default function LoginPage() {
         />
         <meta name="robots" content="noindex, follow" />
       </Helmet>
-      <SiteHeader />
-      <main className="relative min-h-screen bg-background flex flex-col justify-center py-20 px-4 md:px-6 premium-page">
-        <div
-          aria-hidden="true"
-          className="absolute inset-x-0 top-1/4 -z-10 h-[500px] w-full"
-          style={{
-            background:
-              "radial-gradient(circle, oklch(0.7 0.16 84 / 0.12) 0%, transparent 65%)",
-          }}
-        />
 
-        <div className="mx-auto w-full max-w-md">
-          <Link
-            to="/"
-            className="group mb-8 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-            Back to Home
-          </Link>
+      <AuthLayout
+        variant="login"
+        eyebrow="Client portal"
+        title="Welcome back"
+        description="Sign in to track your visa applications and consultations."
+        visual={VISUAL}
+        footer={
+          <p>
+            Don&apos;t have an account?{" "}
+            <Link to="/register" className="font-semibold text-foreground underline decoration-primary decoration-2 underline-offset-4 hover:text-primary">
+              Create an account
+            </Link>
+          </p>
+        }
+      >
+        <form onSubmit={handleSubmit} noValidate aria-busy={busy} className="space-y-5">
+          {formError ? (
+            <FormAlert tone="error" title="Sign-in failed">
+              {formError.message}
+              {formError.code === "credentials" ? (
+                <>
+                  {" "}
+                  <Link to="/forgot-password">Reset your password</Link>
+                </>
+              ) : null}
+            </FormAlert>
+          ) : null}
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="rounded-3xl border border-border/60 bg-card/65 p-8 shadow-2xl backdrop-blur-xl"
-          >
-            <div className="text-center mb-8">
-              <h1 className="font-serif text-3xl font-semibold leading-tight text-foreground">
-                Welcome Back
-              </h1>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Sign in to track your visa applications and consultations
-              </p>
-            </div>
+          <AuthField
+            ref={emailRef}
+            id="login-email"
+            label="Email address"
+            icon={Mail}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            placeholder="name@example.com"
+            required
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            error={errors.email}
+            disabled={busy}
+          />
 
-            <form onSubmit={handleEmailLogin} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="name@example.com"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 border-border/70 bg-background/50 focus:border-primary/50"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Link
-                    to="/forgot-password"
-                    className="text-xs font-semibold text-primary hover:underline"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" aria-hidden="true" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-11 border-border/70 bg-background/50 focus:border-primary/50"
-                    autoComplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    aria-pressed={showPassword}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" aria-hidden="true" />
-                    ) : (
-                      <Eye className="h-4 w-4" aria-hidden="true" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex flex-nowrap items-start gap-2.5 pt-1">
-                <Checkbox
-                  id="terms-login"
-                  checked={agreeTerms}
-                  onCheckedChange={(checked) => setAgreeTerms(checked as boolean)}
-                  className="mt-0.5 size-4 shrink-0"
-                />
-                <Label
-                  htmlFor="terms-login"
-                  className="inline cursor-pointer text-xs leading-tight text-muted-foreground sm:text-sm"
-                >
-                  I agree to the <Link to="/terms" className="text-primary hover:underline whitespace-nowrap">Terms & Conditions</Link> and <Link to="/privacy" className="text-primary hover:underline whitespace-nowrap">Privacy Policy</Link>.
-                </Label>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={loading || googleLoading || isLoading}
-                className="w-full rounded-full bg-primary hover:bg-primary/95 text-primary-foreground btn-glow mt-2"
+          <PasswordField
+            ref={passwordRef}
+            id="login-password"
+            label="Password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            error={errors.password}
+            disabled={busy}
+            labelAction={
+              <Link
+                to="/forgot-password"
+                className="rounded text-xs font-semibold text-foreground underline decoration-primary decoration-2 underline-offset-4 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {loading || (user && isLoading) ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  <>
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Sign In
-                  </>
-                )}
-              </Button>
-            </form>
-
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border/50"></div>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-3 text-muted-foreground">Or continue with</span>
-              </div>
-            </div>
-
-            <GoogleSignInButton
-              onClick={handleGoogleLogin}
-              isLoading={googleLoading}
-              disabled={loading}
-            />
-
-            <p className="mt-8 text-center text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
-              <Link to="/register" className="font-semibold text-primary hover:underline">
-                Create an account
+                Forgot password?
               </Link>
-            </p>
-          </motion.div>
-        </div>
-      </main>
-      <SiteFooter />
+            }
+          />
+
+          <div className="space-y-1.5">
+            <div className="flex items-start gap-2.5">
+              <Checkbox
+                ref={termsRef}
+                id="login-terms"
+                checked={agreeTerms}
+                onCheckedChange={(checked) => setAgreeTerms(checked === true)}
+                aria-invalid={errors.terms ? true : undefined}
+                aria-describedby={errors.terms ? "login-terms-error" : undefined}
+                disabled={busy}
+                className="mt-0.5 size-[18px]"
+              />
+              <Label htmlFor="login-terms" className="inline text-sm font-normal leading-snug text-muted-foreground">
+                I agree to the{" "}
+                <Link to="/terms" className="font-medium text-foreground underline decoration-primary underline-offset-4">
+                  Terms &amp; Conditions
+                </Link>{" "}
+                and{" "}
+                <Link to="/privacy" className="font-medium text-foreground underline decoration-primary underline-offset-4">
+                  Privacy Policy
+                </Link>
+                .
+              </Label>
+            </div>
+            {errors.terms ? (
+              <p id="login-terms-error" className="text-xs font-medium text-destructive">
+                {errors.terms}
+              </p>
+            ) : null}
+          </div>
+
+          <LoadingButton type="submit" loading={status === "email"} loadingText="Signing in…" icon={LogIn} disabled={busy}>
+            Sign in
+          </LoadingButton>
+
+          <p className="sr-only" aria-live="polite">
+            {status === "email" ? "Signing you in, please wait." : ""}
+          </p>
+        </form>
+
+        <AuthDivider />
+
+        <GoogleSignInButton onClick={handleGoogle} isLoading={status === "google"} disabled={busy} />
+      </AuthLayout>
     </>
   )
 }
