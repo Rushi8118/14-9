@@ -1501,3 +1501,15 @@ tbody tr {
 .gold-hairline {
   background: linear-gradient(90deg, transparent, rgba(214, 162, 40, 0.7) 20%, #f5c542 50%, rgba(214, 162, 40, 0.7) 80%, transparent);
 }
+
+/* Dashboard and admin shells are one screen tall and scroll inside their own main area,
+   so the page behind them must not scroll (that exposed an empty strip below the shell). */
+html:has(.premium-desk.h-dvh),
+html:has(.premium-desk.h-dvh) body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.premium-desk.h-dvh main {
+  overscroll-behavior: contain;
+}

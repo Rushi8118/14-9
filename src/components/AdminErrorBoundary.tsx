@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { isChunkLoadError, reloadForNewDeploy } from '@/lib/chunk-reload'
 
 type Props = { children: ReactNode }
 type State = { hasError: boolean; message: string }
@@ -16,6 +17,7 @@ export class AdminErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    if (isChunkLoadError(error) && reloadForNewDeploy()) return
     console.error('[AdminErrorBoundary]', error, info.componentStack)
   }
 
@@ -37,17 +39,12 @@ export class AdminErrorBoundary extends Component<Props, State> {
             The rest of the admin panel is still available. You can retry this view or open another
             section from the sidebar.
           </p>
-          {this.state.message && (
-            <p className="mt-3 rounded-lg bg-muted/60 px-3 py-2 text-left text-xs text-muted-foreground break-words">
-              {this.state.message}
-            </p>
-          )}
           <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
             <Button onClick={this.handleRetry} className="gap-2">
               <RefreshCw className="h-4 w-4" />
               Try again
             </Button>
-            <Button variant="outline" onClick={() => window.location.assign('/admin')}>
+            <Button variant="outline" onClick={() => window.location.assign(window.location.pathname.startsWith('/dashboard') ? '/dashboard' : '/admin')}>
               Back to dashboard
             </Button>
           </div>
