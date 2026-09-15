@@ -7,6 +7,7 @@ import { mkdir, writeFile, access } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
+import { getPublicRoutes } from './seo-routes.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, '..')
@@ -14,82 +15,8 @@ const distDir = path.join(root, 'dist')
 const PORT = 4179
 const BASE = `http://127.0.0.1:${PORT}`
 
-const ROUTES = [
-  '/',
-  '/visa-consultants-in-surat',
-  '/study-visa',
-  '/work-visa',
-  '/countries',
-  '/study-in-uk',
-  '/study-in-france',
-  '/study-in-germany',
-  '/study-in-spain',
-  '/study-in-dubai',
-  '/study-in-singapore',
-  '/study-in-canada',
-  '/study-in-australia',
-  '/study-in-usa',
-  '/study-in-ireland',
-  '/study-in-new-zealand',
-  '/work-visa/albania',
-  '/work-visa/armenia',
-  '/work-visa/austria',
-  '/work-visa/belarus',
-  '/work-visa/croatia',
-  '/work-visa/denmark',
-  '/work-visa/finland',
-  '/work-visa/france',
-  '/work-visa/germany',
-  '/work-visa/hungary',
-  '/work-visa/ireland',
-  '/work-visa/italy',
-  '/work-visa/malta',
-  '/work-visa/moldova',
-  '/work-visa/netherlands',
-  '/work-visa/norway',
-  '/work-visa/poland',
-  '/work-visa/portugal',
-  '/work-visa/romania',
-  '/work-visa/slovakia',
-  '/work-visa/spain',
-  '/work-visa/sweden',
-  '/work-visa/switzerland',
-  '/work-visa/uk',
-  '/work-visa/azerbaijan',
-  '/work-visa/israel',
-  '/work-visa/japan',
-  '/work-visa/kazakhstan',
-  '/work-visa/malaysia',
-  '/work-visa/maldives',
-  '/work-visa/qatar',
-  '/work-visa/russia',
-  '/work-visa/saudi-arabia',
-  '/work-visa/singapore',
-  '/work-visa/australia',
-  '/work-visa/new-zealand',
-  '/work-visa/canada',
-  '/work-visa/usa',
-  '/work-visa/africa',
-  '/work-visa/gulf',
-  '/post-study-work-visa',
-  '/guides',
-  '/guides/canada-student-visa-requirements',
-  '/guides/canada-study-visa-documents',
-  '/guides/uk-student-visa-requirements',
-  '/guides/australia-student-visa-requirements',
-  '/guides/japan-ssw-visa-guide',
-  '/guides/visa-rejection-reasons',
-  '/guides/ielts-requirements-for-study-abroad',
-  '/guides/post-study-work-visa-comparison',
-  '/success-stories',
-  '/services',
-  '/about',
-  '/reviews',
-  '/contact',
-  '/privacy',
-  '/terms',
-  '/404',
-]
+// Same list as the sitemap, plus the static 404 page.
+const ROUTES = [...(await getPublicRoutes(root)).map((route) => route.path), '/404']
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))

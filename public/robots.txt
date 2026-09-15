@@ -9,6 +9,7 @@ Disallow: /login
 Disallow: /register
 Disallow: /forgot-password
 Disallow: /reset-password
+Disallow: /403
 
 User-agent: GPTBot
 Allow: /
@@ -25,5 +26,4 @@ Allow: /
 User-agent: CCBot
 Allow: /
 
-Host: https://siddhivinayakoverseas.com
 Sitemap: https://siddhivinayakoverseas.com/sitemap.xml

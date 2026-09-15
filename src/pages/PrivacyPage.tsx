@@ -13,7 +13,6 @@ export default function PrivacyPage() {
           content="Privacy policy for Siddhivinayak Overseas. Learn how we protect your personal information."
         />
         <link rel="canonical" href="https://siddhivinayakoverseas.com/privacy" />
-        <meta name="robots" content="noindex, follow" />
       </Helmet>
       <SiteHeader />
       <main className="premium-page min-h-screen bg-background">

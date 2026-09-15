@@ -89,8 +89,8 @@ export default function ServicesPage() {
         <meta property="og:title" content="Overseas Education Services — Work Visa, Study Visa & More | Siddhivinayak Overseas" />
         <meta property="og:description" content="Overseas education services in India for students & fresh graduates. Work visas, study visas, IELTS coaching & more for USA, UK, Canada, Australia" />
         <meta property="og:image" content="https://siddhivinayakoverseas.com/consultant-office.jpg" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
+        <meta property="og:image:width" content="1024" />
+        <meta property="og:image:height" content="1024" />
         <meta property="og:locale" content="en_IN" />
         <meta property="og:site_name" content="Siddhivinayak Overseas" />
         <meta name="twitter:card" content="summary_large_image" />

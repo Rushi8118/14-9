@@ -147,8 +147,10 @@ export function SiteHeader() {
           >
             <span className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-background/90 ring-1 ring-primary/20 transition group-hover:bg-primary/10 overflow-hidden">
               <img
-                src="/favicon/android-chrome-512x512.png"
+                src="/favicon/android-chrome-192x192.png"
                 alt="Siddhivinayak Overseas logo"
+                width={24}
+                height={24}
                 className="h-6 w-6 object-contain"
               />
             </span>

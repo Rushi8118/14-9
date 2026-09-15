@@ -32,8 +32,8 @@ export default function PostStudyWorkVisaPage() {
         <meta property="og:title" content="Post Study Work Visa: Complete 2026 Guide (10+ Countries Compared) | Siddhivinayak Overseas" />
         <meta property="og:description" content="Complete guide to post-study work visas across 10+ countries. Eligibility, process & PR pathways for international students transitioning from study to work." />
         <meta property="og:image" content={`${SITE_URL}/consultant-office.jpg`} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
+        <meta property="og:image:width" content="1024" />
+        <meta property="og:image:height" content="1024" />
         <meta property="og:locale" content="en_IN" />
         <meta property="og:site_name" content="Siddhivinayak Overseas" />
         <meta name="twitter:card" content="summary_large_image" />

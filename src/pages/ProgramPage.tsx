@@ -124,8 +124,8 @@ export default function ProgramPage() {
         <meta property="og:title" content={program.meta_title || `${program.name} | ${program.country_name} | Siddhivinayak Overseas`} />
         <meta property="og:description" content={program.meta_desc || `${program.name} visa program in ${program.country_name}.`} />
         <meta property="og:image" content="https://siddhivinayakoverseas.com/consultant-office.jpg" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
+        <meta property="og:image:width" content="1024" />
+        <meta property="og:image:height" content="1024" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={program.meta_title || `${program.name} | ${program.country_name} | Siddhivinayak Overseas`} />
         <meta name="twitter:description" content={program.meta_desc || `${program.name} visa program in ${program.country_name}.`} />

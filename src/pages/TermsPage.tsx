@@ -13,7 +13,6 @@ export default function TermsPage() {
           content="Terms and conditions for using Siddhivinayak Overseas services."
         />
         <link rel="canonical" href="https://siddhivinayakoverseas.com/terms" />
-        <meta name="robots" content="noindex, follow" />
       </Helmet>
       <SiteHeader />
       <main className="premium-page min-h-screen bg-background">
