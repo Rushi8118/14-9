@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { CalendarPlus, LifeBuoy, Menu, Search, UserRoundPen } from 'lucide-react'
+import { CalendarPlus, Home, LifeBuoy, Menu, Search, UserRoundPen } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { usePermissions } from '@/hooks/usePermissions'
 import NotificationBell from '@/components/NotificationBell'
@@ -79,6 +79,12 @@ export default function DashboardTopbar({
         <nav aria-label="Breadcrumb" className="hidden sm:block">
           <ol className="flex items-center gap-1.5 text-xs text-[var(--desk-muted)]">
             <li>
+              <Link to="/" className="rounded hover:text-[var(--desk-navy)]">
+                Home
+              </Link>
+            </li>
+            <li aria-hidden="true">/</li>
+            <li>
               <Link to="/dashboard" className="rounded hover:text-[var(--desk-navy)]">
                 Dashboard
               </Link>
@@ -91,6 +97,14 @@ export default function DashboardTopbar({
         </nav>
         <p className="desk-display truncate text-base font-semibold leading-tight text-[var(--desk-navy)]">{pageLabel}</p>
       </div>
+
+      <Link
+        to="/"
+        className="hidden h-10 shrink-0 items-center gap-2 rounded-xl border border-[var(--desk-line)] bg-[var(--desk-surface)] px-3 text-sm font-medium text-[var(--desk-navy)] transition hover:border-[var(--desk-gold)]/45 hover:bg-[var(--desk-gold)]/10 sm:inline-flex"
+      >
+        <Home className="h-4 w-4 text-[var(--desk-gold)]" aria-hidden="true" />
+        Home Page
+      </Link>
 
       <button
         type="button"

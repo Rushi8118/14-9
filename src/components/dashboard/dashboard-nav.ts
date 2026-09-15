@@ -3,6 +3,7 @@ import {
   BriefcaseBusiness,
   CalendarDays,
   Files,
+  Home,
   LayoutDashboard,
   MessageCircle,
   ShieldCheck,
@@ -67,6 +68,11 @@ export function getDashboardNavGroups({ can, canAccessAdmin }: Access): Dashboar
         { label: 'Notifications', path: '/dashboard/notifications', icon: Bell, description: 'Updates and alerts' },
       ],
     },
+    {
+      label: 'Website',
+      items: [{ label: 'Home Page', path: '/', icon: Home, description: 'Back to the main website' }],
+    },
+    // Account stays last: the sidebar renders Sign Out at the end of this group.
     { label: 'Account', items: account },
   ]
 }
