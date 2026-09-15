@@ -1,12 +1,37 @@
+Options -Indexes -MultiViews
+DirectoryIndex index.html
+# Prerendered routes live in folders; serve them at the slash-less canonical URL instead of redirecting.
+DirectorySlash Off
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
-  RewriteRule ^index\.html$ - [L]
+
+  # 1. Preferred host: https://siddhivinayakoverseas.com (no www)
+  RewriteCond %{HTTP_HOST} ^www.siddhivinayakoverseas.com$ [NC]
+  RewriteRule ^(.*)$ https://siddhivinayakoverseas.com/$1 [R=301,L]
+
+  # 2. Canonical URLs have no trailing slash (root excepted)
   RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteCond %{REQUEST_FILENAME} !-l
-  RewriteRule . /index.html [L]
+  RewriteRule ^(.+)/$ /$1 [R=301,L]
+
+  # 3. Prerendered pages: /study-in-canada -> /study-in-canada/index.html
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteCond %{REQUEST_FILENAME}/index.html -f
+  RewriteRule ^(.+)$ /$1/index.html [L]
+
+  # 4. Existing files (assets, sitemap.xml, robots.txt)
+  RewriteCond %{REQUEST_FILENAME} -f
+  RewriteRule ^ - [L]
+
+  # 5. Client-rendered routes: database-driven pages and the private app
+  RewriteRule ^(blog|countries|urgent-requirements|dashboard|admin|auth|login|register|forgot-password|reset-password|403)(/.*)?$ /index.html [L]
+
+  # 6. Anything else does not exist: send a real 404 instead of a soft 404
+  RewriteRule ^ - [R=404,L]
 </IfModule>
+
+ErrorDocument 404 /404/index.html
 
 # Brotli compression (modern browsers)
 <IfModule mod_brotli.c>

@@ -37,9 +37,9 @@ export function SeoContentSection() {
             <GraduationCap className="h-3.5 w-3.5" />
             Trusted Overseas Education Consultants
           </div>
-          <h1 className="mt-5 font-serif text-3xl font-semibold leading-tight text-foreground md:text-4xl">
+          <h2 className="mt-5 font-serif text-3xl font-semibold leading-tight text-foreground md:text-4xl">
             Overseas Education Consultants in India &ndash; Siddhivinayak Overseas
-          </h1>
+          </h2>
           <p className="mx-auto mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">
             Welcome to Siddhivinayak Overseas, a trusted name among <strong>overseas education consultants in India</strong>. We help students & fresh graduates (18-34) achieve their dreams &mdash; whether studying abroad at top universities or securing a work visa abroad. From university selection to work visa filing, our <strong>overseas education services</strong> provide end-to-end <strong>international education & migration guidance</strong> tailored to your goals.
           </p>

@@ -28,8 +28,10 @@ export function SiteFooter() {
             <div className="flex items-center gap-3 mb-5">
               <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-background/95 ring-1 ring-primary/20 overflow-hidden">
                 <img
-                  src="/favicon/android-chrome-512x512.png"
+                  src="/favicon/android-chrome-192x192.png"
                   alt="Siddhivinayak Overseas logo"
+                  width={32}
+                  height={32}
                   className="h-8 w-8 object-contain"
                 />
               </span>

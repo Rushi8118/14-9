@@ -53,8 +53,8 @@ export default function ReviewsPage() {
         <meta property="og:title" content="Customer Reviews | Siddhivinayak Overseas" />
         <meta property="og:description" content="Read real reviews from our clients who successfully obtained work and study visas with Siddhivinayak Overseas." />
         <meta property="og:image" content="https://siddhivinayakoverseas.com/consultant-office.jpg" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
+        <meta property="og:image:width" content="1024" />
+        <meta property="og:image:height" content="1024" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Customer Reviews | Siddhivinayak Overseas" />
         <meta name="twitter:description" content="Read real reviews from our clients who successfully obtained work and study visas with Siddhivinayak Overseas." />

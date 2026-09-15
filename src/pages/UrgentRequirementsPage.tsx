@@ -6,6 +6,8 @@ import {
   DollarSign, Sparkles, Filter, CheckCircle2
 } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
+import { SeoHead } from '@/components/seo/SeoHead'
+import { breadcrumbSchema } from '@/lib/seo/schema'
 import { SiteFooter } from '@/components/site-footer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,6 +54,15 @@ export default function UrgentRequirementsPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col justify-between">
+      <SeoHead
+        title="Urgent Overseas Job & Work Visa Requirements for Indian Applicants"
+        description="Current overseas job openings and work visa requirements handled by Siddhivinayak Overseas, Surat. Check eligibility, deadlines and how to apply."
+        path="/urgent-requirements"
+        jsonLd={breadcrumbSchema([
+          { name: 'Home', path: '/' },
+          { name: 'Urgent Requirements', path: '/urgent-requirements' },
+        ])}
+      />
       <SiteHeader />
 
       <main className="flex-1 pb-24 pt-28 md:pt-36">

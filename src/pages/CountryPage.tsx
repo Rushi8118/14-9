@@ -1,5 +1,6 @@
-import { Helmet } from 'react-helmet-async'
 import { Link, useParams } from 'react-router-dom'
+import { SeoHead } from '@/components/seo/SeoHead'
+import { breadcrumbSchema } from '@/lib/seo/schema'
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import {
@@ -144,14 +145,22 @@ export default function CountryPage() {
 
   return (
     <>
-      <Helmet>
-        <title>{country.meta_title || `${country.name} Visa | Siddhivinayak Overseas`}</title>
-        <meta
-          name="description"
-          content={country.meta_desc || `Work and study visa options for ${country.name}. Expert guidance and end-to-end support.`}
-        />
-        <link rel="canonical" href={`https://siddhivinayakoverseas.com/countries/${slug}`} />
-      </Helmet>
+      <SeoHead
+        title={country.meta_title || `${country.name} Visa Guide: Work & Study Options`}
+        description={
+          country.meta_desc ||
+          `Work and study visa options for ${country.name} from India, with guidance from Siddhivinayak Overseas in Surat.`
+        }
+        path={`/countries/${slug}`}
+        // Profiles without a real description are thin; keep them out of the index
+        // (same 150-character rule as scripts/seo-routes.mjs uses for the sitemap).
+        noindex={(country.description?.trim().length ?? 0) < 150}
+        jsonLd={breadcrumbSchema([
+          { name: 'Home', path: '/' },
+          { name: 'Destinations', path: '/countries' },
+          { name: country.name, path: `/countries/${slug}` },
+        ])}
+      />
       <SiteHeader />
       <main className="min-h-screen bg-background premium-page">
         {/* Header Hero */}

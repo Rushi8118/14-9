@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async'
 import { SiteHeader } from '@/components/site-header'
 import { Hero } from '@/components/hero'
 import { UrgentRequirementBanner } from '@/components/urgent-requirement-banner'
@@ -37,6 +38,10 @@ export default function HomePage() {
           }),
         ]}
       />
+      {/* The hero globe image is the homepage LCP, so only this page preloads it. */}
+      <Helmet>
+        <link rel="preload" as="image" href="/earth-blue-marble.jpg" fetchPriority="high" />
+      </Helmet>
       <SiteHeader />
       <main id="main-content" className="relative premium-page">
         <Hero />
