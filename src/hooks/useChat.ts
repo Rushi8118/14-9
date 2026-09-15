@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
+import { logger } from '@/lib/logger'
 import { useAuth } from './use-auth'
 import { toast } from 'sonner'
 
@@ -9,11 +10,50 @@ export type ChatMessage = {
   sender_id: string
   receiver_id: string | null
   message: string
+  /** Storage path inside the private `chat-attachments` bucket (older rows may hold a full URL). */
   file_url: string | null
   file_name: string | null
   is_read: boolean
   read_at: string | null
   created_at: string
+}
+
+const ATTACHMENT_BUCKET = 'chat-attachments'
+const ATTACHMENT_FAILED = 'Your attachment could not be uploaded. Please try a PDF, JPG or PNG under 5 MB.'
+
+/** Plain messages only — raw Supabase errors must never reach the applicant. */
+function friendlyChatError(error: unknown): string {
+  const e = error as { code?: string; message?: string } | null
+  if (e?.message === ATTACHMENT_FAILED) return ATTACHMENT_FAILED
+  if (e?.code === 'PGRST205' || e?.code === '42P01') {
+    return 'Chat is not available right now. Please contact our team on WhatsApp while we fix this.'
+  }
+  return 'Your message could not be sent. Please try again.'
+}
+
+/**
+ * Opens an attachment through a short-lived signed URL, because chat files
+ * (passports, certificates) live in a private bucket.
+ */
+export async function openChatAttachment(pathOrUrl: string) {
+  if (/^https?:\/\//i.test(pathOrUrl)) {
+    window.open(pathOrUrl, '_blank', 'noopener,noreferrer')
+    return
+  }
+  // Open the tab synchronously so popup blockers allow it, then point it at the signed URL.
+  const tab = window.open('', '_blank')
+  const { data, error } = await supabase.storage.from(ATTACHMENT_BUCKET).createSignedUrl(pathOrUrl, 60)
+  if (error || !data?.signedUrl) {
+    tab?.close()
+    toast.error('This attachment could not be opened. Please try again.')
+    return
+  }
+  if (tab) {
+    tab.opener = null
+    tab.location.href = data.signedUrl
+  } else {
+    window.location.assign(data.signedUrl)
+  }
 }
 
 export function useChat() {
@@ -35,8 +75,9 @@ export function useChat() {
         .order('created_at', { ascending: true })
 
       if (error) {
-        // Messages table fetch failed — return empty
-        return []
+        logger.error('Chat history failed to load:', error.message)
+        // Surface as isError so the page can say so, instead of an empty "start your conversation" state.
+        throw new Error('Chat history could not be loaded.')
       }
       return data as ChatMessage[]
     },
@@ -121,25 +162,25 @@ export function useChat() {
     }) => {
       if (!user) throw new Error('Not authenticated')
 
-      let fileUrl: string | null = null
+      let filePath: string | null = null
       let fileName: string | null = null
 
       if (file) {
-        // Upload attachment to chat-attachments bucket
-        const fileExt = file.name.split('.').pop()
-        const path = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
-        
-        const { error: uploadError, data: uploadData } = await supabase.storage
-          .from('chat-attachments')
-          .upload(path, file)
+        const ext = (file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8) || 'bin'
+        // First folder must be the user's id: the storage policies only allow uploads there.
+        const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${ext}`
 
-        if (!uploadError && uploadData) {
-          const { data: publicUrlData } = supabase.storage
-            .from('chat-attachments')
-            .getPublicUrl(path)
-          fileUrl = publicUrlData?.publicUrl || null
-          fileName = file.name
+        const { error: uploadError } = await supabase.storage
+          .from(ATTACHMENT_BUCKET)
+          .upload(path, file, { contentType: file.type || undefined, upsert: false })
+
+        if (uploadError) {
+          logger.error('Chat attachment upload failed:', uploadError.message)
+          // Never send the message silently without the file the applicant attached.
+          throw new Error(ATTACHMENT_FAILED)
         }
+        filePath = path
+        fileName = file.name
       }
 
       const { data, error } = await supabase
@@ -148,8 +189,8 @@ export function useChat() {
           {
             sender_id: user.id,
             receiver_id: null, // assigned case officer defaults to system/admin
-            message: text,
-            file_url: fileUrl,
+            message: text.trim(),
+            file_url: filePath,
             file_name: fileName,
             is_read: false,
           },
@@ -157,7 +198,10 @@ export function useChat() {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        logger.error('Chat message insert failed:', error.code, error.message)
+        throw error
+      }
       return data as ChatMessage
     },
     onMutate: async (newMsg) => {
@@ -186,11 +230,11 @@ export function useChat() {
       }
       return { previous }
     },
-    onError: (err, variables, context) => {
+    onError: (err, _variables, context) => {
       if (context?.previous) {
         queryClient.setQueryData(['messages', user?.id], context.previous)
       }
-      toast.error('Failed to send message.')
+      toast.error(friendlyChatError(err))
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages', user?.id] })

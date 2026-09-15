@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useChat, ChatMessage } from '@/hooks/useChat'
+import { toast } from 'sonner'
+import { useChat, openChatAttachment } from '@/hooks/useChat'
 import { useAuth } from '@/hooks/use-auth'
 import UserAvatar from '@/components/UserAvatar'
 import {
@@ -21,6 +22,8 @@ export default function ChatPage() {
   const { user } = useAuth()
   const {
     messages,
+    isError,
+    refetch,
     sendMessage,
     sendLoading,
     officerTyping,
@@ -83,8 +86,10 @@ export default function ChatPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
+      // Reset so choosing the same file again still fires onChange.
+      e.target.value = ''
       if (file.size > 5 * 1024 * 1024) {
-        alert('File size exceeds the 5MB limit.')
+        toast.error('That file is larger than 5 MB. Please choose a smaller file.')
         return
       }
       setSelectedFile(file)
@@ -119,6 +124,19 @@ export default function ChatPage() {
         </div>
       </div>
 
+      {isError && (
+        <div role="alert" className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-amber-300/60 bg-amber-50 px-4 py-2.5 text-xs text-amber-900">
+          <span>We couldn't load your conversation. Your messages are safe — please try again.</span>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="min-h-8 rounded-lg border border-amber-400/70 px-3 font-semibold hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C49A2B]"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* 2. Scrolling chat logs block */}
       <div
         ref={scrollContainerRef}
@@ -152,11 +170,10 @@ export default function ChatPage() {
 
                   {/* Attachment if present */}
                   {msg.file_url && (
-                    <a
-                      href={msg.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`flex items-center gap-2 p-2 rounded-lg border transition ${
+                    <button
+                      type="button"
+                      onClick={() => void openChatAttachment(msg.file_url!)}
+                      className={`flex items-center gap-2 p-2 rounded-lg border text-left transition ${
                         isMe
                           ? 'bg-[#F5F0E8]/10 border-white/10 text-[#C49A2B]'
                           : 'bg-[#1a1a2e]/5 border-border/50 text-[#C49A2B]'
@@ -166,7 +183,7 @@ export default function ChatPage() {
                       <span className="text-[11px] font-bold underline truncate max-w-[120px]">
                         {msg.file_name || 'Attachment'}
                       </span>
-                    </a>
+                    </button>
                   )}
 
                   <div className={`flex items-center gap-1.5 self-end text-[11px] ${isMe ? 'text-[#F5F0E8]/70' : 'text-foreground/55'}`}>
