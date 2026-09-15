@@ -34,6 +34,7 @@ export function PasswordRequirements({ strength }: { strength: PasswordStrength 
               )}
             </span>
             <span>{label}</span>
+            <span className="sr-only">{passed ? "(met)" : "(not met)"}</span>
           </li>
         )
       })}
