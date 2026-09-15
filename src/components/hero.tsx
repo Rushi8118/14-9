@@ -147,6 +147,7 @@ export function Hero() {
                     <InteractiveGlobe
                       className="h-full w-full"
                       showMarkers={true}
+                      enableZoom={false}
                       aria-hidden
                     />
                   </Suspense>
@@ -156,7 +157,7 @@ export function Hero() {
               )}
 
               <div
-                className="pointer-events-none absolute top-1 right-1 rounded-2xl border border-border/60 bg-card/85 p-3 text-foreground shadow-lg backdrop-blur-md sm:top-2 sm:right-2 sm:p-3.5"
+                className="pointer-events-none absolute bottom-1 right-1 rounded-2xl border border-border/60 bg-card/85 p-3 text-foreground shadow-lg backdrop-blur-md sm:bottom-2 sm:right-2 sm:p-3.5"
                 role="note"
               >
                 <p className="text-[10px] uppercase font-bold tracking-wider text-primary">Fast Processing</p>

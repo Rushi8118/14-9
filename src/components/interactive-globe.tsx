@@ -16,6 +16,8 @@ type Destination = {
   name: string
   short: string
   flag: string
+  /** ISO 3166-1 alpha-2 code for the flag icon (display names like "Surat (HQ)" don't resolve). */
+  code: string
   lat: number
   lng: number
   category: "work" | "study" | "both" | "origin"
@@ -23,17 +25,17 @@ type Destination = {
 }
 
 const DESTINATIONS: Destination[] = [
-  { name: "Surat (HQ)", short: "Surat", flag: "🇮🇳", lat: 21.1702, lng: 72.8311, category: "origin", isOrigin: true },
-  { name: "United Kingdom", short: "UK", flag: "🇬🇧", lat: 51.5074, lng: -0.1278, category: "both" },
-  { name: "Canada", short: "Canada", flag: "🇨🇦", lat: 43.6532, lng: -79.3832, category: "both" },
-  { name: "Australia", short: "Australia", flag: "🇦🇺", lat: -33.8688, lng: 151.2093, category: "both" },
-  { name: "Japan", short: "Japan", flag: "🇯🇵", lat: 35.6762, lng: 139.6503, category: "work" },
-  { name: "Germany", short: "Germany", flag: "🇩🇪", lat: 50.1109, lng: 8.6821, category: "both" },
-  { name: "United States", short: "USA", flag: "🇺🇸", lat: 40.7128, lng: -74.0060, category: "both" },
-  { name: "Dubai, UAE", short: "Dubai", flag: "🇦🇪", lat: 25.2048, lng: 55.2708, category: "both" },
-  { name: "Singapore", short: "Singapore", flag: "🇸🇬", lat: 1.3521, lng: 103.8198, category: "both" },
-  { name: "New Zealand", short: "NZ", flag: "🇳🇿", lat: -36.8485, lng: 174.7633, category: "both" },
-  { name: "France", short: "France", flag: "🇫🇷", lat: 48.8566, lng: 2.3522, category: "study" },
+  { name: "Surat (HQ)", short: "Surat", flag: "🇮🇳", code: "in", lat: 21.1702, lng: 72.8311, category: "origin", isOrigin: true },
+  { name: "United Kingdom", short: "UK", flag: "🇬🇧", code: "gb", lat: 51.5074, lng: -0.1278, category: "both" },
+  { name: "Canada", short: "Canada", flag: "🇨🇦", code: "ca", lat: 43.6532, lng: -79.3832, category: "both" },
+  { name: "Australia", short: "Australia", flag: "🇦🇺", code: "au", lat: -33.8688, lng: 151.2093, category: "both" },
+  { name: "Japan", short: "Japan", flag: "🇯🇵", code: "jp", lat: 35.6762, lng: 139.6503, category: "work" },
+  { name: "Germany", short: "Germany", flag: "🇩🇪", code: "de", lat: 50.1109, lng: 8.6821, category: "both" },
+  { name: "United States", short: "USA", flag: "🇺🇸", code: "us", lat: 40.7128, lng: -74.0060, category: "both" },
+  { name: "Dubai, UAE", short: "Dubai", flag: "🇦🇪", code: "ae", lat: 25.2048, lng: 55.2708, category: "both" },
+  { name: "Singapore", short: "Singapore", flag: "🇸🇬", code: "sg", lat: 1.3521, lng: 103.8198, category: "both" },
+  { name: "New Zealand", short: "NZ", flag: "🇳🇿", code: "nz", lat: -36.8485, lng: 174.7633, category: "both" },
+  { name: "France", short: "France", flag: "🇫🇷", code: "fr", lat: 48.8566, lng: 2.3522, category: "study" },
 ]
 
 function latLngToVec3(lat: number, lng: number, radius = 1): THREE.Vector3 {
@@ -67,22 +69,30 @@ export function InteractiveGlobe({
     const container = containerRef.current
     if (!mount || !container) return
 
-    const width = mount.clientWidth || size
-    const height = mount.clientHeight || size
+    // Kept current by onResize; label projection below must use the live size.
+    let width = mount.clientWidth || size
+    let height = mount.clientHeight || size
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const rotateSpeed = reducedMotion ? 0 : autoRotateSpeed
 
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
-    camera.position.set(0, 0, 2.95)
+    // Far enough back that the flight arcs (up to 1.32 × radius) stay inside the frame.
+    camera.position.set(0, 0, 3.45)
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
       powerPreference: "high-performance",
     })
-    renderer.setSize(width, height)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75))
+    renderer.setSize(width, height, false)
     renderer.setClearColor(0x000000, 0)
     renderer.outputColorSpace = THREE.SRGBColorSpace
+    // CSS owns the displayed size so the canvas always matches its container.
+    renderer.domElement.style.display = "block"
+    renderer.domElement.style.width = "100%"
+    renderer.domElement.style.height = "100%"
     mount.appendChild(renderer.domElement)
 
     // Master Group for 3D Earth
@@ -90,8 +100,9 @@ export function InteractiveGlobe({
     globeGroup.position.set(0, 0.02, 0)
     scene.add(globeGroup)
 
-    // Present India, Asia & Europe to the user on initial load
-    globeGroup.rotation.y = -1.35
+    // Face longitude ~55°E on load: Surat just right of centre, Europe upper-left,
+    // Africa lower-left, so the routes' origin is visible in the first frame.
+    globeGroup.rotation.y = -2.53
     globeGroup.rotation.x = 0.22
 
     // Load Photorealistic NASA Satellite Textures
@@ -114,6 +125,11 @@ export function InteractiveGlobe({
       specularMap: specularMap,
       specular: new THREE.Color(0x446688),
       shininess: 32,
+      // Blue Marble oceans are very dark; a faint self-lit copy of the texture keeps
+      // the whole globe readable on the light page without flattening the shading.
+      emissiveMap: earthMap,
+      emissive: new THREE.Color(0xffffff),
+      emissiveIntensity: 0.38,
     })
     const globe = new THREE.Mesh(globeGeo, globeMat)
     globeGroup.add(globe)
@@ -123,8 +139,7 @@ export function InteractiveGlobe({
     const cloudMat = new THREE.MeshPhongMaterial({
       map: cloudMap,
       transparent: true,
-      opacity: 0.38,
-      blending: THREE.AdditiveBlending,
+      opacity: 0.32,
       depthWrite: false,
     })
     const cloudMesh = new THREE.Mesh(cloudGeo, cloudMat)
@@ -216,16 +231,17 @@ export function InteractiveGlobe({
         curve,
         particle,
         progress: (idx * 0.12) % 1,
-        speed: 0.0035 + (idx % 3) * 0.001,
+        speed: reducedMotion ? 0 : 0.0035 + (idx % 3) * 0.001,
       })
     })
 
     // 6. Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.45)
+    // Bright, mostly frontal light so the day-side texture reads on the light page.
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.15)
     scene.add(ambientLight)
 
-    const sunLight = new THREE.DirectionalLight(0xfffaed, 2.5)
-    sunLight.position.set(5, 3.5, 4.5)
+    const sunLight = new THREE.DirectionalLight(0xfffaed, 2.1)
+    sunLight.position.set(2.5, 1.8, 5)
     scene.add(sunLight)
 
     const rimLight = new THREE.DirectionalLight(0x60a5fa, 0.9)
@@ -266,6 +282,8 @@ export function InteractiveGlobe({
     mount.addEventListener("pointerdown", onPointerDown)
     window.addEventListener("pointermove", onPointerMove)
     window.addEventListener("pointerup", onPointerUp)
+    // Fired when the browser takes over a touch for vertical page scrolling.
+    window.addEventListener("pointercancel", onPointerUp)
 
     // Zoom
     let targetZoom = camera.position.z
@@ -301,11 +319,11 @@ export function InteractiveGlobe({
         globeGroup.rotation.x = Math.max(-0.8, Math.min(0.8, globeGroup.rotation.x + velY))
 
         if (Math.abs(velX) < 0.0001 && !activeHoverRef.current) {
-          globeGroup.rotation.y += autoRotateSpeed
+          globeGroup.rotation.y += rotateSpeed
         }
       }
 
-      cloudMesh.rotation.y += 0.0004
+      if (!reducedMotion) cloudMesh.rotation.y += 0.0004
 
       if (enableZoom) {
         camera.position.z += (targetZoom - camera.position.z) * 0.08
@@ -378,11 +396,13 @@ export function InteractiveGlobe({
 
     const onResize = () => {
       if (!mount) return
-      const w = mount.clientWidth || size
-      const h = mount.clientHeight || size
-      camera.aspect = w / h
+      width = mount.clientWidth || size
+      height = mount.clientHeight || size
+      camera.aspect = width / height
       camera.updateProjectionMatrix()
-      renderer.setSize(w, h)
+      renderer.setSize(width, height, false)
+      // Keep a correct frame on screen even while the loop is paused.
+      if (!frameId) renderer.render(scene, camera)
     }
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(onResize) : null
     ro?.observe(mount)
@@ -397,19 +417,22 @@ export function InteractiveGlobe({
       mount.removeEventListener("pointerdown", onPointerDown)
       window.removeEventListener("pointermove", onPointerMove)
       window.removeEventListener("pointerup", onPointerUp)
+      window.removeEventListener("pointercancel", onPointerUp)
       mount.removeEventListener("wheel", onWheel)
 
+      // Free every mesh and line (globe, clouds, markers, beacons, arcs, particles).
+      scene.traverse((object) => {
+        const drawable = object as THREE.Mesh | THREE.Line
+        if (!drawable.geometry) return
+        drawable.geometry.dispose()
+        const materials = Array.isArray(drawable.material) ? drawable.material : [drawable.material]
+        materials.forEach((material) => material.dispose())
+      })
       scene.remove(globeGroup, ambientLight, sunLight, rimLight)
-      globeGeo.dispose()
-      globeMat.dispose()
       earthMap.dispose()
       normalMap.dispose()
       specularMap.dispose()
       cloudMap.dispose()
-      cloudGeo.dispose()
-      cloudMat.dispose()
-      atmoGeo.dispose()
-      atmoMat.dispose()
       renderer.dispose()
 
       if (renderer.domElement.parentNode === mount) {
@@ -423,7 +446,8 @@ export function InteractiveGlobe({
       ref={containerRef}
       className={`relative select-none overflow-hidden ${className}`}
       aria-hidden={ariaHidden}
-      style={{ touchAction: "none" }}
+      // pan-y keeps vertical page scrolling working on phones; horizontal drags still spin the globe.
+      style={{ touchAction: "pan-y" }}
     >
       <div ref={mountRef} className="h-full w-full cursor-grab active:cursor-grabbing" />
 
@@ -452,7 +476,7 @@ export function InteractiveGlobe({
                       : "border border-sky-400/40 bg-slate-900/80 text-slate-100 hover:border-sky-300"
                   }`}
                 >
-                  <FlagIcon country={dest.name} className="text-sm" />
+                  <FlagIcon code={dest.code} className="text-sm" />
                 </div>
               </div>
             )
