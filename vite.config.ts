@@ -42,10 +42,12 @@ export default defineConfig({
     minify: 'esbuild',
     cssMinify: true,
     sourcemap: false,
-    chunkSizeWarningLimit: 600,
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         manualChunks(id) {
+          if (id.includes('node_modules/three-stdlib')) return 'vendor-three-stdlib'
+          if (id.includes('node_modules/@react-three')) return 'vendor-react-three'
           if (id.includes('node_modules/three')) return 'vendor-three'
           if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) return 'vendor-charts'
           if (id.includes('node_modules/framer-motion')) return 'vendor-framer'
@@ -105,5 +107,8 @@ export default defineConfig({
   preview: {
     port: 4173,
     host: '0.0.0.0',
+    strictPort: false,
+    cors: true,
+    allowedHosts: true,
   },
 })
