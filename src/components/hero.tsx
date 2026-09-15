@@ -8,7 +8,7 @@ const InteractiveGlobe = lazy(() => import('@/components/interactive-globe'))
 function GlobePoster() {
   return (
     <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-transparent">
-      <div className="relative h-64 w-64 rounded-full overflow-hidden shadow-[0_0_50px_rgba(56,189,248,0.25)]">
+      <div className="relative h-64 w-64 rounded-full overflow-hidden shadow-[0_0_60px_rgba(245,184,61,0.4)] ring-1 ring-amber-300/40">
         <img
           src="/earth-blue-marble.jpg"
           alt="Realistic 3D Earth"
@@ -87,7 +87,7 @@ export function Hero() {
             className="mt-5 font-serif font-semibold leading-[1.08] tracking-tight text-balance text-foreground"
             style={{ fontSize: 'clamp(1.75rem, 8vw, 4rem)' }}
           >
-            Your gateway to a <span className="text-primary">global career</span>
+            Your gateway to a <span className="gold-gradient-text">global career</span>
           </h1>
 
           <p className="mt-5 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:mt-6 md:text-base lg:text-lg">

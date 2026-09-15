@@ -146,16 +146,58 @@ export function InteractiveGlobe({
     const cloudMesh = new THREE.Mesh(cloudGeo, cloudMat)
     globeGroup.add(cloudMesh)
 
-    // 3. Atmospheric Glow
-    const atmoGeo = new THREE.SphereGeometry(1.055, 48, 48)
-    const atmoMat = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(0x60a5fa),
-      transparent: true,
-      opacity: 0.12,
+    // 3. Premium gold atmosphere: an outer halo brightest at the planet's edge,
+    // plus a thin gold rim light on the earth itself.
+    const atmoGeo = new THREE.SphereGeometry(1.14, 64, 64)
+    const atmoMat = new THREE.ShaderMaterial({
+      uniforms: { uColor: { value: new THREE.Color(0xc9993f) } },
+      vertexShader: /* glsl */ `
+        varying vec3 vNormal;
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: /* glsl */ `
+        uniform vec3 uColor;
+        varying vec3 vNormal;
+        void main() {
+          float intensity = pow(0.72 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 3.0);
+          gl_FragColor = vec4(uColor, clamp(intensity, 0.0, 1.0) * 0.45);
+          #include <colorspace_fragment>
+        }`,
       side: THREE.BackSide,
+      transparent: true,
+      depthWrite: false,
     })
     const atmosphere = new THREE.Mesh(atmoGeo, atmoMat)
     globeGroup.add(atmosphere)
+
+    const rimGeo = new THREE.SphereGeometry(1.006, 64, 64)
+    const rimMat = new THREE.ShaderMaterial({
+      uniforms: { uColor: { value: new THREE.Color(0xd4a24a) } },
+      vertexShader: /* glsl */ `
+        varying vec3 vNormal;
+        varying vec3 vView;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vNormal = normalize(normalMatrix * normal);
+          vView = normalize(-mv.xyz);
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: /* glsl */ `
+        uniform vec3 uColor;
+        varying vec3 vNormal;
+        varying vec3 vView;
+        void main() {
+          float rim = pow(1.0 - max(dot(vNormal, vView), 0.0), 4.0);
+          gl_FragColor = vec4(uColor * rim * 0.5, rim * 0.5);
+          #include <colorspace_fragment>
+        }`,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    })
+    globeGroup.add(new THREE.Mesh(rimGeo, rimMat))
 
     // 4. Destination Markers & Beacons
     const markersGroup = new THREE.Group()
@@ -167,7 +209,7 @@ export function InteractiveGlobe({
 
       const dotGeo = new THREE.SphereGeometry(d.isOrigin ? 0.02 : 0.012, 12, 12)
       const dotMat = new THREE.MeshBasicMaterial({
-        color: d.isOrigin ? 0xfacc15 : 0x38bdf8,
+        color: d.isOrigin ? 0xe6b85c : 0xd9ad5a,
       })
       const dot = new THREE.Mesh(dotGeo, dotMat)
       dot.position.copy(pos)
@@ -176,7 +218,7 @@ export function InteractiveGlobe({
       const beaconHeight = d.isOrigin ? 0.07 : 0.035
       const cylinderGeo = new THREE.CylinderGeometry(0.0025, 0.0025, beaconHeight, 6)
       const cylinderMat = new THREE.MeshBasicMaterial({
-        color: d.isOrigin ? 0xfacc15 : 0x60a5fa,
+        color: d.isOrigin ? 0xe6b85c : 0xc99a45,
         transparent: true,
         opacity: 0.85,
       })
@@ -211,9 +253,9 @@ export function InteractiveGlobe({
       const arcGeo = new THREE.BufferGeometry().setFromPoints(points)
 
       const arcMat = new THREE.LineBasicMaterial({
-        color: new THREE.Color(0xf59e0b),
+        color: new THREE.Color(0xc99a45),
         transparent: true,
-        opacity: 0.6,
+        opacity: 0.45,
         blending: THREE.AdditiveBlending,
       })
       const arcLine = new THREE.Line(arcGeo, arcMat)
@@ -221,9 +263,9 @@ export function InteractiveGlobe({
 
       const partGeo = new THREE.SphereGeometry(0.011, 8, 8)
       const partMat = new THREE.MeshBasicMaterial({
-        color: 0xfef08a,
+        color: 0xf0d9a0,
         transparent: true,
-        opacity: 0.95,
+        opacity: 0.75,
       })
       const particle = new THREE.Mesh(partGeo, partMat)
       arcsGroup.add(particle)
@@ -274,12 +316,13 @@ export function InteractiveGlobe({
     const beltColors = new Float32Array(beltCount * 3)
     const beltSizes = new Float32Array(beltCount)
     const beltPhases = new Float32Array(beltCount)
-    // Brand golds read on both the cream page and the dark planet; a few blues for depth.
+    // Premium golds and yellows read on both the cream page and the dark planet;
+    // every ninth star is a pale champagne highlight.
     const starPalette = [
-      new THREE.Color(0xd99a1e),
-      new THREE.Color(0xf2b632),
-      new THREE.Color(0xb8741a),
-      new THREE.Color(0x4f9fe0),
+      new THREE.Color(0xc79a4a),
+      new THREE.Color(0xdcbd78),
+      new THREE.Color(0xa9803e),
+      new THREE.Color(0xeedcb0),
     ]
     for (let i = 0; i < beltCount; i++) {
       const angle = Math.random() * Math.PI * 2
@@ -323,7 +366,7 @@ export function InteractiveGlobe({
         varying float vTwinkle;
         void main() {
           float alpha = texture2D(uMap, gl_PointCoord).a;
-          gl_FragColor = vec4(vColor, alpha * vTwinkle);
+          gl_FragColor = vec4(vColor, alpha * vTwinkle * 0.7);
           #include <colorspace_fragment>
         }`,
       transparent: true,
@@ -363,7 +406,7 @@ export function InteractiveGlobe({
           geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(TRAIL_POINTS * 3), 3))
           geo.setAttribute("aT", new THREE.BufferAttribute(trailT, 1))
           const material = new THREE.ShaderMaterial({
-            uniforms: { uHead: { value: 0 }, uColor: { value: new THREE.Color(0xf4b43c) } },
+            uniforms: { uHead: { value: 0 }, uColor: { value: new THREE.Color(0xdcbd78) } },
             vertexShader: /* glsl */ `
               attribute float aT;
               varying float vT;
@@ -387,12 +430,12 @@ export function InteractiveGlobe({
           line.visible = false
           line.frustumCulled = false
           const head = new THREE.Sprite(
-            new THREE.SpriteMaterial({ map: starTexture, color: 0xffd98a, transparent: true, depthWrite: false }),
+            new THREE.SpriteMaterial({ map: starTexture, color: 0xeedcb0, transparent: true, depthWrite: false }),
           )
           head.scale.setScalar(0.1)
           head.visible = false
           const flash = new THREE.Sprite(
-            new THREE.SpriteMaterial({ map: starTexture, color: 0xf2a91f, transparent: true, depthWrite: false }),
+            new THREE.SpriteMaterial({ map: starTexture, color: 0xc99a45, transparent: true, depthWrite: false }),
           )
           flash.visible = false
           globeGroup.add(line, head, flash)
@@ -444,11 +487,11 @@ export function InteractiveGlobe({
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.15)
     scene.add(ambientLight)
 
-    const sunLight = new THREE.DirectionalLight(0xfffaed, 2.1)
+    const sunLight = new THREE.DirectionalLight(0xfff8ee, 2.0)
     sunLight.position.set(2.5, 1.8, 5)
     scene.add(sunLight)
 
-    const rimLight = new THREE.DirectionalLight(0x60a5fa, 0.9)
+    const rimLight = new THREE.DirectionalLight(0xd9b27a, 0.5)
     rimLight.position.set(-5, -2, -4)
     scene.add(rimLight)
 
@@ -715,8 +758,8 @@ export function InteractiveGlobe({
                 <div
                   className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold shadow-lg backdrop-blur-md transition-transform hover:scale-110 ${
                     isSurat
-                      ? "border border-amber-400/80 bg-amber-500/30 text-amber-200 shadow-amber-500/20 ring-2 ring-amber-400/50"
-                      : "border border-sky-400/40 bg-slate-900/80 text-slate-100 hover:border-sky-300"
+                      ? "border border-amber-300 bg-gradient-to-b from-amber-300/50 to-amber-600/50 text-amber-50 shadow-amber-500/40 ring-2 ring-amber-300/70"
+                      : "border border-amber-300/50 bg-[#1b1406]/85 text-amber-50 shadow-amber-500/20 hover:border-amber-200"
                   }`}
                 >
                   <FlagIcon code={dest.code} className="text-sm" />
@@ -728,8 +771,8 @@ export function InteractiveGlobe({
       )}
 
       {/* Floating Control Badges */}
-      <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-2 rounded-full border border-white/15 bg-black/50 px-3 py-1.5 text-[11px] font-medium text-white/80 backdrop-blur-md shadow-md">
-        <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+      <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-2 rounded-full border border-amber-300/40 bg-[#1b1406]/75 px-3 py-1.5 text-[11px] font-medium text-amber-100 backdrop-blur-md shadow-md shadow-amber-500/10">
+        <span className="inline-block h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)] animate-pulse motion-reduce:animate-none" />
         <span>Live Global Routes · Drag to explore</span>
       </div>
     </div>

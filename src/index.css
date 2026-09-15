@@ -20,36 +20,36 @@ html {
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Premium light palette inspired by posters: ivory + navy + gold. */
-  --background: oklch(0.97 0.01 95);
-  --foreground: oklch(0.25 0.05 258);
+  /* Premium light palette: warm ivory, deep navy text, rich gold and yellow accents. */
+  --background: oklch(0.975 0.02 88);
+  --foreground: oklch(0.24 0.05 258);
 
-  --card: oklch(0.99 0.004 95);
-  --card-foreground: oklch(0.25 0.05 258);
+  --card: oklch(0.992 0.012 90);
+  --card-foreground: oklch(0.24 0.05 258);
 
-  --popover: oklch(0.99 0.004 95);
-  --popover-foreground: oklch(0.25 0.05 258);
+  --popover: oklch(0.992 0.012 90);
+  --popover-foreground: oklch(0.24 0.05 258);
 
-  --primary: oklch(0.7 0.16 84);
-  --primary-foreground: oklch(0.22 0.04 258);
+  --primary: oklch(0.76 0.16 80);
+  --primary-foreground: oklch(0.22 0.05 65);
 
-  --secondary: oklch(0.96 0.01 92);
-  --secondary-foreground: oklch(0.25 0.05 258);
+  --secondary: oklch(0.955 0.035 90);
+  --secondary-foreground: oklch(0.24 0.05 258);
 
-  --muted: oklch(0.95 0.008 95);
-  --muted-foreground: oklch(0.47 0.03 258);
+  --muted: oklch(0.955 0.022 90);
+  --muted-foreground: oklch(0.46 0.035 70);
 
-  --accent: oklch(0.7 0.16 84);
-  --accent-foreground: oklch(0.22 0.04 258);
+  --accent: oklch(0.87 0.15 95);
+  --accent-foreground: oklch(0.22 0.05 65);
 
   --destructive: oklch(0.58 0.22 25);
   --destructive-foreground: oklch(0.98 0 0);
 
-  --border: oklch(0.88 0.014 90);
-  --input: oklch(0.95 0.008 95);
-  --ring: oklch(0.7 0.16 84);
+  --border: oklch(0.87 0.05 88);
+  --input: oklch(0.955 0.025 90);
+  --ring: oklch(0.76 0.16 80);
 
-  --chart-1: oklch(0.7 0.16 84);
+  --chart-1: oklch(0.76 0.16 80);
   --chart-2: oklch(0.58 0.12 250);
   --chart-3: oklch(0.55 0.11 188);
   --chart-4: oklch(0.64 0.14 40);
@@ -57,14 +57,14 @@ html {
 
   --radius: 0.75rem;
 
-  --sidebar: oklch(0.97 0.01 95);
-  --sidebar-foreground: oklch(0.25 0.05 258);
-  --sidebar-primary: oklch(0.7 0.16 84);
-  --sidebar-primary-foreground: oklch(0.22 0.04 258);
-  --sidebar-accent: oklch(0.95 0.008 95);
-  --sidebar-accent-foreground: oklch(0.25 0.05 258);
-  --sidebar-border: oklch(0.88 0.014 90);
-  --sidebar-ring: oklch(0.7 0.16 84);
+  --sidebar: oklch(0.975 0.02 88);
+  --sidebar-foreground: oklch(0.24 0.05 258);
+  --sidebar-primary: oklch(0.76 0.16 80);
+  --sidebar-primary-foreground: oklch(0.22 0.05 65);
+  --sidebar-accent: oklch(0.955 0.035 90);
+  --sidebar-accent-foreground: oklch(0.24 0.05 258);
+  --sidebar-border: oklch(0.87 0.05 88);
+  --sidebar-ring: oklch(0.76 0.16 80);
 
   /* Animation timing tokens */
   --transition-fast: 0.18s;
@@ -77,7 +77,7 @@ html {
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Brand color tokens for box-shadow/rgba use */
-  --gold-rgb: 196, 154, 43;
+  --gold-rgb: 214, 162, 40;
   --navy-rgb: 26, 35, 64;
 }
 
@@ -857,9 +857,9 @@ canvas {
   z-index: -2;
   pointer-events: none;
   background:
-    radial-gradient(45% 35% at 12% 8%, oklch(0.7 0.16 84 / 0.12), transparent 72%),
-    radial-gradient(35% 30% at 88% 12%, oklch(0.35 0.07 258 / 0.06), transparent 68%),
-    linear-gradient(to bottom, oklch(0.99 0.005 95), oklch(0.97 0.01 95));
+    radial-gradient(45% 35% at 12% 8%, oklch(0.8 0.16 85 / 0.18), transparent 72%),
+    radial-gradient(35% 30% at 88% 12%, oklch(0.9 0.14 95 / 0.2), transparent 68%),
+    linear-gradient(to bottom, oklch(0.99 0.015 90), oklch(0.97 0.025 88));
 }
 
 .premium-page::after {
@@ -1480,4 +1480,24 @@ tbody tr {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Premium gold theme helpers */
+.gold-gradient-text {
+  background: linear-gradient(100deg, #a8740a 0%, #e9b52f 40%, #f7cf4f 55%, #c98a12 80%, #946408 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.btn-gold {
+  background-image: linear-gradient(135deg, #ffe08a 0%, #f5c542 35%, #e0a526 70%, #c98a12 100%);
+  color: #2a1d05;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 6px 18px -8px rgba(201, 138, 18, 0.65);
+}
+.btn-gold:hover {
+  background-image: linear-gradient(135deg, #ffe7a3 0%, #f8cf55 35%, #e8b030 70%, #d0921a 100%);
+  color: #2a1d05;
+}
+.gold-hairline {
+  background: linear-gradient(90deg, transparent, rgba(214, 162, 40, 0.7) 20%, #f5c542 50%, rgba(214, 162, 40, 0.7) 80%, transparent);
 }

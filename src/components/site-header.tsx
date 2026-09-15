@@ -134,8 +134,8 @@ export function SiteHeader() {
       <header
         className={`fixed inset-x-0 top-0 z-50 backdrop-blur-xl transition-[background-color,border-color,box-shadow] duration-200 ${
           scrolled
-            ? 'border-b border-primary/20 bg-background/98 shadow-sm'
-            : 'border-b border-transparent bg-background/95'
+            ? 'border-b border-primary/25 bg-background/95 shadow-[0_8px_30px_-12px_rgba(201,138,18,0.35)]'
+            : 'border-b border-primary/15 bg-background/90'
         }`}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-3 md:px-6 md:py-4">
@@ -145,7 +145,7 @@ export function SiteHeader() {
             className="flex shrink-0 items-center gap-2 group min-h-0 min-w-0"
             aria-label="Siddhivinayak Overseas – home page"
           >
-            <span className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-background/90 ring-1 ring-primary/20 transition group-hover:bg-primary/10 overflow-hidden">
+            <span className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-background/90 ring-1 ring-primary/50 shadow-[0_0_0_3px_rgba(245,197,66,0.15)] transition group-hover:bg-primary/10 group-hover:ring-primary overflow-hidden">
               <img
                 src="/favicon/android-chrome-192x192.png"
                 alt="Siddhivinayak Overseas logo"
@@ -158,7 +158,7 @@ export function SiteHeader() {
               <span className="whitespace-nowrap font-serif text-sm font-semibold text-foreground sm:text-base md:text-lg">
                 Siddhivinayak
               </span>
-              <span className="text-[9px] font-medium uppercase tracking-[0.18em] text-muted-foreground sm:text-[10px] md:text-[11px]">
+              <span className="text-[9px] font-medium uppercase tracking-[0.18em] gold-gradient-text font-semibold sm:text-[10px] md:text-[11px]">
                 Overseas
               </span>
             </span>
@@ -174,13 +174,13 @@ export function SiteHeader() {
                   aria-current={isActive(item.href) ? 'page' : undefined}
                   onMouseEnter={() => prefetchRoute(item.href)}
                   onFocus={() => prefetchRoute(item.href)}
-                  className="nav-link py-1 text-sm font-medium text-foreground/80 hover:text-foreground"
+                  className="nav-link py-1 text-sm font-medium text-foreground/80 transition-colors hover:text-primary data-[active=true]:font-semibold data-[active=true]:text-primary"
                 >
                   {item.label}
                 </Link>
                 {'children' in item && item.children ? (
                   <div className="invisible absolute left-0 top-full z-50 min-w-[200px] pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100">
-                    <div className="rounded-xl border border-border/70 bg-background/95 p-2 shadow-xl backdrop-blur-xl">
+                    <div className="rounded-xl border border-primary/30 bg-card/95 p-2 shadow-[0_18px_40px_-16px_rgba(201,138,18,0.45)] backdrop-blur-xl">
                       {item.children.map((child) => (
                         <Link
                           key={child.href}
@@ -207,7 +207,7 @@ export function SiteHeader() {
               </div>
             ) : user ? (
               <div className="flex items-center gap-2">
-                <Button asChild variant="outline" size="sm" className="hidden md:inline-flex rounded-full border-primary/20 text-foreground hover:bg-primary/10 hover:text-primary text-xs font-semibold px-4 h-9 min-h-0">
+                <Button asChild variant="outline" size="sm" className="hidden md:inline-flex rounded-full border-primary/50 text-foreground hover:bg-primary/15 hover:border-primary hover:text-foreground text-xs font-semibold px-4 h-9 min-h-0">
                   <Link to="/dashboard">Dashboard</Link>
                 </Button>
                 <NotificationBell />
@@ -218,10 +218,10 @@ export function SiteHeader() {
                 <Link to="/login" className="min-h-0 min-w-0 rounded px-2.5 py-2 text-xs font-bold text-foreground transition hover:text-primary">
                   Login
                 </Link>
-                <Button asChild size="sm" variant="outline" className="hidden md:inline-flex rounded-full border-primary/20 text-primary hover:bg-primary/10 text-xs font-semibold px-4 h-9 min-h-0">
+                <Button asChild size="sm" variant="outline" className="hidden md:inline-flex rounded-full border-primary/50 text-foreground hover:bg-primary/15 hover:border-primary hover:text-foreground text-xs font-semibold px-4 h-9 min-h-0">
                   <Link to="/register">Register</Link>
                 </Button>
-                <Button asChild size="sm" className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold px-4 h-9 btn-glow btn-cta-sweep min-h-0">
+                <Button asChild size="sm" className="rounded-full btn-gold text-xs font-bold px-4 h-9 btn-glow btn-cta-sweep min-h-0">
                   <Link to="/contact" onMouseEnter={() => prefetchRoute('/contact')} onFocus={() => prefetchRoute('/contact')}>
                     Free Consultation
                   </Link>
@@ -246,10 +246,12 @@ export function SiteHeader() {
             </button>
           </div>
         </div>
+        {/* Thin gold hairline along the bottom of the navbar */}
+        <div className="gold-hairline pointer-events-none absolute inset-x-0 bottom-0 h-px opacity-70" aria-hidden="true" />
         {/* Scroll progress bar — width updated via ref to avoid React re-renders */}
         <div
           ref={progressRef}
-          className="absolute bottom-0 left-0 h-0.5 bg-primary/80"
+          className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500"
           style={{ width: '0%' }}
           aria-hidden="true"
         />
@@ -271,13 +273,13 @@ export function SiteHeader() {
             style={{ zIndex: 60 }}
           >
             {/* Subtle top accent line */}
-            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
+            <div className="gold-hairline absolute inset-x-0 top-0 h-1" />
 
             {/* Close button inside overlay */}
             <div className="absolute right-4 top-4 z-20">
               <button
                 onClick={() => setOpen(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950/90 text-slate-100 shadow-lg shadow-black/20 transition hover:bg-slate-900"
+                className="btn-gold inline-flex h-10 w-10 items-center justify-center rounded-2xl shadow-lg transition hover:brightness-105"
                 aria-label="Close navigation menu"
               >
                 <X className="h-5 w-5" aria-hidden="true" />
@@ -338,7 +340,7 @@ export function SiteHeader() {
                 {isLoading ? (
                   <div className="h-12 animate-pulse rounded-2xl bg-foreground/8" />
                 ) : user ? (
-                  <Button asChild className="w-full rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 h-14 text-base font-bold btn-glow">
+                  <Button asChild className="w-full rounded-2xl btn-gold h-14 text-base font-bold btn-glow">
                     <Link to="/dashboard" onClick={() => setOpen(false)}>Go to Dashboard →</Link>
                   </Button>
                 ) : (
@@ -351,7 +353,7 @@ export function SiteHeader() {
                         <Link to="/register" onClick={() => setOpen(false)}>Register</Link>
                       </Button>
                     </div>
-                    <Button asChild className="w-full rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 btn-glow btn-cta-sweep font-bold text-sm" style={{ height: '52px' }}>
+                    <Button asChild className="w-full rounded-2xl btn-gold btn-glow btn-cta-sweep font-bold text-sm" style={{ height: '52px' }}>
                       <Link to="/contact" onClick={() => setOpen(false)}>Free Consultation →</Link>
                     </Button>
                   </>
