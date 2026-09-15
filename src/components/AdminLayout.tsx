@@ -22,6 +22,7 @@ import {
   FolderOpen,
   Flame,
   Globe,
+  Home,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -190,10 +191,17 @@ const AdminLayout: React.FC = () => {
         <Link
           to="/"
           onClick={onNavigate}
-          className="flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--desk-gold)]/15 text-[var(--desk-gold)] ring-1 ring-[var(--desk-gold)]/30 shrink-0"
-          aria-label="Siddhivinayak home"
+          className="flex items-center justify-center w-9 h-9 overflow-hidden rounded-xl bg-white ring-1 ring-[var(--desk-gold)]/40 shrink-0"
+          aria-label="Siddhivinayak Overseas, go to home page"
+          title="Go to home page"
         >
-          <Shield className="w-4.5 h-4.5" aria-hidden="true" />
+          <img
+            src="/favicon/android-chrome-192x192.png"
+            alt=""
+            width={26}
+            height={26}
+            className="h-[26px] w-[26px] object-contain"
+          />
         </Link>
         {!collapsed && (
           <div className="min-w-0 flex-1">
@@ -268,6 +276,18 @@ const AdminLayout: React.FC = () => {
       </nav>
 
       <div className="shrink-0 p-2 border-t border-[var(--desk-line)] space-y-1">
+        <Link
+          to="/"
+          onClick={onNavigate}
+          title={collapsed ? 'Home Page' : undefined}
+          className={`flex items-center gap-2 w-full px-3 py-2.5 min-h-10 rounded-xl text-sm font-medium text-[var(--desk-muted)] hover:bg-[var(--desk-gold)]/10 hover:text-[var(--desk-navy)] ${
+            collapsed ? 'justify-center' : ''
+          }`}
+        >
+          <Home className="w-4 h-4 shrink-0" aria-hidden="true" />
+          {!collapsed && 'Home Page'}
+          {collapsed && <span className="sr-only">Home Page</span>}
+        </Link>
         <Link
           to="/dashboard"
           onClick={onNavigate}

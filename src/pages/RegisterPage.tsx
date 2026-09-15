@@ -114,7 +114,7 @@ export default function RegisterPage() {
   const busy = status !== "idle"
 
   if (user && !busy) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/dashboard" replace />
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -161,7 +161,7 @@ export default function RegisterPage() {
 
       if (result?.session) {
         toast.success("Account created!", { description: "Welcome to Siddhivinayak Overseas." })
-        navigate("/")
+        navigate("/dashboard", { replace: true })
       } else {
         setVerificationEmail(cleanEmail)
       }

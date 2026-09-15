@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { skipToken, useQuery } from '@tanstack/react-query'
-import { ChevronsLeft, ChevronsRight, Globe2, LogOut, X } from 'lucide-react'
+import { ChevronsLeft, ChevronsRight, LogOut, X } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { usePermissions } from '@/hooks/usePermissions'
 import type { Notification } from '@/hooks/useNotifications'
@@ -60,13 +60,20 @@ export default function DashboardSidebar({
           aria-hidden="true"
         />
         <Link
-          to="/dashboard"
+          to="/"
           onClick={onNavigate}
-          aria-label="Siddhivinayak Applicant Desk, go to overview"
+          aria-label="Siddhivinayak Overseas, go to home page"
+          title="Go to home page"
           className="flex min-w-0 items-center gap-3 rounded-xl"
         >
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[var(--desk-gold-soft)] to-[var(--desk-gold)] text-[var(--desk-navy)] shadow-[0_8px_18px_-10px_rgba(196,154,43,0.9)]">
-            <Globe2 className="h-5 w-5" aria-hidden="true" />
+          <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-white ring-1 ring-[var(--desk-gold)]/40 shadow-[0_8px_18px_-10px_rgba(196,154,43,0.9)]">
+            <img
+              src="/favicon/android-chrome-192x192.png"
+              alt=""
+              width={28}
+              height={28}
+              className="h-7 w-7 object-contain"
+            />
           </span>
           {!collapsed && (
             <span className="min-w-0" aria-hidden="true">
