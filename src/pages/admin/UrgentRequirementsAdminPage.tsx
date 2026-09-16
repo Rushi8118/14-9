@@ -311,7 +311,8 @@ export default function UrgentRequirementsAdminPage() {
       requiredDocuments: generated.required_documents, seoTitle: generated.seo_title,
       metaDescription: generated.meta_description, focusKeyword: generated.focus_keyword,
       relatedKeywords: generated.related_keywords, longTailKeywords: generated.long_tail_keywords,
-      tags: generated.tags, faq: generated.faq, status: 'draft',
+      // Regenerating an existing listing keeps its status so a live post isn't silently turned into a draft.
+      tags: generated.tags, faq: generated.faq, status: editingId ? form.status : 'draft',
       adminInputRequired: generated.adminInputRequired, aiGenerated: true,
     })
     setFlaggedClaims(generated.flaggedClaims)
@@ -443,6 +444,17 @@ export default function UrgentRequirementsAdminPage() {
       await saveRequirement(buildPayload('active'))
       setDirty(false)
       setPublishConfirmOpen(false)
+      setIsOpen(false)
+    } catch {}
+  }
+
+  /** Saves edits to a live listing without unpublishing it (Save Draft would take it offline). */
+  const handleUpdateLive = async () => {
+    const error = validate()
+    if (error) { toast.error(error); return }
+    try {
+      await saveRequirement(buildPayload('active'))
+      setDirty(false)
       setIsOpen(false)
     } catch {}
   }
@@ -907,20 +919,6 @@ export default function UrgentRequirementsAdminPage() {
                 <Label className="text-xs">Tags</Label>
                 <ChipsInput values={form.tags} onChange={(v) => updateForm({ tags: v })} placeholder="Add tag…" />
               </div>
-
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border/60">
-                <Button type="button" variant="outline" onClick={requestClose} disabled={saving}>Cancel</Button>
-                <Button type="button" variant="outline" disabled={saving} onClick={() => void handleSaveDraft()}>
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Save Draft
-                </Button>
-                {form.status === 'active' ? (
-                  <Button type="button" variant="outline" disabled={saving} onClick={() => void handleSaveClosed()}>Close Listing</Button>
-                ) : (
-                  <Button type="button" disabled={saving} className="font-bold px-6" onClick={() => setPublishConfirmOpen(true)}>
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Publish
-                  </Button>
-                )}
-              </div>
             </form>
           )}
 
@@ -968,6 +966,35 @@ export default function UrgentRequirementsAdminPage() {
               </div>
             </div>
           )}
+
+          {/* Sticky action bar: visible on every tab and without scrolling to the end of the long form. */}
+          <div className="sticky -bottom-6 z-10 -mx-6 -mb-6 mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-border/60 bg-card/95 px-6 py-3 backdrop-blur">
+            {editingId && (
+              <span className="mr-auto text-xs text-muted-foreground">
+                Status: <span className="font-semibold capitalize text-foreground">{form.status}</span>
+                {dirty && <span className="ml-2 text-amber-700">· Unsaved changes</span>}
+              </span>
+            )}
+            <Button type="button" variant="outline" onClick={requestClose} disabled={saving}>Cancel</Button>
+            {form.status === 'active' ? (
+              <>
+                <Button type="button" variant="outline" disabled={saving} onClick={() => void handleSaveClosed()}>Close Listing</Button>
+                <Button type="button" disabled={saving} className="font-bold px-6" onClick={() => void handleUpdateLive()}>
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Update
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button type="button" variant="outline" disabled={saving} onClick={() => void (form.status === 'closed' ? handleSaveClosed() : handleSaveDraft())}>
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  {editingId ? (form.status === 'closed' ? 'Update' : 'Update Draft') : 'Save Draft'}
+                </Button>
+                <Button type="button" disabled={saving} className="font-bold px-6" onClick={() => setPublishConfirmOpen(true)}>
+                  {form.status === 'closed' ? 'Reopen & Publish' : 'Publish'}
+                </Button>
+              </>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
