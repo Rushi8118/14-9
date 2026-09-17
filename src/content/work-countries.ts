@@ -87,12 +87,14 @@ export function buildWorkCountryContent(slug: string): DestinationContent | null
     country: c.name,
     serviceType: "Work visa consultancy",
     eyebrow: `${c.name} work visa · Surat`,
+    // Mirrors how Indians actually search (Google India autocomplete): "<country> work permit for indian",
+    // plus cost / processing time / documents required / age limit modifiers.
     h1: isRegion
-      ? `${c.name} Work Visa Consultants in Surat`
-      : `${c.name} Work Visa Consultants in Surat`,
-    title: `${c.name} Work Visa Consultant in Surat | ${c.visa}`,
-    description: `${c.name} work visa consultants in Surat for ${c.visa}. Eligibility checks, documentation counselling and honest next-step guidance from Siddhivinayak Overseas.`,
-    keywords: `${c.name} work visa consultant in Surat, ${c.name} work permit from India, ${c.visa}, work visa Surat`,
+      ? `${c.name} Work Visa for Indians — Consultants in Surat`
+      : `${c.name} Work Permit for Indians — Visa Consultants in Surat`,
+    title: `${c.name} Work Permit for Indians: Process, Cost & Documents`,
+    description: `Apply for a ${c.name} work permit from India: eligibility, documents required, processing time, cost and age limit explained by visa consultants in Surat.`,
+    keywords: `${c.name} work permit for indian, ${c.name} work visa for indians, ${c.name} work permit cost, ${c.name} work permit processing time in India, ${c.name} work visa documents required, ${c.name} work visa age limit, ${c.name} job visa for indians, ${c.name} work visa consultant in Surat, ${c.visa}`,
     heroDescription: c.summary,
     processingTime,
     breadcrumbs: [
@@ -112,6 +114,25 @@ export function buildWorkCountryContent(slug: string): DestinationContent | null
         body: [
           `${c.name} is one of the work-permit destinations we counsel for from Surat. Demand, salary thresholds, language rules and employer sponsorship requirements vary — we start with eligibility, not sales.`,
           `Typical route label we discuss: ${c.visa}. Exact categories depend on your occupation, qualifications, age and language scores.`,
+        ],
+      },
+      {
+        heading: `${c.name} work permit for Indians: step-by-step process`,
+        body: [
+          `Most Indians get a ${c.name} work visa in the same order: an employer or sponsor approves the role, the work permit or authorisation is issued, and then the visa is filed from India with your documents, biometrics and (where needed) an embassy appointment.`,
+          `We check which of these stages applies to your occupation before you pay anyone, so you know the real ${c.name} work permit processing time from India and every cost involved.`,
+        ],
+      },
+      {
+        heading: `${c.name} work visa cost, salary and age limit`,
+        body: [
+          `The total ${c.name} work permit cost for Indian applicants is made up of government visa fees, document translation and attestation, medicals, travel and service charges. Fees change, so we give you a written, itemised breakdown for your case — never a vague package price.`,
+          `Salary depends on the role, your experience and local wage rules. ${c.name} does not usually set one fixed legal age limit for work visas; employers and specific programmes may prefer certain age bands, which we explain during your assessment.`,
+        ],
+        bullets: [
+          "Beware of agents promising a free visa or a guaranteed job — genuine employers still require documents and checks",
+          "Never pay large amounts before seeing a verifiable job offer or permit",
+          "Ask for fee receipts and written terms",
         ],
       },
       {
@@ -154,12 +175,28 @@ export function buildWorkCountryContent(slug: string): DestinationContent | null
         answer: "No ethical consultancy can guarantee overseas employment. We provide counselling and documentation support; hiring rests with employers.",
       },
       {
-        question: "Can I apply from Surat?",
-        answer: "Yes. Most counselling, document checks and filing guidance can be done from our Surat office or online.",
+        question: `What is the ${c.name} work permit processing time from India?`,
+        answer: `It depends on the employer approval stage, permit authorities and embassy appointment availability. As a guide it is ${processingTime.toLowerCase()}, and we give a case-specific estimate after checking your documents.`,
       },
       {
-        question: "How long does the process take?",
-        answer: "Timelines depend on employer demand, embassy appointments and your document readiness. We give a realistic range after assessing your profile.",
+        question: `How much does a ${c.name} work visa cost for Indians?`,
+        answer: "The cost includes visa and permit fees, translations, medicals, travel and consultancy charges. Government fees change, so we share an itemised written quote for your profile.",
+      },
+      {
+        question: `What documents are required for a ${c.name} work visa?`,
+        answer: "Usually a valid passport, photographs, education certificates, experience letters, CV, job offer or contract, police clearance and medical reports. Some roles also need language scores or skill assessments.",
+      },
+      {
+        question: `Is there an age limit for a ${c.name} work visa for Indians?`,
+        answer: "Most work permits do not set a single legal age limit, but employer requirements and specific programmes can. We tell you honestly if your age affects your chances.",
+      },
+      {
+        question: "Are free visa jobs abroad genuine?",
+        answer: "Be careful. Genuine employers may cover some costs, but offers that promise a free visa and a guaranteed job without interviews or documents are a common scam. Verify the employer and permit before paying.",
+      },
+      {
+        question: "Can I apply from Surat?",
+        answer: "Yes. Most counselling, document checks and filing guidance can be done from our Surat office or online.",
       },
     ],
     related: relatedFor(c.slug),
