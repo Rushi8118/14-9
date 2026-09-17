@@ -39,11 +39,17 @@ const NAV_ITEMS = [
     ],
   },
   { label: '🔥 Urgent Openings', href: '/urgent-requirements' },
-  { label: 'Guides', href: '/guides' },
-  { label: 'Pathways', href: '/pathways' },
-  { label: 'Blog', href: '/blog' },
-  { label: 'Surat Office', href: '/visa-consultants-in-surat' },
-  { label: 'Reviews', href: '/reviews' },
+  {
+    label: 'Resources',
+    href: '/pathways',
+    children: [
+      { label: 'Visa Pathways', href: '/pathways' },
+      { label: 'Guides', href: '/guides' },
+      { label: 'Blog', href: '/blog' },
+      { label: 'Reviews', href: '/reviews' },
+      { label: 'Surat Office', href: '/visa-consultants-in-surat' },
+    ],
+  },
   { label: 'Contact', href: '/contact' },
 ]
 
@@ -166,21 +172,21 @@ export function SiteHeader() {
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden items-center gap-4 lg:flex xl:gap-6" aria-label="Main navigation">
+          <nav className="hidden items-center gap-5 lg:flex xl:gap-7" aria-label="Main navigation">
             {NAV_ITEMS.map((item) => (
-              <div key={item.href} className="group relative">
+              <div key={item.href} className="group relative shrink-0">
                 <Link
                   to={item.href}
                   data-active={isActive(item.href)}
                   aria-current={isActive(item.href) ? 'page' : undefined}
                   onMouseEnter={() => prefetchRoute(item.href)}
                   onFocus={() => prefetchRoute(item.href)}
-                  className="nav-link py-1 text-sm font-medium text-foreground/80 transition-colors hover:text-primary data-[active=true]:font-semibold data-[active=true]:text-primary"
+                  className="nav-link whitespace-nowrap py-1 text-sm font-medium text-foreground/80 transition-colors hover:text-primary data-[active=true]:font-semibold data-[active=true]:text-primary"
                 >
                   {item.label}
                 </Link>
                 {'children' in item && item.children ? (
-                  <div className="invisible absolute left-0 top-full z-50 min-w-[200px] pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100">
+                  <div className="invisible absolute left-0 top-full z-50 min-w-[200px] pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
                     <div className="rounded-xl border border-primary/30 bg-card/95 p-2 shadow-[0_18px_40px_-16px_rgba(201,138,18,0.45)] backdrop-blur-xl">
                       {item.children.map((child) => (
                         <Link
