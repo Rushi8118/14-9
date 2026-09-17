@@ -57,6 +57,21 @@ function formsEqual(a: EditForm, b: EditForm) {
 }
 
 export function ApplicationDetailPanel({ detail, officers, canUpdate, canProcess, onSave, onAction, onDirtyChange, onMessageSent }: Props) {
+  const [docBusy, setDocBusy] = useState<string | null>(null)
+  const [rejectDocId, setRejectDocId] = useState<string | null>(null)
+  const setDocumentStatus = async (documentId: string, status: 'Verified' | 'Rejected') => {
+    setDocBusy(documentId)
+    try {
+      const { error } = await supabase.rpc('admin_set_document_status', { p_document_id: documentId, p_status: status })
+      if (error) throw error
+      toast.success(status === 'Verified' ? 'Document verified. The client has been notified.' : 'Document rejected. The client has been asked to upload a new copy.')
+      onMessageSent?.()
+    } catch {
+      toast.error('Could not update the document. Please try again.')
+    } finally {
+      setDocBusy(null)
+    }
+  }
   const app = detail.application
   const info = app.personal_info || {}
   const isEnquiry = Boolean(app.application_id?.startsWith('ENQ-') || app.meta?.source === 'consultations')
@@ -258,6 +273,18 @@ export function ApplicationDetailPanel({ detail, officers, canUpdate, canProcess
         </TabsContent>
 
         <TabsContent value="documents">
+          <AlertDialog open={rejectDocId !== null} onOpenChange={(open) => { if (!open) setRejectDocId(null) }}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reject this document?</AlertDialogTitle>
+                <AlertDialogDescription>The client will be notified to upload a new copy.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => { if (rejectDocId) void setDocumentStatus(rejectDocId, 'Rejected'); setRejectDocId(null) }}>Reject document</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <div className="space-y-2">
             {detail.documents.length ? detail.documents.map((document) => (
               <div key={document.id} className="flex items-center justify-between rounded-lg border p-3">
@@ -267,6 +294,14 @@ export function ApplicationDetailPanel({ detail, officers, canUpdate, canProcess
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs">{document.status}</span>
+                  {(canProcess || canUpdate) && document.status !== 'Verified' && (
+                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={docBusy === document.id}
+                      onClick={() => void setDocumentStatus(document.id, 'Verified')}>Verify</Button>
+                  )}
+                  {(canProcess || canUpdate) && document.status !== 'Rejected' && (
+                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-destructive" disabled={docBusy === document.id}
+                      onClick={() => setRejectDocId(document.id)}>Reject</Button>
+                  )}
                   <Button
                     size="icon" variant="ghost" aria-label="Download document"
                     onClick={() => void supabase.storage.from('documents').createSignedUrl(document.file_path, 300).then(({ data, error }) => error ? toast.error(error.message) : data?.signedUrl && window.open(data.signedUrl, '_blank'))}
