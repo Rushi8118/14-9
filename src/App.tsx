@@ -97,6 +97,7 @@ const BlogPostPage = lazy(() => import('./pages/BlogPostPage'))
 const UrgentRequirementsPage = lazy(() => import('./pages/UrgentRequirementsPage'))
 const UrgentRequirementDetailPage = lazy(() => import('./pages/UrgentRequirementDetailPage'))
 const UrgentRequirementsAdminPage = lazy(() => import('./pages/admin/UrgentRequirementsAdminPage'))
+const AppointmentsAdminPage = lazy(() => import('./pages/admin/AppointmentsAdminPage'))
 const CountriesAdminPage = lazy(() => import('./pages/admin/CountriesAdminPage'))
 const ForbiddenPage = lazy(() => import('./pages/ForbiddenPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
@@ -188,6 +189,7 @@ function AppRoutes() {
         <Route path="users/:id" element={<AdminUserDetailPage />} />
         <Route path="roles" element={<RolesPage />} />
         <Route path="applications" element={<AdminApplicationsPage />} />
+        <Route path="appointments" element={<AppointmentsAdminPage />} />
         <Route path="urgent-requirements" element={<UrgentRequirementsAdminPage />} />
         <Route path="countries" element={<CountriesAdminPage />} />
         <Route path="blog" element={<AdminBlogPage />} />

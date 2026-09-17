@@ -23,6 +23,7 @@ import {
   Flame,
   Globe,
   Home,
+  CalendarClock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -62,6 +63,7 @@ const ALL_NAV_GROUPS: NavGroup[] = [
       { label: 'Users', path: '/admin/users', icon: Users, requiredPermission: 'users.read' },
       { label: 'Roles & Permissions', path: '/admin/roles', icon: Shield, requiredPermission: 'roles.read' },
       { label: 'Applications', path: '/admin/applications', icon: Briefcase, requiredPermission: 'applications.read' },
+      { label: 'Appointments', path: '/admin/appointments', icon: CalendarClock },
       { label: 'Urgent Openings', path: '/admin/urgent-requirements', icon: Flame },
       { label: 'Countries & Eligibility', path: '/admin/countries', icon: Globe },
       { label: 'Blog Posts', path: '/admin/blog', icon: FileText, requiredPermission: 'blogs.read' },
