@@ -40,6 +40,7 @@ const NAV_ITEMS = [
   },
   { label: '🔥 Urgent Openings', href: '/urgent-requirements' },
   { label: 'Guides', href: '/guides' },
+  { label: 'Pathways', href: '/pathways' },
   { label: 'Blog', href: '/blog' },
   { label: 'Surat Office', href: '/visa-consultants-in-surat' },
   { label: 'Reviews', href: '/reviews' },

@@ -25,7 +25,7 @@ export default function HomePage() {
         title="Overseas Education & Visa Consultants in Surat | Study & Work Abroad"
         description="Siddhivinayak Overseas — study visa and work visa consultants in Surat for Canada, UK, Australia, USA, Germany and Japan. Free counselling at Pragti IT Park."
         path="/"
-        keywords="visa consultants in Surat, overseas education consultants Surat, study visa consultants Surat, work visa consultants Surat, Siddhivinayak Overseas"
+        keywords="visa consultants in Surat, best visa consultant in Surat, immigration consultant in Surat, study abroad consultants Surat, overseas education consultants Surat, work visa consultants Surat, Europe work permit for Indians, overseas jobs for Indians, Siddhivinayak Overseas"
         jsonLd={[
           organizationSchema(),
           websiteSchema(),

@@ -4,7 +4,7 @@ import { FlagIcon } from '@/components/flag-icon'
 
 const STATS = [
   { value: '500+', label: 'Work Visa Clients' },
-  { value: '98%', label: 'Visa Success Rate' },
+  { value: 'Free', label: 'First Consultation' },
   { value: '38+', label: 'Work Permit Countries' },
   { value: '6', label: 'Study Visa Countries' },
 ]
@@ -66,7 +66,7 @@ export function SeoContentSection() {
             Why Choose Siddhivinayak Overseas?
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-center text-base text-muted-foreground">
-            We assign a dedicated case officer who stays with you from your first consultation until you land on campus. Personalised attention, transparent pricing, and a 98% visa success rate.
+            We assign a dedicated case officer who stays with you from your first consultation until you land on campus. Personalised attention, honest eligibility checks and transparent, itemised pricing.
           </p>
           <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {FEATURES.map((f) => (

@@ -1,3 +1,4 @@
+import { ImmigrationDisclaimer } from '@/components/seo/ImmigrationDisclaimer'
 import { Helmet } from 'react-helmet-async'
 import { Link, useParams } from 'react-router-dom'
 import { useState, useEffect } from 'react'
@@ -363,6 +364,7 @@ export default function ProgramPage() {
             </div>
           </div>
         </div>
+        <ImmigrationDisclaimer />
       </main>
       <SiteFooter />
     </>

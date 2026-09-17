@@ -1,3 +1,4 @@
+import { ImmigrationDisclaimer } from '@/components/seo/ImmigrationDisclaimer'
 import { Link, useParams } from 'react-router-dom'
 import { SeoHead } from '@/components/seo/SeoHead'
 import { breadcrumbSchema } from '@/lib/seo/schema'
@@ -203,13 +204,6 @@ export default function CountryPage() {
         <section className="border-b border-border/40 px-4 py-6 md:px-6">
           <div className="mx-auto max-w-7xl">
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              {visaStats.success_rate && (
-                <div className="rounded-xl border border-border/60 bg-card/50 p-4">
-                  <TrendingUp className="mb-2 h-5 w-5 text-primary" />
-                  <p className="text-2xl font-bold text-foreground">{visaStats.success_rate}%</p>
-                  <p className="text-xs text-muted-foreground">Visa Success Rate</p>
-                </div>
-              )}
               {visaStats.avg_processing_days && (
                 <div className="rounded-xl border border-border/60 bg-card/50 p-4">
                   <Clock className="mb-2 h-5 w-5 text-primary" />
@@ -347,6 +341,7 @@ export default function CountryPage() {
             </div>
           </section>
         )}
+        <ImmigrationDisclaimer country={country.name} />
       </main>
       <SiteFooter />
     </>

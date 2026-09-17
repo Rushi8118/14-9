@@ -62,6 +62,9 @@ const PostStudyWorkVisaPage = lazy(() => import('./pages/PostStudyWorkVisaPage')
 const ReviewsPage = lazy(() => import('./pages/ReviewsPage'))
 const TermsPage = lazy(() => import('./pages/TermsPage'))
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
+const ImmigrationDisclaimerPage = lazy(() => import('./pages/ImmigrationDisclaimerPage'))
+const PathwaysPage = lazy(() => import('./pages/PathwaysPage'))
+const PathwayPage = lazy(() => import('./pages/PathwayPage'))
 
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
@@ -129,6 +132,8 @@ function AppRoutes() {
       <Route path="/work-visa/:slug" element={<Page><WorkVisaCountryPage /></Page>} />
       <Route path="/visa-consultants-in-surat" element={<Page><VisaConsultantsSuratPage /></Page>} />
       <Route path="/guides" element={<Page><GuidesPage /></Page>} />
+      <Route path="/pathways" element={<Page><PathwaysPage /></Page>} />
+      <Route path="/pathways/:slug" element={<Page><PathwayPage /></Page>} />
       <Route path="/guides/canada-student-visa-requirements" element={<Page><CanadaStudentVisaRequirementsPage /></Page>} />
       <Route path="/guides/canada-study-visa-documents" element={<Page><CanadaStudyVisaDocumentsPage /></Page>} />
       <Route path="/guides/uk-student-visa-requirements" element={<Page><UKStudentVisaRequirementsPage /></Page>} />
@@ -146,6 +151,7 @@ function AppRoutes() {
       <Route path="/urgent-requirements/:slug" element={<Page><UrgentRequirementDetailPage /></Page>} />
       <Route path="/terms" element={<Page><TermsPage /></Page>} />
       <Route path="/privacy" element={<Page><PrivacyPage /></Page>} />
+      <Route path="/immigration-disclaimer" element={<Page><ImmigrationDisclaimerPage /></Page>} />
 
       <Route path="/login" element={<Page><LoginPage /></Page>} />
       <Route path="/register" element={<Page><RegisterPage /></Page>} />

@@ -1,3 +1,4 @@
+import { ImmigrationDisclaimer } from '@/components/seo/ImmigrationDisclaimer'
 import React, { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
@@ -541,6 +542,7 @@ export default function UrgentRequirementDetailPage() {
             </div>
           </div>
         </section>
+        <ImmigrationDisclaimer jobs />
       </main>
 
       <SiteFooter />

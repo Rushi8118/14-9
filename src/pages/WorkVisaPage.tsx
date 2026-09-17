@@ -51,9 +51,9 @@ export default function WorkVisaPage() {
     <>
       <SeoHead
         title={`Work Visa Consultants in Surat | ${WORK_COUNTRIES.length}+ Countries`}
-        description="Work visa consultants in Surat for Europe, Asia, Oceania, North America, Gulf and Africa. Japan SSW, Germany, UK, Canada, Australia, Singapore and more."
+        description="Work permits for Indians in Europe, Japan, Canada, the Gulf and 40+ countries. Surat work visa consultants for overseas jobs, documents, cost and timelines."
         path="/work-visa"
-        keywords="work visa consultants in Surat, work permit visa from India, Europe work visa, Japan SSW, Gulf work visa, Canada work visa Surat"
+        keywords="work visa consultants in Surat, work visa consultant near me, Europe work permit for Indian, Europe work visa for Indian cost, overseas jobs for Indians, abroad jobs for Indians, how can an Indian get a job abroad, Gulf work visa, Japan work visa for Indians, Germany work visa for Indian, Canada work permit from India, Poland work permit for Indian, Croatia work permit for Indian, Malta work permit for Indian"
         jsonLd={[
           organizationSchema(),
           websiteSchema(),
