@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
 import {
@@ -105,6 +105,8 @@ function Stat({
   )
 }
 
+const PAGE_SIZE = 24
+
 export default function CountriesAdminPage() {
   const {
     countries,
@@ -129,6 +131,9 @@ export default function CountriesAdminPage() {
   const canDelete = can('countries.delete')
 
   const [search, setSearch] = useState('')
+  // Filtering 250 countries on every keystroke blocked typing; defer it behind the input.
+  const deferredSearch = useDeferredValue(search)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [region, setRegion] = useState('all')
   const [status, setStatus] = useState<StatusFilter>('all')
   const [visa, setVisa] = useState<VisaFilter>('all')
@@ -163,7 +168,7 @@ export default function CountriesAdminPage() {
   )
 
   const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase()
+    const term = deferredSearch.trim().toLowerCase()
     const rows = countries.filter((c) => {
       if (term && ![c.name, c.capital, c.code, c.slug, c.language].some((v) => v.toLowerCase().includes(term))) return false
       if (region !== 'all' && c.region !== region) return false
@@ -180,7 +185,11 @@ export default function CountriesAdminPage() {
       if (sort === 'updated') return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
       return a.sort_order - b.sort_order || a.name.localeCompare(b.name)
     })
-  }, [countries, search, region, visa, status, sort])
+  }, [countries, deferredSearch, region, visa, status, sort])
+
+  // Render cards in pages: all ~250 countries with menus at once made the page lag.
+  useEffect(() => setVisibleCount(PAGE_SIZE), [deferredSearch, region, visa, status, sort])
+  const visibleCountries = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount])
 
   const hasFilters = !!search || region !== 'all' || visa !== 'all' || status !== 'all'
   const clearFilters = () => {
@@ -464,7 +473,7 @@ export default function CountriesAdminPage() {
               />
             ) : (
               <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {filtered.map((country) => {
+                {visibleCountries.map((country) => {
                   const reasons = attentionReasons(country)
                   return (
                     <li key={country.id}>
@@ -580,6 +589,16 @@ export default function CountriesAdminPage() {
                   )
                 })}
               </ul>
+            )}
+            {filtered.length > visibleCount && (
+              <div className="mt-6 flex flex-col items-center gap-2">
+                <p className="text-xs text-[var(--desk-muted)]">
+                  Showing {visibleCount} of {filtered.length} countries
+                </p>
+                <Button type="button" variant="outline" onClick={() => setVisibleCount((n) => n + PAGE_SIZE)} className="rounded-full">
+                  Show {Math.min(PAGE_SIZE, filtered.length - visibleCount)} more
+                </Button>
+              </div>
             )}
           </div>
         </section>
