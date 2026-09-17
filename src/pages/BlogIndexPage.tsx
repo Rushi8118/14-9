@@ -1,10 +1,9 @@
 import { Link } from 'react-router-dom'
-import { Helmet } from 'react-helmet-async'
+import { SeoHead } from '@/components/seo/SeoHead'
 import { ArrowRight, BookOpen } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { usePublicBlogPosts } from '@/hooks/useAdminBlogPosts'
-import { SITE_NAME, absoluteUrl } from '@/lib/seo/site'
 import { format } from 'date-fns'
 
 export default function BlogIndexPage() {
@@ -12,14 +11,11 @@ export default function BlogIndexPage() {
 
   return (
     <>
-      <Helmet>
-        <title>{`Visa & Study Abroad Blog | ${SITE_NAME}`}</title>
-        <meta
-          name="description"
-          content="SEO guides on study visas, work visas, documents and country pathways from Siddhivinayak Overseas, Surat."
-        />
-        <link rel="canonical" href={absoluteUrl('/blog')} />
-      </Helmet>
+      <SeoHead
+        title="Visa & Study Abroad Blog"
+        description="Expert guides on study visas, work visas, documents and country pathways for Indian applicants from Siddhivinayak Overseas, Surat."
+        path="/blog"
+      />
       <SiteHeader />
       <main className="min-h-screen bg-background">
         <section className="border-b border-border bg-muted/30 px-4 pt-28 pb-10 md:px-6 md:pt-36 md:pb-14">
