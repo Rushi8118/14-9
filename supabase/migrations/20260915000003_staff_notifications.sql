@@ -253,7 +253,7 @@ BEGIN
           who,
           COALESCE(NULLIF(BTRIM(CASE WHEN jsonb_typeof(notes) = 'object' THEN notes->>'urgent_requirement_title' END), ''), 'an urgent opening'),
           CASE WHEN phone IS NOT NULL THEN ' · ' || phone ELSE '' END),
-        '/admin/applications',
+        '/admin/appointments',
         'View request'
       );
     ELSE
@@ -265,7 +265,7 @@ BEGIN
           kind,
           CASE WHEN country IS NOT NULL THEN ' for ' || country ELSE '' END,
           CASE WHEN phone IS NOT NULL THEN ' · ' || phone ELSE '' END),
-        '/admin/applications',
+        '/admin/appointments',
         'View request'
       );
     END IF;
@@ -274,7 +274,7 @@ BEGIN
       'consultation_reminder',
       'Consultation cancelled by client',
       format('%s cancelled their %s on %s.', who, kind, slot),
-      '/admin/applications',
+      '/admin/appointments',
       'View request'
     );
   ELSIF client_action AND NEW.scheduled_at IS DISTINCT FROM OLD.scheduled_at THEN
@@ -282,7 +282,7 @@ BEGIN
       'consultation_reminder',
       'Consultation moved by client',
       format('%s moved their %s to %s.', who, kind, slot),
-      '/admin/applications',
+      '/admin/appointments',
       'View request'
     );
   END IF;

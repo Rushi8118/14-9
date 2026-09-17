@@ -94,6 +94,30 @@ export async function generateAiText(
   return text
 }
 
+/** Popular Google autocomplete searches for a seed keyword (no volumes). */
+export async function fetchTrendingKeywords(seed: string, country = 'in'): Promise<string[]> {
+  const { data, error } = await supabase.functions.invoke('ai-generate', {
+    body: { feature: 'keyword_trends', seed, country },
+  })
+  if (error) {
+    const context = (error as { context?: Response }).context
+    let message = 'Could not load trending keywords. Please try again.'
+    if ((error as { name?: string }).name === 'FunctionsFetchError') {
+      message = 'The keyword service is not reachable right now. Please contact the site administrator.'
+    }
+    if (context && typeof context.json === 'function') {
+      try {
+        const body = await context.clone().json()
+        if (body?.error) message = body.error
+      } catch {
+        // keep generic message
+      }
+    }
+    throw new Error(message)
+  }
+  return Array.isArray(data?.keywords) ? (data.keywords as unknown[]).filter((k): k is string => typeof k === 'string') : []
+}
+
 export const PROVIDER_PRESETS: Record<
   AiProviderId,
   { label: string; models: string[]; docsUrl: string }

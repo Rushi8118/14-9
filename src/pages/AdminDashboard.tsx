@@ -117,6 +117,12 @@ const CHART_CONFIG: ChartConfig = {
   logins: { label: 'Logins', color: 'var(--chart-3, #f59e0b)' },
 }
 
+
+const regionNames = typeof Intl !== 'undefined' && 'DisplayNames' in Intl ? new Intl.DisplayNames(['en'], { type: 'region' }) : null
+function countryDisplayName(code: string): string {
+  try { return regionNames?.of(code.toUpperCase()) || code } catch { return code }
+}
+
 export default function AdminDashboard() {
   const [rangeDays, setRangeDays] = useState<RangeDays>(7)
   const access = useAdminAccessStats()
@@ -446,7 +452,7 @@ export default function AdminDashboard() {
             <Skeleton className="h-32 w-full" />
           ) : !a?.has_country_data ? (
             <p className="py-6 text-center text-xs text-muted-foreground">
-              Country analytics aren't configured yet — no geolocation provider is wired into visit tracking.
+              No country data yet — countries are recorded for new visits from now on.
             </p>
           ) : a.countries.length === 0 ? (
             <p className="py-6 text-center text-xs text-muted-foreground">No data yet.</p>
@@ -454,7 +460,7 @@ export default function AdminDashboard() {
             <ul className="space-y-2">
               {a.countries.map((c) => (
                 <li key={c.country} className="flex items-center justify-between text-sm">
-                  <span className="text-foreground">{c.country}</span>
+                  <span className="text-foreground">{countryDisplayName(c.country)}</span>
                   <span className="font-semibold text-muted-foreground">{c.count}</span>
                 </li>
               ))}

@@ -936,6 +936,20 @@ export default function UrgentRequirementsAdminPage() {
               existingSlugs={existingSlugs}
               existingTitles={existingTitles}
               currentSlug={form.slug}
+              currentTitle={editingId ? requirements.find((r) => r.id === editingId)?.title : undefined}
+              contentFormat="markdown"
+              aiFeature="urgent_requirement"
+              onApply={(patch) => updateForm({
+                ...(patch.title !== undefined && { title: patch.title }),
+                ...(patch.metaTitle !== undefined && { seoTitle: patch.metaTitle }),
+                ...(patch.metaDescription !== undefined && { metaDescription: patch.metaDescription }),
+                ...(patch.focusKeyword !== undefined && { focusKeyword: patch.focusKeyword }),
+                ...(patch.content !== undefined && { content: patch.content }),
+                ...(patch.imageAlt !== undefined && { imageAlt: patch.imageAlt }),
+              })}
+              onAddKeywords={(keywords) => updateForm({
+                relatedKeywords: Array.from(new Set([...form.relatedKeywords, ...keywords])),
+              })}
               socialImage={form.imageUrl}
             />
           )}

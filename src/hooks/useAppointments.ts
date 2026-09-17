@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
+import { logger } from '@/lib/logger'
 import { useAuth } from './use-auth'
 import { toast } from 'sonner'
 
@@ -16,62 +17,76 @@ export type Appointment = {
   updated_at: string
 }
 
+type MeetingType = Appointment['appointment_type']
+
+type ConsultationRow = {
+  id: string
+  user_id: string | null
+  assigned_consultant: string | null
+  consultation_type: string | null
+  status: string
+  scheduled_at: string
+  duration_minutes: number | null
+  user_notes: { notes?: string; meeting_type?: string } | null
+  created_at: string
+  updated_at: string
+}
+
+const MEETING_TYPES: MeetingType[] = ['Video Call', 'In-Person', 'Phone Call']
+
+/**
+ * Appointments are stored in `consultations` — the same table the admin panel reads —
+ * so every booking shows up for staff. (A separate `appointments` table was never created
+ * on the live database, which is why earlier bookings were hard to find.)
+ */
+function toAppointment(c: ConsultationRow): Appointment {
+  const stored = c.user_notes?.meeting_type as MeetingType | undefined
+  return {
+    id: c.id,
+    user_id: c.user_id || '',
+    assigned_officer: c.assigned_consultant,
+    appointment_type: stored && MEETING_TYPES.includes(stored) ? stored : 'Video Call',
+    status:
+      c.status === 'cancelled' || c.status === 'no_show'
+        ? 'Cancelled'
+        : c.status === 'completed'
+          ? 'Completed'
+          : 'Scheduled',
+    scheduled_at: c.scheduled_at,
+    duration_minutes: c.duration_minutes || 30,
+    notes: c.user_notes?.notes || null,
+    created_at: c.created_at,
+    updated_at: c.updated_at,
+  }
+}
+
 export function useAppointments() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
 
-  // 1. Fetch user appointments
   const query = useQuery<Appointment[], Error>({
     queryKey: ['appointments', user?.id],
     queryFn: async () => {
       if (!user) return []
       const { data, error } = await supabase
-        .from('appointments')
-        .select('*')
+        .from('consultations')
+        .select('id,user_id,assigned_consultant,consultation_type,status,scheduled_at,duration_minutes,user_notes,created_at,updated_at')
         .eq('user_id', user.id)
         .order('scheduled_at', { ascending: false })
 
       if (error) {
-        // Fallback: Check consultations table if appointments table doesn't have records
-        console.warn('Appointments select failed, check consultations:', error.message)
-        const { data: consData, error: consError } = await supabase
-          .from('consultations')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('scheduled_at', { ascending: false })
-
-        if (consError) throw consError
-
-        // Map consultations to appointments schema
-        return (consData || []).map((c: any) => ({
-          id: c.id,
-          user_id: c.user_id || '',
-          assigned_officer: c.assigned_consultant || null,
-          appointment_type: c.consultation_type.includes('call') ? 'Phone Call' : 'Video Call',
-          status: c.status === 'scheduled' || c.status === 'confirmed' ? 'Scheduled' : c.status === 'cancelled' ? 'Cancelled' : 'Completed',
-          scheduled_at: c.scheduled_at,
-          duration_minutes: c.duration_minutes || 30,
-          notes: c.user_notes?.notes || null,
-          created_at: c.created_at,
-          updated_at: c.updated_at,
-        })) as Appointment[]
+        logger.error('Appointments failed to load:', error.message)
+        throw new Error('Your appointments could not be loaded.')
       }
-
-      return data as Appointment[]
+      return ((data || []) as ConsultationRow[]).map(toAppointment)
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
   })
 
-  // 2. Book new appointment
   const bookMutation = useMutation({
-    mutationFn: async (payload: {
-      type: 'Video Call' | 'In-Person' | 'Phone Call'
-      date: Date
-      timeSlot: string
-      notes?: string
-    }) => {
-      if (!user) throw new Error('Not authenticated')
+    mutationFn: async (payload: { type: MeetingType; date: Date; timeSlot: string; notes?: string }) => {
+      if (!user) throw new Error('Please sign in to book an appointment.')
 
       // Parse date and timeSlot together (e.g. date: 2026-05-28, slot: "10:00 AM")
       const [time, modifier] = payload.timeSlot.split(' ')
@@ -81,84 +96,60 @@ export function useAppointments() {
 
       const scheduledDate = new Date(payload.date)
       scheduledDate.setHours(hours, minutes, 0, 0)
-
-      const insertData = {
-        user_id: user.id,
-        appointment_type: payload.type,
-        status: 'Scheduled',
-        scheduled_at: scheduledDate.toISOString(),
-        duration_minutes: 30,
-        notes: payload.notes || null,
-      }
+      if (scheduledDate.getTime() <= Date.now()) throw new Error('Please choose a time in the future.')
 
       const { data, error } = await supabase
-        .from('appointments')
-        .insert([insertData])
-        .select()
+        .from('consultations')
+        .insert([
+          {
+            user_id: user.id,
+            consultation_type: 'general',
+            // 'requested' so staff see it as a new booking to confirm.
+            status: 'requested',
+            scheduled_at: scheduledDate.toISOString(),
+            duration_minutes: 30,
+            user_notes: {
+              notes: payload.notes || '',
+              meeting_type: payload.type,
+              source: 'appointments_page',
+              submitted_at: new Date().toISOString(),
+            },
+          },
+        ])
+        .select('id')
         .single()
 
       if (error) {
-        // Fallback insertion into consultations table to maintain backward compatibility!
-        console.warn('Insert into appointments failed, using fallback insert into consultations:', error.message)
-        const fallbackType = payload.type === 'Phone Call' ? 'general' : 'work_visa'
-        const { data: cData, error: cError } = await supabase
-          .from('consultations')
-          .insert([
-            {
-              user_id: user.id,
-              consultation_type: fallbackType,
-              status: 'scheduled',
-              scheduled_at: scheduledDate.toISOString(),
-              duration_minutes: 30,
-              user_notes: { notes: payload.notes || '', source: 'appointments_page' },
-            },
-          ])
-          .select()
-          .single()
-
-        if (cError) throw cError
-        return cData
+        logger.error('Appointment booking failed:', error.code, error.message)
+        throw new Error('Your appointment could not be booked. Please try again.')
       }
-
       return data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments', user?.id] })
-      toast.success('Appointment booked successfully!', {
-        description: 'A confirmation slot notification has been generated.',
+      toast.success('Appointment requested!', {
+        description: 'Our team will confirm your slot shortly.',
       })
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Failed to book appointment.')
+    onError: (err: Error) => {
+      toast.error(err.message)
     },
   })
 
-  // 3. Cancel appointment
   const cancelMutation = useMutation({
     mutationFn: async (id: string) => {
-      // First try to update appointments
-      const { error } = await supabase
-        .from('appointments')
-        .update({ status: 'Cancelled' })
-        .eq('id', id)
-
+      const { error } = await supabase.from('consultations').update({ status: 'cancelled' }).eq('id', id)
       if (error) {
-        // Fallback cancellation inside consultations
-        console.warn('Appointments cancellation failed, trying consultations cancellation:', error.message)
-        const { error: cError } = await supabase
-          .from('consultations')
-          .update({ status: 'cancelled' })
-          .eq('id', id)
-
-        if (cError) throw cError
+        logger.error('Appointment cancel failed:', error.message)
+        throw new Error('The appointment could not be cancelled. Please try again.')
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments', user?.id] })
-      toast.success('Appointment cancelled successfully.')
+      toast.success('Appointment cancelled.')
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Failed to cancel appointment.')
+    onError: (err: Error) => {
+      toast.error(err.message)
     },
   })
 

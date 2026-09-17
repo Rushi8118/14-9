@@ -1,4 +1,4 @@
-import { Helmet } from 'react-helmet-async'
+import { SeoHead } from '@/components/seo/SeoHead'
 import { Link } from 'react-router-dom'
 import { useState, useMemo } from 'react'
 import { Globe2, ArrowRight, TrendingUp, Search, Filter, ShieldCheck, Clock } from 'lucide-react'
@@ -41,14 +41,11 @@ export default function CountriesPage() {
 
   return (
     <>
-      <Helmet>
-        <title>Global Visa Destinations | Work & Study Visas | Siddhivinayak Overseas</title>
-        <meta
-          name="description"
-          content="Explore study and work visa pathways for 40+ countries including Germany, UK, Japan, Croatia, Canada, USA, and GCC destinations."
-        />
-        <link rel="canonical" href="https://siddhivinayakoverseas.com/countries" />
-      </Helmet>
+      <SeoHead
+        title="Global Visa Destinations | Work & Study Visas"
+        description="Explore study and work visa pathways for 40+ countries including Germany, UK, Japan, Croatia, Canada, USA and GCC destinations, with free counselling in Surat."
+        path="/countries"
+      />
       <SiteHeader />
       <main className="min-h-screen bg-background premium-page">
         {/* Hero Section */}

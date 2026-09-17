@@ -153,13 +153,21 @@ const COUNTRY_CODES: Record<string, string> = {
  * Returns the lowercase ISO 3166-1 alpha-2 code for a country name or 3-letter code.
  * Used by the flag-icons CSS library which expects lowercase codes.
  */
+let lowerCaseCodeMap: Map<string, string> | null = null
+function lowerCaseCodes() {
+  if (!lowerCaseCodeMap) {
+    lowerCaseCodeMap = new Map(Object.entries(COUNTRY_CODES).map(([k, v]) => [k.toLowerCase(), v]))
+  }
+  return lowerCaseCodeMap
+}
+
 export function countryNameToCode(name: string): string | undefined {
   if (!name) return undefined
   const key = name.trim()
   if (COUNTRY_CODES[key]) return COUNTRY_CODES[key]
-  // Try case-insensitive
-  const found = Object.keys(COUNTRY_CODES).find(k => k.toLowerCase() === key.toLowerCase())
-  return found ? COUNTRY_CODES[found] : (key.length === 2 ? key.toLowerCase() : undefined)
+  // Case-insensitive lookup through a map built once (this runs for every flag on screen).
+  const found = lowerCaseCodes().get(key.toLowerCase())
+  return found ?? (key.length === 2 ? key.toLowerCase() : undefined)
 }
 
 /**

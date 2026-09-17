@@ -25,6 +25,10 @@ export function SeoHead({
 }: SeoHeadProps) {
   const url = absoluteUrl(path)
   const fullTitle = title.includes(SITE_NAME) ? title : `${title} | ${SITE_NAME}`
+  // Google truncates titles past ~60 characters; drop the brand suffix from the
+  // <title> tag when it would push the page topic out of view (og:site_name keeps it).
+  const brandSuffix = ` | ${SITE_NAME}`
+  const documentTitle = fullTitle.length > 65 && fullTitle.endsWith(brandSuffix) ? fullTitle.slice(0, -brandSuffix.length) : fullTitle
   const schemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : []
 
   return (
@@ -34,7 +38,7 @@ export function SeoHead({
       ))}
       <Helmet>
       <html lang="en-IN" />
-      <title>{fullTitle}</title>
+      <title>{documentTitle}</title>
       <meta name="description" content={description} />
       {keywords ? <meta name="keywords" content={keywords} /> : null}
       <link rel="canonical" href={url} />
