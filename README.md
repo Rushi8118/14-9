@@ -1,409 +1,282 @@
-# Siddhivinayak Overseas — Production Platform
+# Siddhivinayak Overseas
 
-> **⚠️ IMPORTANT**: See [AUDIT_SUMMARY.md](./AUDIT_SUMMARY.md) and [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) for recent fixes and setup instructions.
+> A modern visa consultancy platform for discovering work-visa and study-visa opportunities, exploring destination countries, and managing user enquiries and saved information.
 
-## Recent Updates (May 6, 2026)
+[![TypeScript](https://img.shields.io/badge/TypeScript-87.6%25-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=20232A)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL%20%7C%20Auth-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
 
-✅ **All Critical Issues Fixed**:
-- Fixed useAuth hook subscription memory leak
-- Removed static export to enable API routes & authentication
-- Created missing pages (forgot-password, terms, privacy)
-- Fixed Link component prop errors
-- Verified database schema and RLS policies
-- All 17 pages now build successfully
+## Contents
 
-**Status**: Ready for deployment once database is configured.
+- [About the project](#about-the-project)
+- [Features](#features)
+- [Technology stack](#technology-stack)
+- [Project structure](#project-structure)
+- [Requirements](#requirements)
+- [Getting started](#getting-started)
+- [Environment variables](#environment-variables)
+- [Available scripts](#available-scripts)
+- [Supabase setup](#supabase-setup)
+- [Production build and deployment](#production-build-and-deployment)
+- [SEO](#seo)
+- [Code quality and testing](#code-quality-and-testing)
+- [Security](#security)
+- [Contributing](#contributing)
+- [License](#license)
 
----
+## About the project
 
-## Overview
+Siddhivinayak Overseas is a responsive web application for an overseas education and immigration consultancy. It presents visa destinations and programs in an approachable, visual interface while providing authentication, Supabase-backed data, enquiry flows, and administrative functionality.
 
-Complete production-ready SaaS platform for visa/immigration consultancy with:
-- Next.js 16 App Router + TypeScript + Tailwind CSS
-- Supabase backend (Auth + PostgreSQL + APIs)
-- Interactive 3D Earth globe with React Three Fiber
-- Premium UI/UX with glassmorphism design
-- Full SEO optimization (metadata, sitemap, JSON-LD)
-- ✅ API routes and middleware enabled (updated May 6)
+The application is built as a Vite-powered React single-page application. TypeScript provides type safety, Tailwind CSS and reusable UI primitives provide the visual system, and Supabase supplies authentication and PostgreSQL data services.
 
----
+## Features
 
-## Folder Structure
+- Browse countries and destination information.
+- Explore work-visa and study-visa services and programs.
+- Country and program detail pages with requirements and supporting information.
+- User registration, login, session handling, and password recovery through Supabase Auth.
+- User dashboard for profile-related information and saved places.
+- Admin workflows for managing content and urgent requirements.
+- Interactive 3D globe and destination visualisation using Three.js and React Three Fiber.
+- Responsive, mobile-first UI with reusable Radix UI components.
+- Form validation with React Hook Form and Zod.
+- Toast notifications and accessible interactive controls.
+- SEO metadata, sitemap generation, robots configuration, and prerendering support.
+- Supabase Row Level Security (RLS) for protecting user-owned data.
 
-```
-app/
-├── auth/
-│   ├── login/page.tsx          # Email + Google OAuth login
-│   ├── register/page.tsx       # Account creation
-│   └── callback/route.ts       # OAuth callback handler
-├── countries/
-│   ├── page.tsx                # Countries listing
-│   └── [slug]/
-│       ├── page.tsx              # Country detail
-│       └── programs/
-│           └── [programSlug]/
-│               └── page.tsx      # Visa program detail
-├── dashboard/
-│   └── page.tsx                # User dashboard (protected)
-├── layout.tsx                  # Root layout with SEO + JSON-LD
-├── page.tsx                    # Home with 3D globe hero
-├── sitemap.ts                  # Dynamic SEO sitemap
-├── robots.ts                   # robots.txt generation
-├── globals.css                 # Tailwind + custom theme
-├── contact/
-├── work-visa/
-├── study-visa/
-├── services/
-├── about/
-components/
-├── interactive-globe.tsx        # 3D Earth (Three.js / R3F)
-├── site-header.tsx              # Navigation with auth state
-├── site-footer.tsx              # Footer
-├── hero.tsx                     # Home hero section
-├── ui/                          # shadcn/ui components
-hooks/
-├── use-auth.ts                  # Authentication hook
-├── use-countries.ts             # Countries + visa programs hooks
-lib/
-├── supabase/
-│   ├── client.ts                # Browser Supabase client
-│   └── server.ts                # Server Supabase client
-├── database.types.ts            # Full TypeScript types
-├── utils.ts                     # Utility functions
-middleware.ts                   # Route protection + auth refresh
-supabase/
-├── schema.sql                   # Complete PostgreSQL schema
-└── seed.sql                     # Sample data for 10+ countries
-```
+## Technology stack
 
----
+### Frontend
 
-## 1. Supabase Setup
+- React 19
+- TypeScript 5
+- Vite 6
+- React Router
+- Tailwind CSS 4
+- Radix UI primitives
+- Lucide React icons
+- Framer Motion and GSAP
+- Three.js, React Three Fiber, Drei, and Three Globe
 
-### Step 1: Create Supabase Project
-1. Go to [supabase.com](https://supabase.com) and create a new project
-2. Note your **Project URL** and **Anon Key** (Settings > API)
+### Backend and data
 
-### Step 2: Run Schema
-1. Open Supabase Dashboard > SQL Editor
-2. Copy contents of `supabase/schema.sql`
-3. Run the entire script
-4. Then run `supabase/seed.sql` to populate sample data
+- Supabase Auth
+- Supabase PostgreSQL
+- Supabase JavaScript client
+- PostgreSQL functions and policies written in PL/pgSQL
 
-### Step 3: Configure Auth
-1. Go to Authentication > Providers
-2. Enable **Email** provider (already enabled by default)
-3. Enable **Google** provider:
-   - Add your Google Client ID and Secret
-   - Set redirect URL: `https://yourdomain.com/auth/callback`
+### Tooling
 
-### Step 4: Environment Variables
-Create `.env.local`:
-```
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-NEXT_PUBLIC_SITE_URL=https://yourdomain.com
+- npm (a `package-lock.json` is included)
+- ESLint
+- Playwright
+- PostCSS and Autoprefixer
+
+## Project structure
+
+```text
+.
+├── app/                  # Application routes and page-level features
+├── auth/                 # Authentication-related screens and flows
+├── components/           # Shared application and UI components
+├── countries/            # Country data and destination views
+├── dashboard/            # Authenticated user dashboard
+├── hooks/                # Reusable React hooks
+├── lib/                  # Supabase clients and shared utilities
+├── public/               # Static assets
+├── scripts/              # Sitemap, prerender, and SEO utilities
+├── src/                  # Shared source modules and application code
+├── styles/               # Global styling and design tokens
+├── supabase/             # Database schema, seed data, and migrations
+├── types/                # Shared TypeScript types
+├── .env.example          # Environment variable template
+├── package.json          # Scripts and dependencies
+├── vite.config.ts        # Vite configuration
+└── tsconfig.json         # TypeScript configuration
 ```
 
----
+Some feature directories are kept at the repository root to match the existing application layout. Prefer following the conventions of the surrounding feature when adding new code.
 
-## 2. Database Design
+## Requirements
 
-### Tables
-| Table | Purpose |
-|-------|---------|
-| `countries` | Master country data with Geo info, costs, climate |
-| `visa_programs` | All visa programs per country with eligibility |
-| `user_profiles` | Extended user data (auth.users extension) |
-| `applications` | Visa application tracking |
-| `consultations` | Free/paid consultation bookings |
-| `saved_places` | User favorites (countries/programs) |
-| `interactions` | Analytics/events tracking |
-| `blog_posts` | SEO content management |
-| `notifications` | User notifications |
-| `country_faqs` | Country-specific FAQ |
+- Node.js 18 or newer (Node.js 20 LTS is recommended).
+- npm 9 or newer.
+- A Supabase project for authentication and application data.
+- Git for cloning and version control.
 
-### Views
-- `public_countries` — Active countries only
-- `public_visa_programs` — Active programs with country joins
-- `featured_programs` — Featured programs only
-- `user_dashboard_summary` — Aggregated user stats
+## Getting started
 
-### Indexes
-- All foreign keys indexed
-- Search indexes on `slug`, `name`, `status`
-- Composite indexes for common queries
-
-### RLS Policies
-- Users can only access own data (applications, consultations, saved places)
-- Public read access for countries, visa programs, blog posts, FAQs
-- Admin role override for all data
-
----
-
-## 3. Backup Strategy
-
-### Supabase Built-in Backups
-- Supabase Pro plans include **daily automated backups**
-- Backups are stored in the same region as your project
-- Retention: 7 days (configurable on higher tiers)
-
-### Manual Backup (pg_dump)
-```bash
-# Get your database password from Supabase Dashboard > Settings > Database
-pg_dump \
-  --host db.xxxxx.supabase.co \
-  --port 5432 \
-  --dbname postgres \
-  --username postgres \
-  --file backup-$(date +%Y%m%d).sql \
-  --clean \
-  --if-exists
-```
-
-### Restore Process
-```bash
-psql \
-  --host db.xxxxx.supabase.co \
-  --port 5432 \
-  --dbname postgres \
-  --username postgres \
-  --file backup-20240101.sql
-```
-
-### Best Practices
-1. Schedule weekly manual backups in addition to automated ones
-2. Test restore procedure on a staging project monthly
-3. Use Supabase branching for major schema changes
-4. Enable Point-in-Time Recovery (PITR) for critical projects
-
----
-
-## 4. Authentication
-
-### Features
-- **Email/Password**: Standard registration with profile creation
-- **Google OAuth**: One-click sign-in with profile auto-creation
-- **Middleware Protection**: `/dashboard`, `/profile`, etc. require login
-- **Session Management**: Automatic refresh via Supabase SSR
-
-### Protected Routes (middleware.ts)
-- `/dashboard` → redirects to `/auth/login` if not authenticated
-- `/auth/login`, `/auth/register` → redirects to `/dashboard` if already logged in
-
----
-
-## 5. 3D Globe Implementation
-
-### Tech Stack
-- `@react-three/fiber` — React renderer for Three.js
-- `@react-three/drei` — Helpers (Stars, OrbitControls, Html)
-- Custom shaders for atmosphere glow
-- Procedural earth texture (no external dependencies)
-
-### Features
-- Realistic Earth sphere with bump mapping
-- Animated atmosphere glow (custom GLSL shader)
-- Interactive country markers at accurate lat/lng
-- Connection arcs from India to all destinations
-- OrbitControls: drag to rotate, scroll to zoom
-- Click markers → info panel with country details
-- Lazy loaded via `React.lazy()` + `Suspense`
-
-### Performance
-- `dpr={[1, 2]}` — adaptive pixel ratio
-- `gl={{ antialias: true, alpha: true }}`
-- Lazy loaded only when user clicks "Launch 3D Globe"
-- Low-poly sphere with CanvasTexture (no external image downloads)
-
----
-
-## 6. SEO Implementation
-
-### What is implemented
-- **Next.js Metadata API** — every page has unique meta tags
-- **Dynamic meta tags** — country pages, visa program pages
-- **sitemap.xml** — automatically generated, includes all dynamic routes
-- **robots.txt** — allows public pages, blocks dashboard/auth from indexing
-- **JSON-LD** — ProfessionalService schema + WebSite schema in layout
-- **Open Graph** — proper og:title, og:description, og:image
-- **Twitter Cards** — summary_large_image
-- **Canonical URLs** — prevents duplicate content
-- **Core Web Vitals** — optimized with static export, minimal JS
-
-### Dynamic SEO
-- Country pages use `meta_title` and `meta_desc` from database
-- Program pages use their own meta fields
-- Sitemap fetches all countries and programs at build time
-
----
-
-## 7. Performance Optimizations
-
-1. **Lazy loading** — 3D globe only loads on user interaction
-2. **Static export** — pre-rendered HTML, no server needed
-3. **Image optimization** — `unoptimized: true` for Hostinger (static hosting)
-4. **Code splitting** — Next.js automatic chunk splitting
-5. **Tree shaking** — only used components bundled
-6. **CSS optimization** — Tailwind purges unused styles
-
----
-
-## 8. Development
+### 1. Clone the repository
 
 ```bash
-# Install dependencies
+git clone https://github.com/Rushi8118/14-9.git
+cd 14-9
+```
+
+### 2. Install dependencies
+
+```bash
 npm install
-
-# Run dev server
-npm run dev
-
-# Type check
-npx tsc --noEmit
-
-# Build for production
-npm run build
-
-# The `dist/` folder is ready for Hostinger deployment
 ```
 
----
+### 3. Configure environment variables
 
-## 9. Deployment on Hostinger
+Create a local environment file from the provided template:
 
-### Prerequisites
-- Hostinger shared hosting plan (or any static hosting)
-- Domain pointed to Hostinger
-
-### Build Steps
 ```bash
-# 1. Set environment variables
-export NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-export NEXT_PUBLIC_SUPABASE_ANON_KEY=your-key
-export NEXT_PUBLIC_SITE_URL=https://yourdomain.com
-
-# 2. Build static export
-npm run build
-
-# 3. The `dist/` folder contains your static site
+cp .env.example .env.local
 ```
 
-### Upload to Hostinger
-1. Open Hostinger File Manager (or use FTP)
-2. Navigate to `public_html/`
-3. Delete existing files (backup first)
-4. Upload all contents of `dist/` folder
-5. Ensure `index.html` is at root of `public_html/`
+Fill in the values described in [Environment variables](#environment-variables). Never commit `.env.local` or server-only credentials.
 
-### Important Notes
-- No Node.js server needed — this is a static site
-- All dynamic data comes from Supabase client-side
-- Auth works via Supabase cookies
-- For client-side routing to work, add `.htaccess`:
+### 4. Configure Supabase
 
-```apache
-# .htaccess for Hostinger (place in public_html/)
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /
-  RewriteRule ^index\.html$ - [L]
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteCond %{REQUEST_FILENAME} !-l
-  RewriteRule . /index.html [L]
-</IfModule>
+Apply the database schema and seed data as described in [Supabase setup](#supabase-setup).
+
+### 5. Start the development server
+
+```bash
+npm run dev
 ```
 
----
+Open the local URL printed by Vite, usually `http://localhost:5173`.
 
-## 10. CRUD Operations Examples
+## Environment variables
 
-### Using useAuth Hook
-```tsx
-const { user, profile, signIn, signUp, signInWithGoogle, signOut, updateProfile } = useAuth()
-```
-
-### Using useCountries Hook
-```tsx
-const { countries, isLoading, error, getCountryBySlug } = useCountries()
-const { country, programs, isLoading } = useCountry("japan")
-const { programs, isLoading } = useVisaPrograms({ countryId: "uuid", type: "work" })
-const { program, isLoading } = useVisaProgram("japan", "specified-skilled-worker")
-```
-
-### Direct Supabase CRUD
-```tsx
-import { createClient } from "@/lib/supabase/client"
-
-const supabase = createClient()
-
-// Create application
-const { data, error } = await supabase
-  .from("applications")
-  .insert({
-    user_id: user.id,
-    visa_program_id: programId,
-    country_id: countryId,
-    application_type: "work",
-    status: "draft"
-  })
-  .select()
-
-// Read with filters
-const { data } = await supabase
-  .from("public_visa_programs")
-  .select("*")
-  .eq("is_featured", true)
-
-// Update
-const { data } = await supabase
-  .from("user_profiles")
-  .update({ full_name: "New Name" })
-  .eq("id", user.id)
-  .select()
-
-// Delete
-await supabase.from("saved_places").delete().eq("id", savedId)
-```
-
----
-
-## 11. Environment Variables Reference
+The client-side application uses Vite variables, which must begin with `VITE_`:
 
 | Variable | Required | Description |
-|----------|----------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon/public key |
-| `NEXT_PUBLIC_SITE_URL` | Yes | Your production domain |
+| --- | --- | --- |
+| `VITE_SUPABASE_URL` | Yes | URL of the Supabase project. |
+| `VITE_SUPABASE_ANON_KEY` | Yes | Supabase publishable/anonymous key for browser requests. |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Recommended | Publishable key used by integrations that expect this name. |
+| `VITE_SITE_URL` | Yes | Canonical URL of the deployed site. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only | Privileged Supabase key for trusted server-side scripts only. Never expose it to the browser. |
 
----
+Example:
 
-## 12. Troubleshooting
+```dotenv
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_publishable_or_anon_key
+VITE_SUPABASE_PUBLISHABLE_KEY=your_publishable_key
+VITE_SITE_URL=http://localhost:5173
 
-### Build fails with "Build directory is not writeable"
-- This is a sandbox-specific issue. In production, run `npm run build` normally.
+# Keep this out of client bundles and source control.
+SUPABASE_SERVICE_ROLE_KEY=your_server_only_service_role_key
+```
 
-### Dynamic routes not generated
-- Ensure Supabase credentials are set during build
-- `generateStaticParams` needs real data to create static pages
+Do not use a service-role key in a `VITE_*` variable. Vite exposes `VITE_*` values to browser code.
 
-### Google OAuth not working
-- Verify redirect URL in Google Console matches `https://yourdomain.com/auth/callback`
-- Ensure URL is added to Supabase Auth > Providers > Google
+## Available scripts
 
-### Middleware deprecation warning
-- Next.js 16 deprecates `middleware.ts` in favor of `proxy.ts`
-- This is cosmetic — functionality is unchanged
-- To suppress: rename `middleware.ts` to `proxy.ts` when Next.js fully transitions
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Starts the Vite development server. |
+| `npm run build` | Builds the application, generates the sitemap, and prerenders configured pages. |
+| `npm run build:only` | Runs only the Vite production build. |
+| `npm run preview` | Serves the production build locally for verification. |
+| `npm run lint` | Runs ESLint across the repository. |
+| `npm run sitemap` | Generates the sitemap without building the application. |
+| `npm run prerender` | Runs the prerendering script. |
+| `npm run seo:ping` | Sends the configured SEO/indexing ping. |
 
----
+A typical verification flow is:
 
-Built with care for global aspirants.
-#   n e w - w i t h - w h i t e  
- #   2 5 t h  
- #   2 5 t h  
- #   2 5 t h _ u p d a t e d  
- #   a d m i n  
- #   u p d a t e d  
- #   2 5 t h _ 0 8  
- 
+```bash
+npm run lint
+npm run build
+npm run preview
+```
+
+## Supabase setup
+
+1. Create a project at [supabase.com](https://supabase.com/).
+2. Copy the project URL and publishable/anonymous key into `.env.local`.
+3. Open the Supabase SQL Editor.
+4. Apply the base schema from `supabase/schema.sql`.
+5. Apply the seed data from `supabase/seed.sql` if sample content is required.
+6. Apply any additional SQL migrations in `supabase/` in the order documented by their filenames.
+7. Enable the authentication providers required by the application, such as email/password or Google OAuth.
+8. Configure the site URL and redirect URLs in Supabase Authentication settings.
+9. Verify that RLS is enabled and that policies allow public content reads while restricting user-owned records to their owners.
+
+The database contains content and user-oriented entities such as countries, visa programs, user profiles, applications, consultations, saved places, notifications, blog content, and FAQs. Review the SQL files before applying changes to a production project.
+
+## Production build and deployment
+
+Build the production assets with:
+
+```bash
+npm ci
+npm run build
+```
+
+The generated static assets can be served by a static host or CDN. Before deployment:
+
+- Set production `VITE_*` variables in the hosting provider.
+- Set `VITE_SITE_URL` to the final HTTPS domain.
+- Configure SPA fallback/rewrite rules so application routes resolve to the entry document.
+- Configure Supabase authentication redirect URLs for the production domain.
+- Confirm the generated sitemap and robots configuration use the production URL.
+- Never upload `.env.local`, database passwords, or service-role keys.
+
+For Apache-based hosting, the repository includes `.htaccess`; verify the rewrite configuration with your hosting provider before publishing it.
+
+## SEO
+
+The project includes SEO-related scripts and files for:
+
+- Sitemap generation.
+- Robots configuration.
+- Prerendering selected routes.
+- Canonical site URL configuration.
+- Search-engine indexing notifications.
+
+After changing public routes or content, run a production build and inspect the generated output before deployment.
+
+## Code quality and testing
+
+Before opening a pull request:
+
+```bash
+npm run lint
+npm run build
+```
+
+When changing authentication, database access, routing, or forms, manually verify the affected flow in a local preview. Playwright is available for browser automation and can be used to add or run end-to-end checks as the test suite grows.
+
+## Security
+
+- Keep `.env.local` out of version control.
+- Use only publishable/anonymous Supabase keys in browser code.
+- Keep `SUPABASE_SERVICE_ROLE_KEY` server-side and rotate it immediately if exposed.
+- Validate and sanitise user input at boundaries.
+- Review RLS policies whenever adding or changing a table.
+- Do not place private customer, application, or credential data in public seed files.
+- Use HTTPS and production redirect URLs in deployed environments.
+
+## Contributing
+
+1. Create a feature branch from the default branch.
+2. Make focused changes that follow the existing TypeScript and component patterns.
+3. Run `npm run lint` and `npm run build`.
+4. Update documentation or database migrations when behaviour changes.
+5. Open a pull request with a clear summary, testing notes, and screenshots for visual changes.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE), unless a different license is specified in the repository.
+
+## Support
+
+For project-specific issues, open a GitHub issue with:
+
+- A concise description of the problem.
+- Steps to reproduce it.
+- Expected and actual behaviour.
+- Relevant browser or build logs with secrets removed.
+- The affected route, component, or database migration.
+
+For platform documentation, see the [Vite](https://vite.dev/guide/), [React](https://react.dev/learn), and [Supabase](https://supabase.com/docs) documentation.
