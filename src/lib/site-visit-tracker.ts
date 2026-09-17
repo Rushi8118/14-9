@@ -6,6 +6,56 @@ const THROTTLE_MS = 1500
 
 let lastWriteAt = 0
 
+const COUNTRY_KEY = 'svo_visit_country'
+let countryPromise: Promise<string | null> | null = null
+
+async function lookupCountry(url: string, parse: (body: string) => string | null): Promise<string | null> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 2500)
+  try {
+    const res = await fetch(url, { signal: controller.signal, credentials: 'omit' })
+    if (!res.ok) return null
+    const code = parse(await res.text())
+    return code && /^[A-Z]{2}$/.test(code) ? code : null
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/**
+ * Visitor country (ISO 3166-1 alpha-2) for analytics. Resolved once per browser
+ * session from free, keyless geo-IP lookups; only the 2-letter code is kept —
+ * the IP address is never stored.
+ */
+export function getVisitorCountry(): Promise<string | null> {
+  if (countryPromise) return countryPromise
+  countryPromise = (async () => {
+    try {
+      const cached = sessionStorage.getItem(COUNTRY_KEY)
+      if (cached) return cached === '-' ? null : cached
+    } catch {
+      // storage unavailable
+    }
+    const code =
+      (await lookupCountry('https://api.country.is/', (body) => {
+        try { return String(JSON.parse(body)?.country || '').toUpperCase() } catch { return null }
+      })) ??
+      (await lookupCountry('https://www.cloudflare.com/cdn-cgi/trace', (body) => {
+        const match = body.match(/^loc=([A-Z]{2})$/m)
+        return match && match[1] !== 'XX' ? match[1] : null
+      }))
+    try {
+      sessionStorage.setItem(COUNTRY_KEY, code ?? '-')
+    } catch {
+      // ignore
+    }
+    return code
+  })()
+  return countryPromise
+}
+
 function createId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID()
@@ -90,6 +140,8 @@ export async function trackSiteEvent(input: TrackEventInput): Promise<void> {
       ? `pv:${sessionId}:${path}:${Math.floor(now / 10_000)}`.slice(0, 300)
       : (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${input.eventType}_${now}_${Math.random().toString(36).slice(2)}`)
 
+  const countryCode = await getVisitorCountry()
+
   try {
     // Plain insert, not upsert: `ON CONFLICT` makes Postgres also apply SELECT row-level
     // security, and visitors (anon) cannot read the log, so upserts were rejected with 401.
@@ -105,6 +157,7 @@ export async function trackSiteEvent(input: TrackEventInput): Promise<void> {
         device_type: detectDeviceType(),
         browser: detectBrowser(),
         request_id: requestId,
+        country_code: countryCode,
         metadata: {
           href: window.location.href,
           language: navigator.language,
