@@ -1,3 +1,4 @@
+import { ImmigrationDisclaimer } from '@/components/seo/ImmigrationDisclaimer'
 import { CheckCircle2 } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter, WhatsAppFab } from '@/components/site-footer'
@@ -199,6 +200,7 @@ export function DestinationPage({ content, showWhatsAppFab = true }: Destination
         ) : null}
 
         <FaqSection faqs={content.faqs} />
+        <ImmigrationDisclaimer country={content.country} jobs={content.kind === 'work'} />
         <RelatedLinks links={content.related} />
         <CtaBand />
       </main>

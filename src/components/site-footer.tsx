@@ -368,6 +368,13 @@ export function SiteFooter() {
             </Link>
 
             <Link
+              to="/immigration-disclaimer"
+              className="text-xs text-muted-foreground transition-colors duration-200 hover:text-primary"
+            >
+              Immigration Disclaimer
+            </Link>
+
+            <Link
               to="/privacy"
               className="text-xs text-muted-foreground transition-colors duration-200 hover:text-primary"
             >

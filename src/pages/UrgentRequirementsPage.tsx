@@ -1,3 +1,4 @@
+import { ImmigrationDisclaimer } from '@/components/seo/ImmigrationDisclaimer'
 import React, { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -248,6 +249,7 @@ export default function UrgentRequirementsPage() {
             </div>
           )}
         </section>
+        <ImmigrationDisclaimer jobs />
       </main>
 
       <SiteFooter />

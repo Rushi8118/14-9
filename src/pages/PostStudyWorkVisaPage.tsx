@@ -1,3 +1,4 @@
+import { ImmigrationDisclaimer } from '@/components/seo/ImmigrationDisclaimer'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import { ArrowRight, GraduationCap, Globe2, CheckCircle2, Award, Clock, BookOpen, Briefcase, Users, TrendingUp } from 'lucide-react'
@@ -294,6 +295,7 @@ export default function PostStudyWorkVisaPage() {
             </div>
           </div>
         </section>
+        <ImmigrationDisclaimer />
       </main>
       <SiteFooter />
     </>

@@ -47,6 +47,7 @@ export const STATIC_ROUTES = [
   '/blog',
   '/urgent-requirements',
   '/privacy',
+  '/immigration-disclaimer',
   '/terms',
 ]
 
