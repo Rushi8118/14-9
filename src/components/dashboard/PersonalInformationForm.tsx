@@ -252,6 +252,11 @@ export default function PersonalInformationForm({ onStateChange }: { onStateChan
                 </StatusPill>
               )}
             </p>
+            {user.new_email && (
+              <p className="text-xs text-[var(--desk-muted)]">
+                Change to <span className="font-medium text-[var(--desk-navy)]">{user.new_email}</span> is waiting for confirmation. Open the confirmation link sent to your email (check both your old and new inbox, including spam). Until then, keep signing in with {user.email}.
+              </p>
+            )}
           </div>
 
           <Field id="profile-phone" label="Phone number" error={errors.phone} hint="Include your country code, e.g. +91 98765 43210.">

@@ -111,6 +111,9 @@ export function AdminUserProfileDialog({ userId, onClose }: AdminUserProfileDial
   const [saving, setSaving] = useState(false)
   const [action, setAction] = useState<'reset' | 'verify' | null>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [newEmail, setNewEmail] = useState('')
+  const [emailConfirmOpen, setEmailConfirmOpen] = useState(false)
+  const [changingEmail, setChangingEmail] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
 
   const details = useQuery({
@@ -272,6 +275,32 @@ export function AdminUserProfileDialog({ userId, onClose }: AdminUserProfileDial
   }
 
   const sendPasswordReset = () => sendAccountEmail('reset')
+
+  const changeEmail = async () => {
+    if (!userId) return
+    setChangingEmail(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-change-email', { body: { userId, email: newEmail.trim() } })
+      let message = data?.error as string | undefined
+      if (error) {
+        message = 'Could not change the email. Please try again.'
+        const context = (error as { context?: Response }).context
+        if ((error as { name?: string }).name === 'FunctionsFetchError') message = 'The email service is not reachable right now. Please contact the site administrator.'
+        if (context && typeof context.json === 'function') {
+          try { const body = await context.clone().json(); if (body?.error) message = body.error } catch { /* keep generic */ }
+        }
+      }
+      if (message) throw new Error(message)
+      toast.success(`Login email changed to ${newEmail.trim().toLowerCase()}`)
+      setNewEmail('')
+      await queryClient.invalidateQueries({ queryKey: ['admin-user-profile-dialog', userId] })
+      await queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not change the email.')
+    } finally {
+      setChangingEmail(false)
+    }
+  }
   const sendVerification = () => sendAccountEmail('verify')
 
   const softDelete = async () => {
@@ -378,7 +407,7 @@ export function AdminUserProfileDialog({ userId, onClose }: AdminUserProfileDial
             </TabsContent>
             <TabsContent value="personal" className="mt-0 space-y-5"><section className="rounded-xl border border-border p-4 sm:p-5"><h3 className="mb-4 text-sm font-semibold">Personal information & address</h3>{fieldGrid(personalFields)}</section></TabsContent>
             <TabsContent value="education" className="mt-0 space-y-5"><section className="rounded-xl border border-border p-4 sm:p-5"><h3 className="mb-4 text-sm font-semibold">Education & experience</h3>{fieldGrid(educationFields)}</section><section className="rounded-xl border border-dashed border-border p-4"><h3 className="text-sm font-semibold">Documents & applications</h3><p className="mt-1 text-xs text-muted-foreground">No document or application fields are available in the current user profile data.</p></section></TabsContent>
-            <TabsContent value="security" className="mt-0 space-y-5"><div className="max-w-2xl space-y-5">{securitySummary}<section className="rounded-xl border border-border p-4"><h3 className="mb-3 flex items-center gap-2 text-sm font-semibold"><Clock3 className="h-4 w-4 text-primary" />Account metadata</h3><dl className="grid gap-3 text-xs sm:grid-cols-2"><div><dt className="text-muted-foreground">User ID</dt><dd className="break-all font-mono">{user.id}</dd></div><div><dt className="text-muted-foreground">Updated</dt><dd>{new Date(user.updated_at).toLocaleString()}</dd></div><div><dt className="text-muted-foreground">Roles loaded</dt><dd>{details.data?.roles.map((role) => role.name).join(', ') || user.user_role}</dd></div><div><dt className="text-muted-foreground">Profile photo</dt><dd>{display(user.profile_photo_url)}</dd></div><div><dt className="text-muted-foreground">Recovery email</dt><dd>{details.data?.security?.recovery_sent_at ? new Date(details.data.security.recovery_sent_at).toLocaleString() : 'Not sent'}</dd></div><div><dt className="text-muted-foreground">App metadata</dt><dd className="break-all">{details.data?.security?.app_metadata ? JSON.stringify(details.data.security.app_metadata) : 'None'}</dd></div></dl>{details.data?.securityError && <p className="mt-3 text-xs text-muted-foreground">Security metadata unavailable: {details.data.securityError}</p>}</section></div></TabsContent>
+            <TabsContent value="security" className="mt-0 space-y-5"><div className="max-w-2xl space-y-5"><section className="rounded-xl border border-border p-4"><h3 className="mb-1 flex items-center gap-2 text-sm font-semibold"><MailCheck className="h-4 w-4 text-primary" />Login email</h3><p className="mb-3 text-xs text-muted-foreground">Current: <span className="font-medium text-foreground">{user.email}</span>. The change applies instantly — the user signs in with the new address from now on.</p><div className="flex flex-col gap-2 sm:flex-row"><Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="new@email.com" disabled={!canUpdate || changingEmail} /><ConfirmDialog title="Change login email?" description={`${user.email} will no longer work for signing in. The user must use ${newEmail.trim().toLowerCase()} from now on.`} confirmLabel="Change email" variant="default" open={emailConfirmOpen} onOpenChange={setEmailConfirmOpen} onConfirm={changeEmail}><Button disabled={!canUpdate || changingEmail || !/^[^s@]+@[^s@]+.[^s@]{2,}$/.test(newEmail.trim()) || newEmail.trim().toLowerCase() === user.email?.toLowerCase()}>{changingEmail ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Change email</Button></ConfirmDialog></div></section>{securitySummary}<section className="rounded-xl border border-border p-4"><h3 className="mb-3 flex items-center gap-2 text-sm font-semibold"><Clock3 className="h-4 w-4 text-primary" />Account metadata</h3><dl className="grid gap-3 text-xs sm:grid-cols-2"><div><dt className="text-muted-foreground">User ID</dt><dd className="break-all font-mono">{user.id}</dd></div><div><dt className="text-muted-foreground">Updated</dt><dd>{new Date(user.updated_at).toLocaleString()}</dd></div><div><dt className="text-muted-foreground">Roles loaded</dt><dd>{details.data?.roles.map((role) => role.name).join(', ') || user.user_role}</dd></div><div><dt className="text-muted-foreground">Profile photo</dt><dd>{display(user.profile_photo_url)}</dd></div><div><dt className="text-muted-foreground">Recovery email</dt><dd>{details.data?.security?.recovery_sent_at ? new Date(details.data.security.recovery_sent_at).toLocaleString() : 'Not sent'}</dd></div><div><dt className="text-muted-foreground">App metadata</dt><dd className="break-all">{details.data?.security?.app_metadata ? JSON.stringify(details.data.security.app_metadata) : 'None'}</dd></div></dl>{details.data?.securityError && <p className="mt-3 text-xs text-muted-foreground">Security metadata unavailable: {details.data.securityError}</p>}</section></div></TabsContent>
             <TabsContent value="activity" className="mt-0"><section className="rounded-xl border border-border p-4 sm:p-5"><h3 className="mb-3 flex items-center gap-2 text-sm font-semibold"><Activity className="h-4 w-4 text-primary" />Recent activity</h3>{details.data?.activityError ? <p className="text-sm text-muted-foreground">Activity history unavailable: {details.data.activityError}</p> : details.data?.activity.length ? <div className="divide-y divide-border">{details.data.activity.map((entry) => <div key={entry.id} className="flex flex-col gap-1 py-3 text-xs sm:flex-row sm:items-center sm:justify-between"><span><strong className="capitalize">{entry.event_type.replaceAll('_', ' ')}</strong>{entry.page_path ? ` · ${entry.page_path}` : ''}</span><time className="text-muted-foreground">{new Date(entry.created_at).toLocaleString()}</time></div>)}</div> : <p className="text-sm text-muted-foreground">No activity recorded.</p>}</section></TabsContent>
           </div>
         </Tabs>}
