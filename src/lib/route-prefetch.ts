@@ -50,6 +50,7 @@ const workspaceLoaders: Record<string, () => Promise<unknown>> = {
   '/admin/blog': () => import('@/pages/admin/BlogPage'),
   '/admin/sessions': () => import('@/pages/admin/SessionsPage'),
   '/admin/audit': () => import('@/pages/admin/AuditLogsPage'),
+  '/admin/activity-logs': () => import('@/pages/admin/ActivityLogsPage'),
   '/admin/automations': () => import('@/pages/admin/AutomationsPage'),
   '/admin/email-templates': () => import('@/pages/admin/EmailTemplatesPage'),
   '/admin/files': () => import('@/pages/admin/FileManagerPage'),

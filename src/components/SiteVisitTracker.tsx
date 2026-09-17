@@ -11,6 +11,7 @@ export function SiteVisitTracker() {
   const { user, isAdmin } = useAuth()
 
   useEffect(() => {
+    void import('@/lib/activity-logger').then(({ logNavigation }) => logNavigation(`${location.pathname}${location.search}`, document.title))
     void import('@/lib/site-visit-tracker').then(({ trackSiteEvent }) => {
       void trackSiteEvent({
         eventType: 'page_view',
