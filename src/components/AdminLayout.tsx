@@ -15,7 +15,7 @@ import {
   Zap,
   Mail,
   MonitorSmartphone,
-  ShieldAlert,
+  ShieldAlert, MousePointerClick,
   ChevronLeft,
   ChevronRight,
   Menu,
@@ -74,6 +74,7 @@ const ALL_NAV_GROUPS: NavGroup[] = [
     items: [
       { label: 'Sessions', path: '/admin/sessions', icon: MonitorSmartphone },
       { label: 'Audit Logs', path: '/admin/audit', icon: ShieldAlert, requiredPermission: 'audit.read' },
+      { label: 'Activity Logs', path: '/admin/activity-logs', icon: MousePointerClick, requiredPermission: 'audit.read' },
     ],
   },
   {

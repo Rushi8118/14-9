@@ -84,6 +84,7 @@ const RealtimeDashboardPage = lazy(() => import('./pages/admin/RealtimeDashboard
 const RolesPage = lazy(() => import('./pages/admin/RolesPage'))
 const SessionsPage = lazy(() => import('./pages/admin/SessionsPage'))
 const AuditLogsPage = lazy(() => import('./pages/admin/AuditLogsPage'))
+const ActivityLogsPage = lazy(() => import('./pages/admin/ActivityLogsPage'))
 const AutomationsPage = lazy(() => import('./pages/admin/AutomationsPage'))
 const EmailTemplatesPage = lazy(() => import('./pages/admin/EmailTemplatesPage'))
 const FileManagerPage = lazy(() => import('./pages/admin/FileManagerPage'))
@@ -195,6 +196,7 @@ function AppRoutes() {
         <Route path="blog" element={<AdminBlogPage />} />
         <Route path="sessions" element={<SessionsPage />} />
         <Route path="audit" element={<AuditLogsPage />} />
+        <Route path="activity-logs" element={<ActivityLogsPage />} />
         <Route path="automations" element={<AutomationsPage />} />
         <Route path="email-templates" element={<EmailTemplatesPage />} />
         <Route path="files" element={<FileManagerPage />} />
