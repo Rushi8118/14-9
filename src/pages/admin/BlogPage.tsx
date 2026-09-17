@@ -397,6 +397,17 @@ export default function AdminBlogPage() {
                 existingSlugs={existingSlugs}
                 existingTitles={existingTitles}
                 currentSlug={editor.slug}
+                currentTitle={editor.id ? posts.find((p) => p.id === editor.id)?.title : undefined}
+                contentFormat="html"
+                aiFeature="blog"
+                onApply={(patch) => updateEditor({
+                  ...(patch.title !== undefined && { title: patch.title }),
+                  ...(patch.metaTitle !== undefined && { meta_title: patch.metaTitle }),
+                  ...(patch.metaDescription !== undefined && { meta_desc: patch.metaDescription }),
+                  ...(patch.focusKeyword !== undefined && { focus_keyword: patch.focusKeyword }),
+                  ...(patch.content !== undefined && { content: patch.content }),
+                  ...(patch.imageAlt !== undefined && { image_alt: patch.imageAlt }),
+                })}
               />
             </div>
           </div>

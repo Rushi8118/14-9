@@ -22,7 +22,36 @@ const CORS_HEADERS = {
 
 type ChatMessage = { role: "system" | "user" | "assistant"; content: string }
 
-const ALLOWED_FEATURES = new Set(["blog", "urgent_requirement", "country_eligibility"])
+const ALLOWED_FEATURES = new Set(["blog", "urgent_requirement", "country_eligibility", "keyword_trends"])
+
+/**
+ * Popular search phrases for a seed keyword, from Google's public autocomplete
+ * endpoint (what people are actually typing). No search volumes are available
+ * from this source, so none are claimed. Expands with a-z / question prefixes.
+ */
+async function fetchKeywordTrends(seed: string, country: string): Promise<string[]> {
+  const base = seed.trim().toLowerCase().slice(0, 80)
+  if (!base) return []
+  const variants = [base, `${base} for`, `${base} how`, `how to ${base}`, `best ${base}`, `${base} 2026`, `${base} cost`, `${base} requirements`]
+  const gl = /^[a-z]{2}$/i.test(country) ? country.toLowerCase() : "in"
+  const results = await Promise.allSettled(variants.map(async (q) => {
+    const url = `https://suggestqueries.google.com/complete/search?client=firefox&hl=en&gl=${gl}&q=${encodeURIComponent(q)}`
+    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } })
+    if (!res.ok) return [] as string[]
+    const data = await res.json().catch(() => null)
+    return Array.isArray(data?.[1]) ? (data[1] as unknown[]).filter((x): x is string => typeof x === "string") : []
+  }))
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const r of results) {
+    if (r.status !== "fulfilled") continue
+    for (const k of r.value) {
+      const key = k.trim().toLowerCase()
+      if (key && key !== base && !seen.has(key)) { seen.add(key); out.push(key) }
+    }
+  }
+  return out.slice(0, 40)
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -141,9 +170,9 @@ serve(async (req) => {
     const requestedProvider = body?.provider as "gemini" | "openrouter" | undefined
 
     if (!feature || !ALLOWED_FEATURES.has(feature)) {
-      return json({ error: "feature must be 'blog' or 'urgent_requirement'" }, 400)
+      return json({ error: "Unsupported AI feature" }, 400)
     }
-    if (!Array.isArray(messages) || messages.length === 0) {
+    if (feature !== "keyword_trends" && (!Array.isArray(messages) || messages.length === 0)) {
       return json({ error: "messages are required" }, 400)
     }
 
@@ -181,8 +210,20 @@ serve(async (req) => {
       })
       authorized = Boolean(canEditCountries)
     }
+    if (!authorized && feature === "keyword_trends") {
+      const { data: canBlog } = await callerClient.rpc("user_has_permission", {
+        required_permissions: ["blogs.create", "blogs.update"],
+      })
+      authorized = role === "manager" || Boolean(canBlog)
+    }
     if (!authorized) {
       return json({ error: "You do not have permission to generate AI content" }, 403)
+    }
+    if (feature === "keyword_trends") {
+      const seed = typeof body?.seed === "string" ? body.seed : ""
+      if (!seed.trim()) return json({ error: "Enter a keyword first" }, 400)
+      const keywords = await fetchKeywordTrends(seed, typeof body?.country === "string" ? body.country : "in")
+      return json({ keywords })
     }
 
     const { data: settingsRow } = await admin

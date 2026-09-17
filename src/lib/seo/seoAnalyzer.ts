@@ -20,6 +20,8 @@ export type SeoAnalysisInput = {
   existingTitles?: string[]
   /** Slug of the item being edited, so it doesn't flag itself as a dup. */
   currentSlug?: string
+  /** Title as last saved, so an unchanged title isn't reported as its own duplicate. */
+  currentTitle?: string
 }
 
 export type SeoIssue = {
@@ -49,6 +51,17 @@ export type SeoAnalysisResult = {
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+/** Plain text from HTML or markdown (urgent requirements are markdown, blog posts are HTML). */
+function toPlainText(content: string): string {
+  return stripHtml(content)
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/(^|\s)#{1,6}\s+/g, ' ')
+    .replace(/[*_`>~|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function countWords(text: string): number {
@@ -88,21 +101,31 @@ function readabilityLabel(score: number): string {
 }
 
 export function analyzeSeoContent(input: SeoAnalysisInput): SeoAnalysisResult {
-  const plainText = stripHtml(input.content || '')
+  const content = input.content || ''
+  const plainText = toPlainText(content)
   const wordCount = countWords(plainText)
   const keyword = (input.focusKeyword || '').trim().toLowerCase()
 
-  const h2Count = (input.content.match(/<h2[\s>]/gi) || []).length
-  const h3Count = (input.content.match(/<h3[\s>]/gi) || []).length
-  const headingTexts = Array.from(input.content.matchAll(/<h[23][^>]*>([\s\S]*?)<\/h[23]>/gi)).map((m) =>
-    stripHtml(m[1]).toLowerCase(),
-  )
+  // Count both HTML (<h2>) and markdown (## ) headings.
+  const h2Count = (content.match(/<h2[\s>]/gi) || []).length + (content.match(/^[ \t]{0,3}##[ \t]+\S/gm) || []).length
+  const h3Count = (content.match(/<h3[\s>]/gi) || []).length + (content.match(/^[ \t]{0,3}###[ \t]+\S/gm) || []).length
+  const headingTexts = [
+    ...Array.from(content.matchAll(/<h[23][^>]*>([\s\S]*?)<\/h[23]>/gi)).map((m) => stripHtml(m[1])),
+    ...Array.from(content.matchAll(/^[ \t]{0,3}#{2,3}[ \t]+(.+)$/gm)).map((m) => m[1]),
+  ].map((h) => h.toLowerCase())
 
-  const firstParagraphMatch = input.content.match(/<p[^>]*>([\s\S]*?)<\/p>/i)
-  const firstParagraph = firstParagraphMatch ? stripHtml(firstParagraphMatch[1]) : plainText.slice(0, 300)
+  const firstParagraphMatch = content.match(/<p[^>]*>([\s\S]*?)<\/p>/i)
+  const firstMarkdownParagraph = content
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .find((block) => block && !/^#{1,6}\s/.test(block))
+  const firstParagraph = firstParagraphMatch
+    ? stripHtml(firstParagraphMatch[1])
+    : toPlainText(firstMarkdownParagraph || plainText.slice(0, 300))
 
-  const inTitle = keyword ? input.title.toLowerCase().includes(keyword) : false
-  const inMetaDescription = keyword ? (input.metaTitle || input.metaDescription || '').toLowerCase().includes(keyword) : false
+  const seoTitle = (input.metaTitle || input.title || '').trim()
+  const inTitle = keyword ? (input.title + ' ' + (input.metaTitle || '')).toLowerCase().includes(keyword) : false
+  const inMetaDescription = keyword ? (input.metaDescription || '').toLowerCase().includes(keyword) : false
   const inFirstParagraph = keyword ? firstParagraph.toLowerCase().includes(keyword) : false
   const inHeading = keyword ? headingTexts.some((h) => h.includes(keyword)) : false
   const keywordOccurrences = keyword
@@ -117,33 +140,39 @@ export function analyzeSeoContent(input: SeoAnalysisInput): SeoAnalysisResult {
   const duplicateSlug = Boolean(
     slug && input.existingSlugs?.some((s) => s.toLowerCase() === slug && s.toLowerCase() !== (input.currentSlug || '').toLowerCase()),
   )
-  const duplicateTitle = Boolean(
-    input.title && input.existingTitles?.some((t) => t.trim().toLowerCase() === input.title.trim().toLowerCase()),
-  )
+  const normalizedTitle = input.title.trim().toLowerCase()
+  const titleMatches = input.existingTitles?.filter((t) => t.trim().toLowerCase() === normalizedTitle).length ?? 0
+  // When editing, the saved copy of this same item is already in the list once.
+  const ownTitleCount = input.currentTitle && input.currentTitle.trim().toLowerCase() === normalizedTitle ? 1 : 0
+  const duplicateTitle = Boolean(normalizedTitle) && titleMatches > ownTitleCount
   const safeSlug = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) && slug.length > 0 && slug.length <= 90
 
-  const metaLen = (input.metaTitle || input.metaDescription || '').length
+  const metaLen = (input.metaDescription || '').trim().length
   const checklist: ChecklistItem[] = [
     { id: 'title', label: 'Title is set', passed: Boolean(input.title?.trim()) },
-    { id: 'title-length', label: 'Title length 10-70 characters', passed: input.title.length >= 10 && input.title.length <= 70 },
-    { id: 'meta', label: 'Meta description set (50-160 chars)', passed: metaLen >= 50 && metaLen <= 160 },
+    { id: 'title-length', label: 'SEO title 30-60 characters', passed: seoTitle.length >= 30 && seoTitle.length <= 60 },
+    { id: 'meta', label: 'Meta description set (120-160 chars)', passed: metaLen >= 120 && metaLen <= 160 },
     { id: 'slug-safe', label: 'Slug is URL-safe', passed: safeSlug },
     { id: 'slug-unique', label: 'Slug is unique', passed: !duplicateSlug },
     { id: 'title-unique', label: 'Title is not a duplicate', passed: !duplicateTitle },
     { id: 'keyword', label: 'Focus keyword is set', passed: Boolean(keyword) },
-    { id: 'keyword-title', label: 'Focus keyword appears in title', passed: !keyword || inTitle },
-    { id: 'keyword-heading', label: 'Focus keyword appears in a heading', passed: !keyword || inHeading },
+    { id: 'keyword-title', label: 'Focus keyword appears in title', passed: Boolean(keyword) && inTitle },
+    { id: 'keyword-meta', label: 'Focus keyword appears in meta description', passed: Boolean(keyword) && inMetaDescription },
+    { id: 'keyword-intro', label: 'Focus keyword appears in the introduction', passed: Boolean(keyword) && inFirstParagraph },
+    { id: 'keyword-heading', label: 'Focus keyword appears in a heading', passed: Boolean(keyword) && inHeading },
     { id: 'headings', label: 'Has at least 2 headings (H2/H3)', passed: h2Count + h3Count >= 2 },
     { id: 'length', label: 'Content is at least 300 words', passed: !isThinContent },
     { id: 'image-alt', label: 'Image alt text is set', passed: Boolean(input.imageAlt?.trim()) },
     { id: 'faq', label: 'Has at least one FAQ entry', passed: (input.faqCount || 0) > 0 },
-    { id: 'density', label: 'Keyword density under 3% (avoids stuffing)', passed: densityPercent <= 3 },
+    { id: 'density', label: 'Keyword density 0.5-3%', passed: Boolean(keyword) && densityPercent >= 0.5 && densityPercent <= 3 },
+    { id: 'readability', label: 'Readable (score 40+)', passed: readabilityScore >= 40 },
   ]
 
   const issues: SeoIssue[] = []
   if (!input.title?.trim()) issues.push({ id: 'title', severity: 'error', message: 'Title is missing.' })
-  if (metaLen === 0) issues.push({ id: 'meta', severity: 'error', message: 'Meta title/description is missing — search engines will auto-generate one.' })
-  else if (metaLen < 50 || metaLen > 160) issues.push({ id: 'meta-length', severity: 'warning', message: `Meta description is ${metaLen} characters; aim for 50-160.` })
+  if (metaLen === 0) issues.push({ id: 'meta', severity: 'error', message: 'Meta description is missing — search engines will auto-generate one.' })
+  else if (metaLen < 120 || metaLen > 160) issues.push({ id: 'meta-length', severity: 'warning', message: `Meta description is ${metaLen} characters; aim for 120-160.` })
+  if (seoTitle && (seoTitle.length < 30 || seoTitle.length > 60)) issues.push({ id: 'title-length', severity: 'warning', message: `SEO title is ${seoTitle.length} characters; aim for 30-60 so Google doesn't cut it off.` })
   if (!safeSlug) issues.push({ id: 'slug', severity: 'error', message: 'Slug should be lowercase letters, numbers, and hyphens only.' })
   if (duplicateSlug) issues.push({ id: 'slug-dup', severity: 'error', message: 'This slug is already used by another item.' })
   if (duplicateTitle) issues.push({ id: 'title-dup', severity: 'warning', message: 'Another item already has this exact title.' })
@@ -151,6 +180,8 @@ export function analyzeSeoContent(input: SeoAnalysisInput): SeoAnalysisResult {
   else {
     if (!inTitle) issues.push({ id: 'keyword-title', severity: 'warning', message: 'Focus keyword does not appear in the title.' })
     if (!inHeading) issues.push({ id: 'keyword-heading', severity: 'info', message: 'Focus keyword does not appear in any heading.' })
+    if (!inMetaDescription) issues.push({ id: 'keyword-meta', severity: 'warning', message: 'Focus keyword does not appear in the meta description.' })
+    if (densityPercent < 0.5) issues.push({ id: 'keyword-low', severity: 'info', message: `Focus keyword is used rarely (${densityPercent}%). Mention it naturally a few more times.` })
     if (!inFirstParagraph) issues.push({ id: 'keyword-intro', severity: 'info', message: 'Focus keyword does not appear in the introduction.' })
     if (densityPercent > 3) issues.push({ id: 'stuffing', severity: 'warning', message: `Keyword density is ${densityPercent}% — this reads as keyword stuffing. Aim under 3%.` })
   }
