@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom'
 import { ExternalLink, ShieldAlert } from 'lucide-react'
 import { officialSourcesFor } from '@/lib/seo/official-sources'
 
@@ -26,14 +25,12 @@ export function ImmigrationDisclaimer({ country, updated = CONTENT_LAST_UPDATED,
         <div className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
           <p>
             Siddhivinayak Overseas provides information, counselling and application-preparation support for applicants
-            exploring lawful study, work and migration pathways. We are not a government authority, and we do not
-            guarantee any visa, permit, admission, job or processing time.
+            exploring lawful study, work and migration pathways.
           </p>
           <p>
             Eligibility, required documents, fees and processing times depend on the destination government&apos;s current
             official rules and your individual circumstances, and every decision is made by the relevant authority.
             {jobs ? ' Hiring decisions are made only by the employer; we never sell job offers, offer letters or sponsorship.' : ''}{' '}
-            Rules change often — please verify them on the official government website before you apply.
           </p>
         </div>
 
@@ -59,10 +56,7 @@ export function ImmigrationDisclaimer({ country, updated = CONTENT_LAST_UPDATED,
         )}
 
         <p className="mt-4 text-xs text-muted-foreground">
-          Page last updated: {updatedLabel} ·{' '}
-          <Link to="/immigration-disclaimer" className="underline underline-offset-2 hover:text-primary">
-            Read our full immigration disclaimer
-          </Link>
+          Page last updated: {updatedLabel}
         </p>
       </div>
     </section>

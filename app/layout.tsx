@@ -1,28 +1,36 @@
-import type { Metadata, Viewport } from "next"
-import { Geist, Geist_Mono, Playfair_Display } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
-import Script from "next/script"
-import { Toaster } from "@/components/ui/sonner"
-import { ThemeProvider } from "@/components/theme-provider"
-import "./globals.css"
+import * as React from 'react'
+import { ThemeProvider } from '../components/theme-provider'
+import { Toaster } from '../components/ui/sonner'
+import './globals.css'
 
-const geist = Geist({
-  subsets: ["latin"],
-  variable: "--font-geist",
-  display: "swap",
-})
+interface Metadata {
+  metadataBase?: URL
+  title?: { default?: string; template?: string }
+  description?: string
+  applicationName?: string
+  keywords?: string[]
+  authors?: { name: string }[]
+  creator?: string
+  publisher?: string
+  category?: string
+  alternates?: { canonical?: string }
+  openGraph?: Record<string, unknown>
+  twitter?: Record<string, unknown>
+  robots?: Record<string, unknown>
+  icons?: Record<string, unknown>
+  manifest?: string
+  other?: Record<string, string>
+  generator?: string
+}
 
-const geistMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-geist-mono",
-  display: "swap",
-})
-
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  variable: "--font-playfair",
-  display: "swap",
-})
+interface Viewport {
+  themeColor?: Array<{ media?: string; color: string }>
+  width?: string
+  initialScale?: number
+  maximumScale?: number
+  userScalable?: boolean
+  colorScheme?: string
+}
 
 const SITE_URL = "https://new-siddhivinayakoverseas.vercel.app"
 const COMPANY_NAME = "Siddhivinayak Overseas"
@@ -290,7 +298,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geist.variable} ${geistMono.variable} ${playfair.variable} bg-background`}
+      className="bg-background"
       suppressHydrationWarning
     >
       <head>
@@ -318,17 +326,19 @@ export default function RootLayout({
           <Toaster position="top-center" richColors />
         </ThemeProvider>
         {process.env.NODE_ENV === "production" && (
-          <Script id="pwa-sw-register" strategy="afterInteractive">
-            {`
-              if ("serviceWorker" in navigator) {
-                window.addEventListener("load", () => {
-                  navigator.serviceWorker.register("/sw.js").catch(() => {});
-                });
-              }
-            `}
-          </Script>
+          <script
+            id="pwa-sw-register"
+            dangerouslySetInnerHTML={{
+              __html: `
+                if ("serviceWorker" in navigator) {
+                  window.addEventListener("load", () => {
+                    navigator.serviceWorker.register("/sw.js").catch(() => {});
+                  });
+                }
+              `,
+            }}
+          />
         )}
-        {process.env.NODE_ENV === "production" && <Analytics />}
       </body>
     </html>
   )

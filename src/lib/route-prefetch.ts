@@ -44,6 +44,7 @@ const workspaceLoaders: Record<string, () => Promise<unknown>> = {
   '/admin/users': () => import('@/pages/admin/UsersPage'),
   '/admin/roles': () => import('@/pages/admin/RolesPage'),
   '/admin/appointments': () => import('@/pages/admin/AppointmentsAdminPage'),
+  '/admin/notifications': () => import('@/pages/admin/AdminNotificationsPage'),
   '/admin/applications': () => import('@/pages/admin/AdminApplicationsWorkspace'),
   '/admin/urgent-requirements': () => import('@/pages/admin/UrgentRequirementsAdminPage'),
   '/admin/countries': () => import('@/pages/admin/CountriesAdminPage'),

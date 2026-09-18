@@ -1,7 +1,5 @@
 export type OfficialSource = { label: string; url: string }
 
-/** India's official portal for overseas employment and verifying registered recruiting agents. */
-const E_MIGRATE: OfficialSource = { label: 'eMigrate, Government of India (verify recruiting agents)', url: 'https://emigrate.gov.in/' }
 const EU_PORTAL: OfficialSource = { label: 'EU Immigration Portal', url: 'https://home-affairs.ec.europa.eu/policies/migration-and-asylum/eu-immigration-portal_en' }
 
 const BY_COUNTRY: Record<string, OfficialSource[]> = {
@@ -20,13 +18,13 @@ const BY_COUNTRY: Record<string, OfficialSource[]> = {
 }
 
 const EUROPE = new Set([
-  'albania', 'armenia', 'austria', 'belarus', 'croatia', 'denmark', 'finland', 'hungary', 'italy', 'malta', 'moldova',
+  'albania', 'armenia', 'austria', 'croatia', 'denmark', 'finland', 'hungary', 'italy', 'malta', 'moldova',
   'netherlands', 'norway', 'poland', 'portugal', 'romania', 'slovakia', 'spain', 'sweden', 'switzerland',
 ])
 
-/** Official government links for a destination, always ending with India's eMigrate portal. */
+/** Official government links for a destination. */
 export function officialSourcesFor(country?: string): OfficialSource[] {
   const key = (country ?? '').trim().toLowerCase()
   const specific = BY_COUNTRY[key] ?? (EUROPE.has(key) ? [EU_PORTAL] : [])
-  return [...specific, E_MIGRATE]
+  return specific
 }

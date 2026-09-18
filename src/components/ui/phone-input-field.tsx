@@ -18,6 +18,7 @@ export interface PhoneInputFieldProps {
   className?: string
   icon?: React.ReactNode
   autoFocus?: boolean
+  hideHint?: boolean
 }
 
 function getFlagEmoji(countryCode: string): string {
@@ -137,15 +138,17 @@ export function PhoneInputField({
   className = "",
   icon,
   autoFocus,
+  hideHint = false,
 }: PhoneInputFieldProps) {
   const autoId = useId()
   const numberId = id ?? `${autoId}-number`
   const codeId = `${autoId}-code`
   const hintId = `${autoId}-hint`
 
+  const initialCallingCode = useMemo(() => safeCallingCode(defaultCountry), [defaultCountry])
   const [selectedCountry, setSelectedCountry] = useState<Country>(defaultCountry)
-  // Starts empty: the visitor types the country code first (placeholder hints "91").
-  const [codeInput, setCodeInput] = useState("")
+  // Prefill with default country calling code (e.g. "91" for India)
+  const [codeInput, setCodeInput] = useState(initialCallingCode)
   const [localNumber, setLocalNumber] = useState("")
   const [open, setOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
@@ -374,10 +377,18 @@ export function PhoneInputField({
 
   const invalid = touched && (!detectedCountry || (digits.length > 0 && digits.length < length.min))
 
+  // Separate height and font-size classes intended for the input control from outer wrapper classes
+  const classes = (className || "").split(/\s+/).filter(Boolean)
+  const heightClass = classes.find((c) => /^h-\S+/.test(c)) || "h-10"
+  const textSizeClass = classes.find((c) => /^text-(xs|sm|base|lg)/.test(c)) || "text-sm"
+  const outerClasses = classes.filter((c) => !/^h-\S+/.test(c) && !/^text-(xs|sm|base|lg)/.test(c)).join(" ")
+
+  const showHelper = !hideHint || (invalid && touched)
+
   return (
-    <div className={`w-full ${className}`}>
+    <div className={`w-full ${outerClasses}`}>
       <div
-        className={`relative flex w-full items-center rounded-md border bg-background/50 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 ${
+        className={`relative flex w-full items-center rounded-md border bg-background/50 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 ${heightClass} ${
           invalid ? "border-destructive" : "border-border/70"
         } ${disabled ? "opacity-60" : ""}`}
       >
@@ -392,7 +403,7 @@ export function PhoneInputField({
           <PopoverTrigger asChild disabled={disabled}>
             <button
               type="button"
-              className="flex h-10 shrink-0 select-none items-center gap-1 rounded-l-md pl-2.5 pr-1.5 text-base transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              className={`flex h-full shrink-0 select-none items-center gap-1 rounded-l-md pl-2.5 pr-1.5 ${textSizeClass} transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40`}
               title={countryName ? `${countryName} (change country)` : "Choose country"}
               aria-label={countryName ? `Country: ${countryName}. Change country` : "Choose country"}
             >
@@ -458,8 +469,8 @@ export function PhoneInputField({
         </Popover>
 
         {/* Step 1: country code (typed) */}
-        <div className="flex h-10 shrink-0 items-center border-r border-border/60 pr-2">
-          <span className="font-mono text-sm font-semibold text-muted-foreground" aria-hidden="true">
+        <div className="flex h-full shrink-0 items-center border-r border-border/60 pr-2">
+          <span className={`font-mono ${textSizeClass} font-semibold text-muted-foreground`} aria-hidden="true">
             +
           </span>
           <input
@@ -478,7 +489,7 @@ export function PhoneInputField({
             disabled={disabled}
             autoFocus={autoFocus && !codeInput}
             maxLength={5}
-            className="h-10 w-10 bg-transparent font-mono text-sm font-semibold text-foreground placeholder:text-muted-foreground/50 focus:outline-none disabled:cursor-not-allowed"
+            className={`h-full w-10 bg-transparent font-mono ${textSizeClass} font-semibold text-foreground placeholder:text-muted-foreground/50 focus:outline-none disabled:cursor-not-allowed`}
           />
         </div>
 
@@ -500,19 +511,21 @@ export function PhoneInputField({
           required={required}
           autoFocus={autoFocus && Boolean(codeInput)}
           maxLength={length.max}
-          className="h-10 w-full min-w-0 bg-transparent px-3 py-2 font-mono text-sm tracking-wide text-foreground placeholder:font-sans placeholder:tracking-normal placeholder:text-muted-foreground/60 focus:outline-none disabled:cursor-not-allowed"
+          className={`h-full w-full min-w-0 bg-transparent px-3 py-2 font-mono ${textSizeClass} tracking-wide text-foreground placeholder:font-sans placeholder:tracking-normal placeholder:text-muted-foreground/60 focus:outline-none disabled:cursor-not-allowed`}
         />
       </div>
 
-      <p
-        id={hintId}
-        aria-live="polite"
-        className={`mt-1 text-[11px] ${
-          hint.tone === "error" ? "text-destructive" : hint.tone === "ok" ? "text-emerald-600" : "text-muted-foreground"
-        }`}
-      >
-        {hint.text}
-      </p>
+      {showHelper && hint.text && (
+        <p
+          id={hintId}
+          aria-live="polite"
+          className={`mt-1 text-[11px] leading-tight ${
+            hint.tone === "error" ? "text-destructive" : hint.tone === "ok" ? "text-emerald-600" : "text-muted-foreground"
+          }`}
+        >
+          {hint.text}
+        </p>
+      )}
     </div>
   )
 }

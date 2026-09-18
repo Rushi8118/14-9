@@ -745,10 +745,10 @@ export default function AdminPage() {
             <AdminSection title="Notifications" description="Recent user notifications.">
               <Table>
                 <TableHeader>
-                    <TableRow>
-                      <TableHead>Notification</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Read</TableHead>
+                  <TableRow>
+                    <TableHead>Notification</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Read</TableHead>
                     <TableHead>Created</TableHead>
                   </TableRow>
                 </TableHeader>

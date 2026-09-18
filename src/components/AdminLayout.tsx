@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { usePermissions } from '@/hooks/usePermissions'
 import { warmRoutesWhenIdle } from '@/lib/route-prefetch'
 import {
+  Bell,
   LayoutDashboard,
   Users,
   Briefcase,
@@ -55,6 +56,7 @@ const ALL_NAV_GROUPS: NavGroup[] = [
     items: [
       { label: 'Dashboard', path: '/admin', icon: LayoutDashboard },
       { label: 'Live Metrics', path: '/admin/realtime', icon: Activity, requiredPermission: 'analytics.realtime' },
+      { label: 'Notifications', path: '/admin/notifications', icon: Bell, requiredPermission: 'notifications.read' },
     ],
   },
   {
@@ -92,6 +94,129 @@ const ALL_NAV_GROUPS: NavGroup[] = [
     ],
   },
 ]
+
+type NavIconTheme = {
+  containerInactive: string
+  containerActive: string
+  iconInactive: string
+  iconActive: string
+  hasPulse?: boolean
+  hasFlameGlow?: boolean
+}
+
+const NAV_ICON_THEMES: Record<string, NavIconTheme> = {
+  '/admin': {
+    containerInactive: 'bg-indigo-50/90 text-indigo-600 border-indigo-200/70 group-hover:bg-indigo-100/90 group-hover:border-indigo-300 group-hover:shadow-indigo-500/10',
+    containerActive: 'bg-gradient-to-br from-indigo-500 to-blue-600 text-white border-indigo-400 shadow-md shadow-indigo-500/25',
+    iconInactive: 'text-indigo-600',
+    iconActive: 'text-white',
+  },
+  '/admin/realtime': {
+    containerInactive: 'bg-emerald-50/90 text-emerald-600 border-emerald-200/70 group-hover:bg-emerald-100/90 group-hover:border-emerald-300 group-hover:shadow-emerald-500/10',
+    containerActive: 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-emerald-400 shadow-md shadow-emerald-500/25',
+    iconInactive: 'text-emerald-600',
+    iconActive: 'text-white',
+    hasPulse: true,
+  },
+  '/admin/notifications': {
+    containerInactive: 'bg-amber-50/90 text-amber-600 border-amber-200/70 group-hover:bg-amber-100/90 group-hover:border-amber-300 group-hover:shadow-amber-500/10',
+    containerActive: 'bg-gradient-to-br from-amber-500 to-yellow-600 text-white border-amber-400 shadow-md shadow-amber-500/30',
+    iconInactive: 'text-amber-600',
+    iconActive: 'text-white',
+  },
+  '/admin/users': {
+    containerInactive: 'bg-sky-50/90 text-sky-600 border-sky-200/70 group-hover:bg-sky-100/90 group-hover:border-sky-300 group-hover:shadow-sky-500/10',
+    containerActive: 'bg-gradient-to-br from-sky-500 to-blue-600 text-white border-sky-400 shadow-md shadow-sky-500/25',
+    iconInactive: 'text-sky-600',
+    iconActive: 'text-white',
+  },
+  '/admin/roles': {
+    containerInactive: 'bg-amber-50/90 text-amber-600 border-amber-200/70 group-hover:bg-amber-100/90 group-hover:border-amber-300 group-hover:shadow-amber-500/10',
+    containerActive: 'bg-gradient-to-br from-amber-500 to-yellow-600 text-white border-amber-400 shadow-md shadow-amber-500/30',
+    iconInactive: 'text-amber-600',
+    iconActive: 'text-white',
+  },
+  '/admin/applications': {
+    containerInactive: 'bg-purple-50/90 text-purple-600 border-purple-200/70 group-hover:bg-purple-100/90 group-hover:border-purple-300 group-hover:shadow-purple-500/10',
+    containerActive: 'bg-gradient-to-br from-purple-500 to-violet-600 text-white border-purple-400 shadow-md shadow-purple-500/25',
+    iconInactive: 'text-purple-600',
+    iconActive: 'text-white',
+  },
+  '/admin/appointments': {
+    containerInactive: 'bg-rose-50/90 text-rose-600 border-rose-200/70 group-hover:bg-rose-100/90 group-hover:border-rose-300 group-hover:shadow-rose-500/10',
+    containerActive: 'bg-gradient-to-br from-rose-500 to-pink-600 text-white border-rose-400 shadow-md shadow-rose-500/25',
+    iconInactive: 'text-rose-600',
+    iconActive: 'text-white',
+  },
+  '/admin/urgent-requirements': {
+    containerInactive: 'bg-orange-50/90 text-orange-600 border-orange-200/70 group-hover:bg-orange-100/90 group-hover:border-orange-300 group-hover:shadow-orange-500/10',
+    containerActive: 'bg-gradient-to-br from-orange-500 to-red-600 text-white border-orange-400 shadow-md shadow-orange-500/30',
+    iconInactive: 'text-orange-600',
+    iconActive: 'text-white',
+    hasFlameGlow: true,
+  },
+  '/admin/countries': {
+    containerInactive: 'bg-teal-50/90 text-teal-600 border-teal-200/70 group-hover:bg-teal-100/90 group-hover:border-teal-300 group-hover:shadow-teal-500/10',
+    containerActive: 'bg-gradient-to-br from-teal-500 to-emerald-600 text-white border-teal-400 shadow-md shadow-teal-500/25',
+    iconInactive: 'text-teal-600',
+    iconActive: 'text-white',
+  },
+  '/admin/blog': {
+    containerInactive: 'bg-fuchsia-50/90 text-fuchsia-600 border-fuchsia-200/70 group-hover:bg-fuchsia-100/90 group-hover:border-fuchsia-300 group-hover:shadow-fuchsia-500/10',
+    containerActive: 'bg-gradient-to-br from-fuchsia-500 to-pink-600 text-white border-fuchsia-400 shadow-md shadow-fuchsia-500/25',
+    iconInactive: 'text-fuchsia-600',
+    iconActive: 'text-white',
+  },
+  '/admin/sessions': {
+    containerInactive: 'bg-slate-100/90 text-slate-600 border-slate-200/80 group-hover:bg-slate-200/80 group-hover:border-slate-300',
+    containerActive: 'bg-gradient-to-br from-slate-700 to-slate-900 text-white border-slate-600 shadow-md shadow-slate-700/25',
+    iconInactive: 'text-slate-600',
+    iconActive: 'text-white',
+  },
+  '/admin/audit': {
+    containerInactive: 'bg-red-50/90 text-red-600 border-red-200/70 group-hover:bg-red-100/90 group-hover:border-red-300',
+    containerActive: 'bg-gradient-to-br from-red-500 to-rose-600 text-white border-red-400 shadow-md shadow-red-500/25',
+    iconInactive: 'text-red-600',
+    iconActive: 'text-white',
+  },
+  '/admin/activity-logs': {
+    containerInactive: 'bg-blue-50/90 text-blue-600 border-blue-200/70 group-hover:bg-blue-100/90 group-hover:border-blue-300',
+    containerActive: 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-blue-400 shadow-md shadow-blue-500/25',
+    iconInactive: 'text-blue-600',
+    iconActive: 'text-white',
+  },
+  '/admin/automations': {
+    containerInactive: 'bg-amber-50/90 text-amber-600 border-amber-200/70 group-hover:bg-amber-100/90 group-hover:border-amber-300',
+    containerActive: 'bg-gradient-to-br from-amber-500 to-yellow-600 text-white border-amber-400 shadow-md shadow-amber-500/30',
+    iconInactive: 'text-amber-600',
+    iconActive: 'text-white',
+  },
+  '/admin/email-templates': {
+    containerInactive: 'bg-cyan-50/90 text-cyan-600 border-cyan-200/70 group-hover:bg-cyan-100/90 group-hover:border-cyan-300',
+    containerActive: 'bg-gradient-to-br from-cyan-500 to-sky-600 text-white border-cyan-400 shadow-md shadow-cyan-500/25',
+    iconInactive: 'text-cyan-600',
+    iconActive: 'text-white',
+  },
+  '/admin/files': {
+    containerInactive: 'bg-amber-50/90 text-amber-600 border-amber-200/70 group-hover:bg-amber-100/90 group-hover:border-amber-300',
+    containerActive: 'bg-gradient-to-br from-amber-500 to-orange-600 text-white border-amber-400 shadow-md shadow-amber-500/25',
+    iconInactive: 'text-amber-600',
+    iconActive: 'text-white',
+  },
+  '/admin/settings': {
+    containerInactive: 'bg-zinc-100/90 text-zinc-600 border-zinc-200/80 group-hover:bg-zinc-200/80 group-hover:border-zinc-300',
+    containerActive: 'bg-gradient-to-br from-zinc-700 to-zinc-900 text-white border-zinc-600 shadow-md shadow-zinc-700/25',
+    iconInactive: 'text-zinc-600',
+    iconActive: 'text-white',
+  },
+}
+
+const DEFAULT_NAV_THEME: NavIconTheme = {
+  containerInactive: 'bg-slate-100/90 text-slate-600 border-slate-200/80 group-hover:bg-slate-200/80',
+  containerActive: 'bg-gradient-to-br from-[var(--desk-gold)] to-amber-600 text-white border-amber-400 shadow-md shadow-amber-500/25',
+  iconInactive: 'text-slate-600',
+  iconActive: 'text-white',
+}
 
 function useFilteredNavGroups(): NavGroup[] {
   const { can } = usePermissions()
@@ -250,10 +375,11 @@ const AdminLayout: React.FC = () => {
                 {group.label}
               </p>
             )}
-            <div className="space-y-0.5">
+            <div className="space-y-1">
               {group.items.map((item) => {
                 const Icon = item.icon
                 const active = isActive(item.path)
+                const theme = NAV_ICON_THEMES[item.path] || DEFAULT_NAV_THEME
                 return (
                   <Link
                     key={item.path}
@@ -261,13 +387,44 @@ const AdminLayout: React.FC = () => {
                     onClick={onNavigate}
                     title={collapsed ? item.label : undefined}
                     aria-current={active ? 'page' : undefined}
-                    className={`flex items-center gap-2.5 px-3 py-2.5 min-h-10 rounded-xl text-sm font-medium transition-all ${
+                    className={`group relative flex items-center gap-3 px-2.5 py-2 min-h-11 rounded-xl text-sm font-medium transition-all duration-200 ${
                       active
-                        ? 'desk-nav-active'
-                        : 'text-[var(--desk-muted)] hover:bg-[var(--desk-gold)]/10 hover:text-[var(--desk-navy)]'
-                    } ${collapsed ? 'justify-center' : ''}`}
+                        ? 'bg-[var(--desk-gold)]/15 text-[var(--desk-navy)] font-semibold border border-[var(--desk-gold)]/35 shadow-xs'
+                        : 'text-[var(--desk-navy)]/80 hover:bg-black/[0.03] hover:text-[var(--desk-navy)]'
+                    } ${collapsed ? 'justify-center px-1' : ''}`}
                   >
-                    <Icon className="w-4 h-4 shrink-0" aria-hidden="true" />
+                    {active && !collapsed && (
+                      <span
+                        className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-[var(--desk-gold)] shadow-xs"
+                        aria-hidden="true"
+                      />
+                    )}
+                    <div
+                      className={`relative shrink-0 flex items-center justify-center w-8 h-8 rounded-xl border transition-all duration-200 group-hover:scale-105 group-hover:shadow-xs ${
+                        active ? theme.containerActive : theme.containerInactive
+                      }`}
+                    >
+                      <Icon
+                        className={`w-4 h-4 transition-transform duration-200 group-hover:scale-110 ${
+                          active ? theme.iconActive : theme.iconInactive
+                        }`}
+                        aria-hidden="true"
+                      />
+
+                      {theme.hasPulse && (
+                        <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2" aria-hidden="true">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 ring-1.5 ring-white" />
+                        </span>
+                      )}
+
+                      {theme.hasFlameGlow && (
+                        <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2" aria-hidden="true">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-60" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500 ring-1.5 ring-white" />
+                        </span>
+                      )}
+                    </div>
                     {!collapsed && <span className="truncate">{item.label}</span>}
                     {collapsed && <span className="sr-only">{item.label}</span>}
                   </Link>
@@ -283,35 +440,42 @@ const AdminLayout: React.FC = () => {
           to="/"
           onClick={onNavigate}
           title={collapsed ? 'Home Page' : undefined}
-          className={`flex items-center gap-2 w-full px-3 py-2.5 min-h-10 rounded-xl text-sm font-medium text-[var(--desk-muted)] hover:bg-[var(--desk-gold)]/10 hover:text-[var(--desk-navy)] ${
-            collapsed ? 'justify-center' : ''
+          className={`group flex items-center gap-3 w-full px-2.5 py-2 min-h-11 rounded-xl text-sm font-medium text-[var(--desk-navy)]/80 hover:bg-black/[0.03] hover:text-[var(--desk-navy)] transition-all duration-200 ${
+            collapsed ? 'justify-center px-1' : ''
           }`}
         >
-          <Home className="w-4 h-4 shrink-0" aria-hidden="true" />
-          {!collapsed && 'Home Page'}
+          <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-xl border border-blue-200/70 bg-blue-50/90 text-blue-600 shadow-2xs transition-all duration-200 group-hover:scale-105 group-hover:bg-blue-100 group-hover:shadow-xs">
+            <Home className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
+          </div>
+          {!collapsed && <span className="truncate">Home Page</span>}
           {collapsed && <span className="sr-only">Home Page</span>}
         </Link>
         <Link
           to="/dashboard"
           onClick={onNavigate}
-          className={`flex items-center gap-2 w-full px-3 py-2.5 min-h-10 rounded-xl text-sm font-medium text-[var(--desk-muted)] hover:bg-[var(--desk-gold)]/10 hover:text-[var(--desk-navy)] ${
-            collapsed ? 'justify-center' : ''
+          title={collapsed ? 'Applicant Desk' : undefined}
+          className={`group flex items-center gap-3 w-full px-2.5 py-2 min-h-11 rounded-xl text-sm font-medium text-[var(--desk-navy)]/80 hover:bg-black/[0.03] hover:text-[var(--desk-navy)] transition-all duration-200 ${
+            collapsed ? 'justify-center px-1' : ''
           }`}
         >
-          <LayoutDashboard className="w-4 h-4 shrink-0" aria-hidden="true" />
-          {!collapsed && 'Applicant Desk'}
+          <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-xl border border-amber-200/70 bg-amber-50/90 text-amber-700 shadow-2xs transition-all duration-200 group-hover:scale-105 group-hover:bg-amber-100 group-hover:shadow-xs">
+            <LayoutDashboard className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
+          </div>
+          {!collapsed && <span className="truncate">Applicant Desk</span>}
           {collapsed && <span className="sr-only">Applicant Desk</span>}
         </Link>
         <button
           type="button"
           onClick={handleSignOut}
           title={collapsed ? 'Sign Out' : undefined}
-          className={`flex items-center gap-2 w-full px-3 py-2.5 min-h-10 rounded-xl text-sm font-medium text-red-700 hover:bg-red-50 transition-colors ${
-            collapsed ? 'justify-center' : ''
+          className={`group flex items-center gap-3 w-full px-2.5 py-2 min-h-11 rounded-xl text-sm font-medium text-red-700 hover:bg-red-50/70 transition-all duration-200 ${
+            collapsed ? 'justify-center px-1' : ''
           }`}
         >
-          <LogOut className="w-4 h-4 shrink-0" aria-hidden="true" />
-          {!collapsed && 'Sign Out'}
+          <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-xl border border-red-200/70 bg-red-50/90 text-red-600 shadow-2xs transition-all duration-200 group-hover:scale-105 group-hover:bg-red-100 group-hover:shadow-xs">
+            <LogOut className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
+          </div>
+          {!collapsed && <span className="truncate">Sign Out</span>}
           {collapsed && <span className="sr-only">Sign Out</span>}
         </button>
       </div>

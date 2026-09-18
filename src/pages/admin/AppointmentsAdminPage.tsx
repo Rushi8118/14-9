@@ -1,7 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, formatDistanceToNow } from 'date-fns'
-import { CalendarClock, CheckCircle2, Loader2, Mail, Phone, RefreshCw, Search, XCircle } from 'lucide-react'
+import {
+  Calendar,
+  CalendarClock,
+  Check,
+  CheckCircle2,
+  Clock,
+  Inbox,
+  Layers,
+  Loader2,
+  Mail,
+  Phone,
+  RefreshCw,
+  Search,
+  UserX,
+  XCircle,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase/client'
 import { logger } from '@/lib/logger'
@@ -30,23 +45,50 @@ type Consultation = {
   client_phone: string | null
 }
 
-type View = 'upcoming' | 'requested' | 'all' | 'completed' | 'cancelled'
+type View = 'all' | 'upcoming' | 'requested' | 'completed' | 'cancelled'
 
-const VIEWS: { id: View; label: string }[] = [
-  { id: 'upcoming', label: 'Upcoming' },
-  { id: 'requested', label: 'New requests' },
-  { id: 'all', label: 'All' },
-  { id: 'completed', label: 'Completed' },
-  { id: 'cancelled', label: 'Cancelled' },
+const VIEWS: { id: View; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'all', label: 'All', icon: Layers },
+  { id: 'upcoming', label: 'Upcoming', icon: CalendarClock },
+  { id: 'requested', label: 'New requests', icon: Inbox },
+  { id: 'completed', label: 'Completed', icon: CheckCircle2 },
+  { id: 'cancelled', label: 'Cancelled', icon: XCircle },
 ]
 
-const STATUS_STYLE: Record<Consultation['status'], string> = {
-  requested: 'bg-amber-100 text-amber-900 border-amber-300',
-  scheduled: 'bg-sky-100 text-sky-900 border-sky-300',
-  confirmed: 'bg-emerald-100 text-emerald-900 border-emerald-300',
-  completed: 'bg-slate-100 text-slate-800 border-slate-300',
-  cancelled: 'bg-red-50 text-red-800 border-red-200',
-  no_show: 'bg-red-50 text-red-800 border-red-200',
+const STATUS_CONFIG: Record<
+  Consultation['status'],
+  { style: string; icon: React.ComponentType<{ className?: string }>; dot: string }
+> = {
+  requested: {
+    style: 'bg-amber-50 text-amber-900 border-amber-300/80 shadow-xs shadow-amber-500/10',
+    icon: Clock,
+    dot: 'bg-amber-500 animate-pulse',
+  },
+  scheduled: {
+    style: 'bg-sky-50 text-sky-900 border-sky-300/80 shadow-xs shadow-sky-500/10',
+    icon: Calendar,
+    dot: 'bg-sky-500',
+  },
+  confirmed: {
+    style: 'bg-emerald-50 text-emerald-900 border-emerald-300/80 shadow-xs shadow-emerald-500/10',
+    icon: CheckCircle2,
+    dot: 'bg-emerald-500',
+  },
+  completed: {
+    style: 'bg-slate-100 text-slate-800 border-slate-300/80',
+    icon: Check,
+    dot: 'bg-slate-500',
+  },
+  cancelled: {
+    style: 'bg-red-50 text-red-800 border-red-200/80',
+    icon: XCircle,
+    dot: 'bg-red-500',
+  },
+  no_show: {
+    style: 'bg-rose-50 text-rose-800 border-rose-200/80',
+    icon: UserX,
+    dot: 'bg-rose-500',
+  },
 }
 
 function sourceLabel(c: Consultation) {
@@ -64,7 +106,7 @@ function meetingLabel(c: Consultation) {
 
 export default function AppointmentsAdminPage() {
   const queryClient = useQueryClient()
-  const [view, setView] = useState<View>('upcoming')
+  const [view, setView] = useState<View>('all')
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [pendingId, setPendingId] = useState<string | null>(null)
@@ -161,23 +203,36 @@ export default function AppointmentsAdminPage() {
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div role="tablist" aria-label="Filter appointments" className="flex flex-wrap gap-1.5">
-          {VIEWS.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              role="tab"
-              aria-selected={view === v.id}
-              onClick={() => setView(v.id)}
-              className={`min-h-9 rounded-full border px-3.5 text-xs font-semibold transition ${
-                view === v.id
-                  ? 'border-[var(--desk-gold)] bg-[var(--desk-gold)]/15 text-[var(--desk-navy)]'
-                  : 'border-[var(--desk-line)] text-[var(--desk-muted)] hover:bg-[var(--desk-gold)]/10'
-              }`}
-            >
-              {v.label}
-            </button>
-          ))}
+        <div role="tablist" aria-label="Filter appointments" className="flex flex-wrap gap-2">
+          {VIEWS.map((v) => {
+            const Icon = v.icon
+            const isSelected = view === v.id
+            return (
+              <button
+                key={v.id}
+                type="button"
+                role="tab"
+                aria-selected={isSelected}
+                onClick={() => setView(v.id)}
+                className={`group inline-flex items-center gap-2 min-h-9 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
+                  isSelected
+                    ? 'border-[var(--desk-gold)] bg-gradient-to-r from-[var(--desk-gold)]/20 to-[var(--desk-gold)]/10 text-[var(--desk-navy)] shadow-xs ring-1 ring-[var(--desk-gold)]/30'
+                    : 'border-[var(--desk-line)] bg-white/60 text-[var(--desk-muted)] hover:bg-white hover:text-[var(--desk-navy)] hover:border-[var(--desk-gold)]/30 hover:shadow-2xs'
+                }`}
+              >
+                <div
+                  className={`flex items-center justify-center w-5 h-5 rounded-md transition-all duration-200 group-hover:scale-110 ${
+                    isSelected
+                      ? 'bg-[var(--desk-gold)] text-[var(--desk-navy)] shadow-2xs'
+                      : 'bg-black/[0.04] text-[var(--desk-muted)] group-hover:bg-[var(--desk-gold)]/15 group-hover:text-[var(--desk-navy)]'
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                </div>
+                <span>{v.label}</span>
+              </button>
+            )
+          })}
         </div>
         <div className="relative w-full lg:w-72">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--desk-muted)]" aria-hidden="true" />
@@ -216,9 +271,17 @@ export default function AppointmentsAdminPage() {
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div className="min-w-0 space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${STATUS_STYLE[c.status] ?? ''}`}>
-                        {c.status.replace('_', ' ')}
-                      </span>
+                      {(() => {
+                        const statusConf = STATUS_CONFIG[c.status] || STATUS_CONFIG.requested
+                        const StatusIcon = statusConf.icon
+                        return (
+                          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize shadow-2xs ${statusConf.style}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${statusConf.dot}`} aria-hidden="true" />
+                            <StatusIcon className="h-3 w-3 shrink-0" aria-hidden="true" />
+                            {c.status.replace('_', ' ')}
+                          </span>
+                        )
+                      })()}
                       <span className="text-[11px] font-medium text-[var(--desk-muted)]">{sourceLabel(c)}</span>
                       <span className="text-[11px] text-[var(--desk-muted)]">
                         · booked {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}

@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Bell, Check, Clipboard, Info, CalendarRange, Landmark } from 'lucide-react'
 import { useNotifications, Notification } from '@/hooks/useNotifications'
 import { formatDistanceToNow } from 'date-fns'
@@ -11,6 +11,9 @@ export default function NotificationBell() {
   const triggerRef = useRef<HTMLButtonElement>(null)
   const panelId = useId()
   const navigate = useNavigate()
+  const location = useLocation()
+  const isAdmin = location.pathname.startsWith('/admin')
+  const defaultNotificationPath = isAdmin ? '/admin/notifications' : '/dashboard/notifications'
 
   const toggleDropdown = () => setIsOpen((prev) => !prev)
 
@@ -64,7 +67,7 @@ export default function NotificationBell() {
     if (notif.action_url) {
       navigate(notif.action_url)
     } else {
-      navigate('/dashboard/notifications')
+      navigate(defaultNotificationPath)
     }
   }
 
@@ -167,7 +170,7 @@ export default function NotificationBell() {
             type="button"
             onClick={() => {
               setIsOpen(false)
-              navigate('/dashboard/notifications')
+              navigate(defaultNotificationPath)
             }}
             className={`block w-full text-center py-3 min-h-11 bg-[#F5F0E8]/70 hover:bg-[#C49A2B]/12 text-sm font-semibold text-[#8a6a1a] border-t border-[#E0D8C8] transition ${focusRing}`}
           >

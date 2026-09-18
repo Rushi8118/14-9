@@ -457,6 +457,7 @@ export default function UrgentRequirementDetailPage() {
                         onChange={setApplicantPhone}
                         placeholder="e.g. 98765 43210"
                         className="h-9 text-xs"
+                        hideHint
                       />
                     </div>
 
