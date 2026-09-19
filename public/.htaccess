@@ -73,6 +73,10 @@ ErrorDocument 404 /404/index.html
   ExpiresByType application/font-woff "access plus 1 year"
   ExpiresByType image/x-icon "access plus 1 year"
   ExpiresDefault "access plus 1 month"
+  # Crawlers must see sitemap/robots changes quickly
+  ExpiresByType application/xml "access plus 1 hour"
+  ExpiresByType text/xml "access plus 1 hour"
+  ExpiresByType text/plain "access plus 1 hour"
 </IfModule>
 
 # Security headers
