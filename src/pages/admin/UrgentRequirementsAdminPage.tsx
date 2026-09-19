@@ -152,8 +152,8 @@ function ChipsInput({ values, onChange, placeholder }: { values: string[]; onCha
   return (
     <div className="flex flex-wrap gap-1.5 rounded-xl border border-input bg-background p-2">
       {values.map((v, i) => (
-        <span key={`${v}-${i}`} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
-          {v}
+        <span key={`${v}-${i}`} className="inline-flex max-w-full items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+          <span className="truncate max-w-[12rem]">{v}</span>
           <button type="button" onClick={() => onChange(values.filter((_, idx) => idx !== i))} aria-label={`Remove ${v}`}>
             <X className="h-3 w-3" />
           </button>
@@ -162,7 +162,7 @@ function ChipsInput({ values, onChange, placeholder }: { values: string[]; onCha
       <input
         type="text"
         placeholder={placeholder}
-        className="min-w-[8rem] flex-1 border-none bg-transparent text-xs outline-none"
+        className="min-w-[5rem] flex-1 border-none bg-transparent text-xs outline-none"
         onKeyDown={(e) => {
           if (e.key !== 'Enter' && e.key !== ',') return
           e.preventDefault()
@@ -657,11 +657,11 @@ export default function UrgentRequirementsAdminPage() {
       </div>
 
       <Dialog open={isOpen} onOpenChange={(open) => { if (!open) requestClose(); else setIsOpen(true) }}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto rounded-3xl border border-border bg-card p-6 shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
-              <Flame className="h-5 w-5 text-red-500" />
-              {editingId ? 'Edit Urgent Requirement' : 'Create New Urgent Requirement'}
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:w-[calc(100%-3rem)] max-w-5xl sm:max-w-5xl lg:max-w-6xl max-h-[92vh] overflow-x-hidden overflow-y-auto rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-2xl">
+          <DialogHeader className="pr-8">
+            <DialogTitle className="text-lg sm:text-xl font-bold text-foreground flex items-center gap-2">
+              <Flame className="h-5 w-5 text-red-500 shrink-0" />
+              <span className="truncate">{editingId ? 'Edit Urgent Requirement' : 'Create New Urgent Requirement'}</span>
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
               Fill in the job and visa opening details or use AI to generate a complete structured draft, then review every field before publishing.
@@ -669,25 +669,28 @@ export default function UrgentRequirementsAdminPage() {
           </DialogHeader>
 
           <div className="p-4 rounded-2xl border border-primary/30 bg-primary/5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="h-4 w-4 text-primary" /> AI Write & Auto-Generate Details
+            <div className="flex items-center justify-between gap-2">
+              <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5 min-w-0">
+                <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                <span className="truncate">AI Write & Auto-Generate Details</span>
               </h4>
-              <span className="text-[10px] text-muted-foreground font-mono">1-Click Synthesis</span>
+              <span className="text-[10px] text-muted-foreground font-mono shrink-0 whitespace-nowrap">1-Click Synthesis</span>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 placeholder="e.g. 25 UK NHS Care Workers, priority visa..."
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
-                className="h-9 text-xs bg-background"
+                className="h-9 text-xs bg-background min-w-0 flex-1"
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleGenerateWithAi() } }}
               />
-              <Button type="button" disabled={isGeneratingAi} onClick={() => void handleGenerateWithAi()} className="h-9 px-4 rounded-xl font-bold text-xs shrink-0">
-                {isGeneratingAi ? (<><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Generating...</>) : (<><Sparkles className="h-3.5 w-3.5 mr-1.5" />Generate</>)}
-              </Button>
-              <Button type="button" variant="outline" className="h-9 px-3 text-xs shrink-0" disabled={history.length === 0} onClick={handleUndo}><Undo2 className="h-3.5 w-3.5 mr-1" />Undo</Button>
-              <Button type="button" variant="outline" className="h-9 px-3 text-xs shrink-0" onClick={handleClear}>Clear</Button>
+              <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                <Button type="button" disabled={isGeneratingAi} onClick={() => void handleGenerateWithAi()} className="h-9 px-4 rounded-xl font-bold text-xs shrink-0">
+                  {isGeneratingAi ? (<><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Generating...</>) : (<><Sparkles className="h-3.5 w-3.5 mr-1.5" />Generate</>)}
+                </Button>
+                <Button type="button" variant="outline" className="h-9 px-3 text-xs shrink-0" disabled={history.length === 0} onClick={handleUndo}><Undo2 className="h-3.5 w-3.5 mr-1" />Undo</Button>
+                <Button type="button" variant="outline" className="h-9 px-3 text-xs shrink-0" onClick={handleClear}>Clear</Button>
+              </div>
             </div>
             <p className="text-[10px] text-muted-foreground">
               AI never invents an employer, salary, deadline, or guaranteed visa/job outcome — anything it can't determine is marked "{ADMIN_INPUT_REQUIRED}" for you to fill in.
@@ -710,15 +713,20 @@ export default function UrgentRequirementsAdminPage() {
             </div>
           )}
 
-          <div className="flex items-center justify-between border-b border-border/60 pb-2">
-            <div className="flex gap-2">
+          <div className="flex items-center justify-between border-b border-border/60 pb-2 gap-2 flex-wrap">
+            <div className="flex gap-1.5 sm:gap-2 flex-wrap">
               {(['edit', 'seo', 'preview'] as const).map((tab) => (
-                <button key={tab} type="button" onClick={() => setActiveTab(tab)} className={`text-xs font-bold px-3 py-1.5 rounded-lg transition ${activeTab === tab ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveTab(tab)}
+                  className={`text-xs font-bold px-3 py-1.5 rounded-lg transition ${activeTab === tab ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                >
                   {tab === 'edit' ? 'Edit Fields' : tab === 'seo' ? 'SEO & AI Visibility' : 'Live Preview'}
                 </button>
               ))}
             </div>
-            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${form.status === 'active' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : form.status === 'draft' ? 'bg-slate-100 text-slate-600 border border-slate-200' : 'bg-muted text-muted-foreground'}`}>
+            <span className={`text-xs font-bold px-2.5 py-1 rounded-full shrink-0 ${form.status === 'active' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : form.status === 'draft' ? 'bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300' : 'bg-muted text-muted-foreground'}`}>
               {form.status === 'active' ? '🟢 Active' : form.status === 'draft' ? '⚪ Draft' : '🔴 Closed'}
             </span>
           </div>
@@ -924,6 +932,7 @@ export default function UrgentRequirementsAdminPage() {
 
           {activeTab === 'seo' && (
             <SeoPanel
+              layout="full"
               pathPrefix="/urgent-requirements"
               title={form.title}
               metaTitle={form.seoTitle}
@@ -982,32 +991,34 @@ export default function UrgentRequirementsAdminPage() {
           )}
 
           {/* Sticky action bar: visible on every tab and without scrolling to the end of the long form. */}
-          <div className="sticky -bottom-6 z-10 -mx-6 -mb-6 mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-border/60 bg-card/95 px-6 py-3 backdrop-blur">
-            {editingId && (
-              <span className="mr-auto text-xs text-muted-foreground">
-                Status: <span className="font-semibold capitalize text-foreground">{form.status}</span>
-                {dirty && <span className="ml-2 text-amber-700">· Unsaved changes</span>}
-              </span>
-            )}
-            <Button type="button" variant="outline" onClick={requestClose} disabled={saving}>Cancel</Button>
-            {form.status === 'active' ? (
-              <>
-                <Button type="button" variant="outline" disabled={saving} onClick={() => void handleSaveClosed()}>Close Listing</Button>
-                <Button type="button" disabled={saving} className="font-bold px-6" onClick={() => void handleUpdateLive()}>
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Update
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button type="button" variant="outline" disabled={saving} onClick={() => void (form.status === 'closed' ? handleSaveClosed() : handleSaveDraft())}>
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  {editingId ? (form.status === 'closed' ? 'Update' : 'Update Draft') : 'Save Draft'}
-                </Button>
-                <Button type="button" disabled={saving} className="font-bold px-6" onClick={() => setPublishConfirmOpen(true)}>
-                  {form.status === 'closed' ? 'Reopen & Publish' : 'Publish'}
-                </Button>
-              </>
-            )}
+          <div className="sticky -bottom-4 sm:-bottom-6 z-10 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border/60 bg-card/95 px-4 sm:px-6 py-3 backdrop-blur">
+            {editingId ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>Status: <strong className="capitalize text-foreground">{form.status}</strong></span>
+                {dirty && <span className="text-amber-600 dark:text-amber-400 font-medium">· Unsaved changes</span>}
+              </div>
+            ) : <div />}
+            <div className="flex flex-wrap items-center gap-2 ml-auto">
+              <Button type="button" variant="outline" onClick={requestClose} disabled={saving}>Cancel</Button>
+              {form.status === 'active' ? (
+                <>
+                  <Button type="button" variant="outline" disabled={saving} onClick={() => void handleSaveClosed()}>Close Listing</Button>
+                  <Button type="button" disabled={saving} className="font-bold px-6" onClick={() => void handleUpdateLive()}>
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Update
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button type="button" variant="outline" disabled={saving} onClick={() => void (form.status === 'closed' ? handleSaveClosed() : handleSaveDraft())}>
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    {editingId ? (form.status === 'closed' ? 'Update' : 'Update Draft') : 'Save Draft'}
+                  </Button>
+                  <Button type="button" disabled={saving} className="font-bold px-6" onClick={() => setPublishConfirmOpen(true)}>
+                    {form.status === 'closed' ? 'Reopen & Publish' : 'Publish'}
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -6,7 +6,6 @@ import { NAP } from '@/lib/seo/site'
 import { CONTENT_LAST_UPDATED } from '@/components/seo/ImmigrationDisclaimer'
 
 const OFFICIAL_LINKS = [
-  { label: 'eMigrate, Government of India — overseas employment and registered recruiting agents', url: 'https://emigrate.gov.in/' },
   { label: 'Immigration, Refugees and Citizenship Canada', url: 'https://www.canada.ca/en/immigration-refugees-citizenship.html' },
   { label: 'GOV.UK — Visas and immigration', url: 'https://www.gov.uk/browse/visas-immigration' },
   { label: 'Australian Department of Home Affairs', url: 'https://immi.homeaffairs.gov.au/' },
@@ -46,18 +45,9 @@ export default function ImmigrationDisclaimerPage() {
               Siddhivinayak Overseas is a private consultancy based in Surat, India. We provide information, counselling,
               and help preparing applications and documents for people exploring lawful study, work and migration options.
             </p>
-            <p>
-              We are not a government department, embassy or immigration authority, and we are not affiliated with or
-              endorsed by any government. We are not a law firm and do not give legal advice.
-            </p>
           </Section>
 
           <Section title="No guarantees">
-            <p>
-              We do not and cannot guarantee a visa, permit, permanent residence, university admission, job, employer
-              sponsorship or any processing time. Every decision is made by the relevant government authority,
-              educational institution or employer, based on its own rules and your circumstances.
-            </p>
             <p>
               A job offer or company offer letter does not by itself give you a visa or extend your current immigration
               permission. You must meet the destination country&apos;s official requirements and apply through its
@@ -71,10 +61,6 @@ export default function ImmigrationDisclaimerPage() {
               offers, offer letters, sponsorship certificates or documents, and we never create, alter or backdate
               documents. If anyone offers you a &quot;guaranteed&quot; or &quot;free visa&quot; job without genuine interviews and checks,
               treat it as a warning sign.
-            </p>
-            <p>
-              For overseas employment from India, you can check whether a recruiting agent is registered on the
-              Government of India&apos;s <a className="text-primary underline underline-offset-2" href="https://emigrate.gov.in/" target="_blank" rel="noopener noreferrer">eMigrate portal</a>.
             </p>
           </Section>
 

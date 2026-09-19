@@ -38,6 +38,7 @@ export default function AdminBlogPage() {
   const [search, setSearch] = useState('')
   const [showWriter, setShowWriter] = useState(false)
   const [editor, setEditor] = useState<EditorState | null>(null)
+  const [activeEditorTab, setActiveEditorTab] = useState<'content' | 'seo' | 'preview'>('content')
   const [dirty, setDirty] = useState(false)
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false)
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false)
@@ -70,6 +71,7 @@ export default function AdminBlogPage() {
     setEditor({ ...draft, id })
     setShowWriter(false)
     setDirty(false)
+    setActiveEditorTab('content')
   }
 
   const updateEditor = (patch: Partial<EditorState>) => {
@@ -129,8 +131,8 @@ export default function AdminBlogPage() {
     <Field label={label}>
       <div className="flex flex-wrap gap-1.5 rounded-xl border border-input bg-background p-2">
         {values.map((v, i) => (
-          <span key={`${v}-${i}`} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
-            {v}
+          <span key={`${v}-${i}`} className="inline-flex max-w-full items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+            <span className="truncate max-w-[12rem]">{v}</span>
             <button type="button" onClick={() => onChange(values.filter((_, idx) => idx !== i))} aria-label={`Remove ${v}`}>
               <X className="h-3 w-3" />
             </button>
@@ -139,7 +141,7 @@ export default function AdminBlogPage() {
         <input
           type="text"
           placeholder={placeholder}
-          className="min-w-[8rem] flex-1 border-none bg-transparent text-xs outline-none"
+          className="min-w-[5rem] flex-1 border-none bg-transparent text-xs outline-none"
           onKeyDown={(e) => {
             if (e.key !== 'Enter' && e.key !== ',') return
             e.preventDefault()
@@ -181,33 +183,54 @@ export default function AdminBlogPage() {
       )}
 
       {editor && (
-        <div className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 text-lg font-semibold">
-              <Pencil className="h-4 w-4" />
-              Review & edit before publish
+        <div className="space-y-5 rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
+            <div className="flex items-center gap-2 min-w-0">
+              <Pencil className="h-4 w-4 text-primary shrink-0" />
+              <h2 className="text-base sm:text-lg font-semibold truncate">
+                Review & edit before publish
+              </h2>
               {editor.ai_generated && (
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
                   AI draft
                 </span>
               )}
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" disabled={Boolean(savingStatus)} onClick={() => void handleSave('draft')}>
-                <Lock className="mr-1 h-4 w-4" />
-                Save private draft
+            </div>
+
+            {/* Editor Tabs */}
+            <div className="flex gap-1.5 sm:gap-2 flex-wrap order-3 sm:order-2 w-full sm:w-auto mt-2 sm:mt-0">
+              {(['content', 'seo', 'preview'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveEditorTab(tab)}
+                  className={`text-xs font-bold px-3 py-1.5 rounded-lg transition ${
+                    activeEditorTab === tab
+                      ? 'bg-muted text-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {tab === 'content' ? 'Content & Body' : tab === 'seo' ? 'SEO & AI Visibility' : 'Live Preview'}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 order-2 sm:order-3 ml-auto">
+              <Button variant="outline" size="sm" disabled={Boolean(savingStatus)} onClick={() => void handleSave('draft')}>
+                <Lock className="mr-1 h-3.5 w-3.5" />
+                Save draft
               </Button>
               <PermissionGuard permission="blogs.publish">
-                <Button disabled={Boolean(savingStatus)} onClick={() => setPublishConfirmOpen(true)}>
+                <Button size="sm" disabled={Boolean(savingStatus)} onClick={() => setPublishConfirmOpen(true)}>
                   {savingStatus === 'published' ? (
-                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
                   ) : (
-                    <Upload className="mr-1 h-4 w-4" />
+                    <Upload className="mr-1 h-3.5 w-3.5" />
                   )}
                   Publish public
                 </Button>
               </PermissionGuard>
-              <Button variant="ghost" onClick={requestClose}>
+              <Button variant="ghost" size="sm" onClick={requestClose}>
                 Close
               </Button>
             </div>
@@ -235,13 +258,13 @@ export default function AdminBlogPage() {
             </div>
           )}
 
-          <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-            <div className="space-y-4">
+          {activeEditorTab === 'content' && (
+            <div className="space-y-5 pt-1">
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Title">
+                <Field label="Title *">
                   <Input value={editor.title} onChange={(e) => updateEditor({ title: e.target.value })} />
                 </Field>
-                <Field label="Slug">
+                <Field label="Slug *">
                   <Input value={editor.slug} onChange={(e) => updateEditor({ slug: e.target.value })} className="font-mono" />
                 </Field>
                 <Field label="Meta title (SEO)">
@@ -286,80 +309,86 @@ export default function AdminBlogPage() {
               {chipsField('Long-tail keywords (AI suggestions)', editor.long_tail_keywords, (v) => updateEditor({ long_tail_keywords: v }), 'Add and press Enter…')}
               {chipsField('Tags', editor.tags, (v) => updateEditor({ tags: v }), 'Add and press Enter…')}
 
-              <Field label="Image alt text">
-                <Input value={editor.image_alt} onChange={(e) => updateEditor({ image_alt: e.target.value })} placeholder="Describe the cover image for accessibility & image search" />
-              </Field>
-              <Field label="Image caption (optional)">
-                <Input value={editor.image_caption} onChange={(e) => updateEditor({ image_caption: e.target.value })} />
-              </Field>
-
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Article body (HTML, editable)
-                </label>
-                <Button
-                  type="button" size="sm" variant="ghost"
-                  disabled={regenerating !== null}
-                  onClick={() => void handleRegenerate('content')}
-                >
-                  <RefreshCw className={`mr-1 h-3.5 w-3.5 ${regenerating === 'content' ? 'animate-spin' : ''}`} />
-                  Regenerate body
-                </Button>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Image alt text">
+                  <Input value={editor.image_alt} onChange={(e) => updateEditor({ image_alt: e.target.value })} placeholder="Describe the cover image for accessibility & image search" />
+                </Field>
+                <Field label="Image caption (optional)">
+                  <Input value={editor.image_caption} onChange={(e) => updateEditor({ image_caption: e.target.value })} />
+                </Field>
               </div>
-              <textarea
-                value={editor.content}
-                onChange={(e) => updateEditor({ content: e.target.value })}
-                rows={18}
-                className="w-full rounded-xl border border-input bg-background px-3 py-2 font-mono text-xs"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Est. reading time: {editor.reading_time_minutes || 1} min (recalculated on save)
-              </p>
 
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">FAQ</label>
-                <Button type="button" size="sm" variant="ghost" disabled={regenerating !== null} onClick={() => void handleRegenerate('faq')}>
-                  <RefreshCw className={`mr-1 h-3.5 w-3.5 ${regenerating === 'faq' ? 'animate-spin' : ''}`} />
-                  Regenerate FAQ
-                </Button>
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Article body (HTML, editable)
+                  </label>
+                  <Button
+                    type="button" size="sm" variant="ghost"
+                    disabled={regenerating !== null}
+                    onClick={() => void handleRegenerate('content')}
+                  >
+                    <RefreshCw className={`mr-1 h-3.5 w-3.5 ${regenerating === 'content' ? 'animate-spin' : ''}`} />
+                    Regenerate body
+                  </Button>
+                </div>
+                <textarea
+                  value={editor.content}
+                  onChange={(e) => updateEditor({ content: e.target.value })}
+                  rows={18}
+                  className="w-full rounded-xl border border-input bg-background px-3 py-2 font-mono text-xs"
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Est. reading time: {editor.reading_time_minutes || 1} min (recalculated on save)
+                </p>
               </div>
-              <div className="space-y-2">
-                {editor.faq.map((item, i) => (
-                  <div key={i} className="rounded-xl border border-border p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <input
-                        value={item.question}
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">FAQ</label>
+                  <Button type="button" size="sm" variant="ghost" disabled={regenerating !== null} onClick={() => void handleRegenerate('faq')}>
+                    <RefreshCw className={`mr-1 h-3.5 w-3.5 ${regenerating === 'faq' ? 'animate-spin' : ''}`} />
+                    Regenerate FAQ
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {editor.faq.map((item, i) => (
+                    <div key={i} className="rounded-xl border border-border p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <input
+                          value={item.question}
+                          onChange={(e) => {
+                            const next = [...editor.faq]
+                            next[i] = { ...next[i], question: e.target.value }
+                            updateEditor({ faq: next })
+                          }}
+                          className="w-full border-none bg-transparent text-sm font-medium outline-none"
+                          placeholder="Question"
+                        />
+                        <button type="button" onClick={() => updateEditor({ faq: editor.faq.filter((_, idx) => idx !== i) })} aria-label="Remove FAQ item">
+                          <X className="h-3.5 w-3.5 text-muted-foreground" />
+                        </button>
+                      </div>
+                      <textarea
+                        value={item.answer}
                         onChange={(e) => {
                           const next = [...editor.faq]
-                          next[i] = { ...next[i], question: e.target.value }
+                          next[i] = { ...next[i], answer: e.target.value }
                           updateEditor({ faq: next })
                         }}
-                        className="w-full border-none bg-transparent text-sm font-medium outline-none"
-                        placeholder="Question"
+                        rows={2}
+                        className="mt-1 w-full border-none bg-transparent text-sm text-muted-foreground outline-none"
+                        placeholder="Answer"
                       />
-                      <button type="button" onClick={() => updateEditor({ faq: editor.faq.filter((_, idx) => idx !== i) })} aria-label="Remove FAQ item">
-                        <X className="h-3.5 w-3.5 text-muted-foreground" />
-                      </button>
                     </div>
-                    <textarea
-                      value={item.answer}
-                      onChange={(e) => {
-                        const next = [...editor.faq]
-                        next[i] = { ...next[i], answer: e.target.value }
-                        updateEditor({ faq: next })
-                      }}
-                      rows={2}
-                      className="mt-1 w-full border-none bg-transparent text-sm text-muted-foreground outline-none"
-                      placeholder="Answer"
-                    />
-                  </div>
-                ))}
-                <Button
-                  type="button" size="sm" variant="outline"
-                  onClick={() => updateEditor({ faq: [...editor.faq, { question: '', answer: '' }] })}
-                >
-                  <Plus className="mr-1 h-3.5 w-3.5" /> Add FAQ item
-                </Button>
+                  ))}
+                  <Button
+                    type="button" size="sm" variant="outline"
+                    onClick={() => updateEditor({ faq: [...editor.faq, { question: '', answer: '' }] })}
+                  >
+                    <Plus className="mr-1 h-3.5 w-3.5" /> Add FAQ item
+                  </Button>
+                </div>
               </div>
 
               <Field label="Disclaimer">
@@ -382,9 +411,12 @@ export default function AdminBlogPage() {
                 </div>
               )}
             </div>
+          )}
 
-            <div className="space-y-4">
+          {activeEditorTab === 'seo' && (
+            <div className="pt-1">
               <SeoPanel
+                layout="full"
                 pathPrefix="/blog"
                 title={editor.title}
                 metaTitle={editor.meta_title}
@@ -410,31 +442,61 @@ export default function AdminBlogPage() {
                 })}
               />
             </div>
-          </div>
+          )}
 
-          <div className="rounded-xl border border-border bg-muted/20 p-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Live preview
-            </p>
-            <h3 className="text-2xl font-bold text-foreground">{editor.title}</h3>
-            <p className="mt-2 text-sm text-muted-foreground">{editor.excerpt}</p>
-            <div className="mt-6">
-              <BlogContent html={editor.content} />
-            </div>
-            {editor.faq.length > 0 && (
-              <div className="mt-6 space-y-3 border-t border-border pt-4">
-                <p className="text-sm font-semibold text-foreground">Frequently asked questions</p>
-                {editor.faq.map((item, i) => (
-                  <div key={i}>
-                    <p className="text-sm font-medium text-foreground">{item.question}</p>
-                    <p className="text-sm text-muted-foreground">{item.answer}</p>
-                  </div>
-                ))}
+          {activeEditorTab === 'preview' && (
+            <div className="rounded-xl border border-border bg-muted/20 p-4 sm:p-6 space-y-4">
+              <div className="border-b border-border pb-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Live preview
+                </p>
+                <h3 className="mt-2 text-2xl sm:text-3xl font-bold text-foreground">{editor.title || 'Untitled Post'}</h3>
+                {editor.excerpt && <p className="mt-2 text-sm text-muted-foreground">{editor.excerpt}</p>}
               </div>
-            )}
-            {editor.disclaimer && (
-              <p className="mt-6 border-t border-border pt-4 text-xs italic text-muted-foreground">{editor.disclaimer}</p>
-            )}
+              <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none">
+                <BlogContent html={editor.content} />
+              </div>
+              {editor.faq.length > 0 && (
+                <div className="mt-6 space-y-3 border-t border-border pt-4">
+                  <p className="text-sm font-semibold text-foreground">Frequently asked questions</p>
+                  {editor.faq.map((item, i) => (
+                    <div key={i} className="rounded-lg bg-background p-3 border border-border/60">
+                      <p className="text-sm font-medium text-foreground">{item.question}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{item.answer}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {editor.disclaimer && (
+                <p className="mt-6 border-t border-border pt-4 text-xs italic text-muted-foreground">{editor.disclaimer}</p>
+              )}
+            </div>
+          )}
+
+          {/* Sticky action bar */}
+          <div className="sticky -bottom-4 sm:-bottom-6 z-10 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border/60 bg-card/95 px-4 sm:px-6 py-3 backdrop-blur rounded-b-2xl">
+            <div className="text-xs text-muted-foreground">
+              {dirty && <span className="text-amber-600 dark:text-amber-400 font-medium">● Unsaved changes</span>}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 ml-auto">
+              <Button variant="outline" size="sm" disabled={Boolean(savingStatus)} onClick={() => void handleSave('draft')}>
+                <Lock className="mr-1 h-3.5 w-3.5" />
+                Save draft
+              </Button>
+              <PermissionGuard permission="blogs.publish">
+                <Button size="sm" disabled={Boolean(savingStatus)} onClick={() => setPublishConfirmOpen(true)}>
+                  {savingStatus === 'published' ? (
+                    <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="mr-1 h-3.5 w-3.5" />
+                  )}
+                  Publish public
+                </Button>
+              </PermissionGuard>
+              <Button variant="ghost" size="sm" onClick={requestClose}>
+                Close
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -500,7 +562,7 @@ export default function AdminBlogPage() {
                   key={post.id}
                   className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="truncate font-semibold text-foreground">{post.title}</h3>
                       <StatusPill status={post.status} />
@@ -512,7 +574,7 @@ export default function AdminBlogPage() {
                         : '—'}
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 shrink-0">
                     {isPublic && (
                       <Button asChild size="sm" variant="outline">
                         <Link to={`/blog/${post.slug}`} target="_blank">
