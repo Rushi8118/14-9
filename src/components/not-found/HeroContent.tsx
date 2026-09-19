@@ -33,12 +33,12 @@ export function HeroContent() {
       </p>
 
       <h1 className="lbb-title" data-reveal>
-        Looks like you’ve crossed into <span className="lbb-title__accent">unknown territory.</span>
+        Page <span className="lbb-title__accent">not found</span>
       </h1>
 
       <p className="lbb-lead" data-reveal>
-        The page you’re looking for has moved, disappeared, or taken a different route. Let’s help you find your way
-        forward.
+        The page you are looking for may have moved, expired, or no longer exists. Let us help you find the right
+        destination for your study or career journey.
       </p>
 
       <div className="lbb-actions" data-reveal>
@@ -46,18 +46,22 @@ export function HeroContent() {
           <RouteLead />
           <Link to="/" className="lbb-btn lbb-btn--primary">
             <Home aria-hidden="true" />
-            Return Home
+            Go to homepage
             <ArrowRight className="lbb-btn__arrow" aria-hidden="true" />
           </Link>
         </div>
         <div className="lbb-secondary">
-          <Link to="/services" className="lbb-btn lbb-btn--glass">
+          <Link to="/study-visa" className="lbb-btn lbb-btn--glass">
             <Compass aria-hidden="true" />
-            Explore Immigration Services
+            Explore study visas
+          </Link>
+          <Link to="/work-visa" className="lbb-btn lbb-btn--glass">
+            <Compass aria-hidden="true" />
+            Explore work visas
           </Link>
           <Link to="/contact" className="lbb-btn lbb-btn--text">
             <MessageCircle aria-hidden="true" />
-            Contact an Advisor
+            Contact our experts
           </Link>
         </div>
       </div>

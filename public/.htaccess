@@ -8,8 +8,13 @@ DirectorySlash Off
   RewriteBase /
 
   # 1. Preferred host: https://siddhivinayakoverseas.com (no www)
-  RewriteCond %{HTTP_HOST} ^www.siddhivinayakoverseas.com$ [NC]
-  RewriteRule ^(.*)$ https://siddhivinayakoverseas.com/$1 [R=301,L]
+  # (also drops a trailing slash so www/contact/ needs one hop, not two)
+  RewriteCond %{HTTP_HOST} ^www\.siddhivinayakoverseas\.com$ [NC]
+  RewriteRule ^(.*?)/?$ https://siddhivinayakoverseas.com/$1 [R=301,L]
+
+  # Old per-country post-study URLs (reported as Soft 404 / not indexed): move to the country's study page,
+  # which covers post-study work rights for that country.
+  RewriteRule ^post-study-work-visa/(uk|ireland|new-zealand|germany|australia|france|canada)$ /study-in-$1 [R=301,L]
 
   # 2. Canonical URLs have no trailing slash (root excepted)
   RewriteCond %{REQUEST_FILENAME} !-f
@@ -28,7 +33,11 @@ DirectorySlash Off
   RewriteRule ^ - [L]
 
   # 5. Client-rendered routes: database-driven pages and the private app
-  RewriteRule ^(blog|countries|urgent-requirements|dashboard|admin|auth|login|register|forgot-password|reset-password|403)(/.*)?$ /index.html [L]
+  # They get app-shell.html: index.html without the homepage canonical/og:url, so an un-prerendered page
+  # never tells Google it is a duplicate of the homepage. React sets the real canonical after rendering.
+  RewriteRule ^(blog|countries|urgent-requirements)(/.*)?$ /app-shell.html [L]
+  # Private and account pages: never indexed
+  RewriteRule ^(dashboard|admin|auth|login|register|forgot-password|reset-password|403)(/.*)?$ /app-shell.html [E=NOINDEX:1,L]
 
   # 6. Anything else does not exist: send a real 404 instead of a soft 404
   RewriteRule ^ - [R=404,L]
@@ -64,6 +73,8 @@ ErrorDocument 404 /404/index.html
 
 # Security headers
 <IfModule mod_headers.c>
+  Header set X-Robots-Tag "noindex, follow" env=REDIRECT_NOINDEX
+  Header set X-Robots-Tag "noindex, follow" env=NOINDEX
   Header set X-Content-Type-Options "nosniff"
   Header set X-Frame-Options "SAMEORIGIN"
   Header set X-XSS-Protection "1; mode=block"

@@ -91,7 +91,8 @@ export default function NotFoundPage() {
   return (
     <div ref={rootRef} className="lbb">
       <Helmet>
-        <title>Page not found (404) | Siddhivinayak Overseas</title>
+        <title>Page Not Found | Siddhivinayak Overseas</title>
+        <meta name="description" content="This page does not exist. Explore study visas, work visas or contact Siddhivinayak Overseas in Surat." />
         <meta name="robots" content="noindex, follow" />
         <meta
           name="description"

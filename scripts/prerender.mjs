@@ -3,7 +3,7 @@
  * Starts vite preview, renders each route with Playwright, writes HTML into dist/.
  */
 import { spawn } from 'node:child_process'
-import { mkdir, writeFile, access } from 'node:fs/promises'
+import { mkdir, writeFile, access, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
@@ -43,6 +43,14 @@ function outFileForRoute(route) {
 
 async function main() {
   await access(distDir)
+
+  // Shell for client-rendered routes (see .htaccess): the untouched Vite index.html minus the homepage's
+  // canonical, og:url and robots tags, so an un-prerendered URL never claims to be the homepage.
+  const shell = (await readFile(path.join(distDir, 'index.html'), 'utf8'))
+    .replace(/<link[^>]*rel="canonical"[^>]*>/gi, '')
+    .replace(/<meta[^>]*property="og:url"[^>]*>/gi, '')
+    .replace(/<meta[^>]*name="robots"[^>]*>/gi, '')
+  await writeFile(path.join(distDir, 'app-shell.html'), shell, 'utf8')
 
   // Run vite via node directly — avoids shell wrappers and DEP0190 warning.
   const viteCli = path.join(root, 'node_modules', 'vite', 'bin', 'vite.js')
