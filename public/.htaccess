@@ -28,6 +28,10 @@ DirectorySlash Off
   RewriteCond %{REQUEST_FILENAME}/index.html -f
   RewriteRule ^(.+)$ /$1/index.html [L]
 
+  # The client-route shell is an internal file, not a page
+  RewriteCond %{THE_REQUEST} \s/app-shell\.html [NC]
+  RewriteRule ^ - [R=404,L]
+
   # 4. Existing files (assets, sitemap.xml, robots.txt)
   RewriteCond %{REQUEST_FILENAME} -f
   RewriteRule ^ - [L]
@@ -69,6 +73,10 @@ ErrorDocument 404 /404/index.html
   ExpiresByType application/font-woff "access plus 1 year"
   ExpiresByType image/x-icon "access plus 1 year"
   ExpiresDefault "access plus 1 month"
+  # Crawlers must see sitemap/robots changes quickly
+  ExpiresByType application/xml "access plus 1 hour"
+  ExpiresByType text/xml "access plus 1 hour"
+  ExpiresByType text/plain "access plus 1 hour"
 </IfModule>
 
 # Security headers

@@ -29,15 +29,15 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    "types/**/*.d.ts",
-    "app/**/*.ts",
-    "app/**/*.tsx"
+    "types/**/*.d.ts"
   ],
   "exclude": [
     "node_modules",
     "src/lib/supabase/server.ts",
     "src/pages/DashboardPage.tsx",
-    "app/api.temp/**/*.ts",
-    "app/auth.temp/**/*.ts"
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "auth/**/*.ts",
+    "auth/**/*.tsx"
   ]
 }
