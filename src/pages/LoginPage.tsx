@@ -69,7 +69,7 @@ export default function LoginPage() {
   // Errors appear after the first submit, then update live as the user types.
   const errors = attempted ? validateLogin({ email, password, agreeTerms }) : {}
   const busy = status !== "idle"
-  const destination = redirectTarget ?? (canAccessAdmin ? "/admin" : "/dashboard")
+  const destination = redirectTarget ?? (canAccessAdmin ? "/admin" : "/")
 
   // AuthProvider hydrates the profile and roles before signIn resolves, so the
   // destination above is role-aware by the time this runs.

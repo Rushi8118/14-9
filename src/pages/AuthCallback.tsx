@@ -59,7 +59,7 @@ export default function AuthCallback() {
       // with "PKCE code verifier not found" even though sign-in succeeded.
       const { data } = await supabase.auth.getSession()
       if (data.session) {
-        finish("success", "Redirecting to your dashboard...", "/dashboard", 600, () => toast.success("You're signed in.", { id: "auth-callback" }))
+        finish("success", "Redirecting to home page...", "/", 600, () => toast.success("You're signed in.", { id: "auth-callback" }))
         return
       }
 
@@ -82,7 +82,7 @@ export default function AuthCallback() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session) {
-        finish("success", "Redirecting to your dashboard...", "/dashboard", 600)
+        finish("success", "Redirecting to home page...", "/", 600)
       }
     })
 

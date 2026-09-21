@@ -80,7 +80,7 @@ export default function NotificationBell() {
         ref={triggerRef}
         type="button"
         onClick={toggleDropdown}
-        className={`relative p-2.5 min-h-10 min-w-10 text-[#1A2340] hover:text-[#C49A2B] bg-[#FCFBF8]/90 hover:bg-[#C49A2B]/10 rounded-full border border-[#C49A2B]/25 transition duration-200 ${focusRing}`}
+        className={`relative p-2.5 min-h-10 min-w-10 text-[#1A2340] dark:text-[#f1f5f9] hover:text-[#C49A2B] bg-[#FCFBF8]/90 dark:bg-[#111726]/90 hover:bg-[#C49A2B]/10 rounded-full border border-[#C49A2B]/25 dark:border-[rgba(255,255,255,0.12)] transition duration-200 ${focusRing}`}
         aria-label={
           unreadCount > 0
             ? `Notifications, ${unreadCount} unread`
@@ -106,7 +106,7 @@ export default function NotificationBell() {
           id={panelId}
           role="dialog"
           aria-label="Notifications"
-          className="absolute right-0 mt-3 w-[min(100vw-1.5rem,24rem)] sm:w-96 bg-[#FCFBF8]/97 border border-[#C49A2B]/20 rounded-2xl shadow-[0_18px_40px_-18px_rgba(26,35,64,0.45)] backdrop-blur-xl z-50 overflow-hidden"
+          className="absolute right-0 mt-3 w-[min(100vw-1.5rem,24rem)] sm:w-96 bg-[#FCFBF8]/97 dark:bg-[#111726]/98 border border-[#C49A2B]/20 dark:border-[rgba(255,255,255,0.12)] rounded-2xl shadow-[0_18px_40px_-18px_rgba(26,35,64,0.45)] backdrop-blur-xl z-50 overflow-hidden"
         >
           <div className="flex items-center justify-between gap-2 px-4 py-3 bg-[#1A2340] text-[#FFF8E7] border-b border-[#C49A2B]/20">
             <h3 className="font-serif text-sm font-semibold">Notifications</h3>

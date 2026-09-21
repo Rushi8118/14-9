@@ -1,5 +1,6 @@
 import { Suspense, useEffect, type ReactNode } from 'react'
 import { Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom'
+import { useTheme } from 'next-themes'
 import { SiteVisitTracker } from './components/SiteVisitTracker'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { RouteProgress } from './components/route-progress'
@@ -216,10 +217,36 @@ function AppRoutes() {
   )
 }
 
+/** Ensures dark mode is strictly applied only to /admin routes and never bleeds into public pages or applicant dashboard */
+function RouteThemeSync() {
+  const { pathname } = useLocation()
+  const { setTheme } = useTheme()
+
+  useEffect(() => {
+    const isAdmin = pathname.startsWith('/admin')
+    if (isAdmin) {
+      const adminTheme = localStorage.getItem('admin-theme') || 'dark'
+      setTheme(adminTheme)
+      if (adminTheme === 'dark') {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+    } else {
+      // Force light theme on homepage, public routes, and user dashboard
+      setTheme('light')
+      document.documentElement.classList.remove('dark')
+    }
+  }, [pathname, setTheme])
+
+  return null
+}
+
 function App() {
   const { pathname } = useLocation()
   return (
     <>
+      <RouteThemeSync />
       <ScrollToTop />
       <RouteProgress />
       <SiteVisitTracker />

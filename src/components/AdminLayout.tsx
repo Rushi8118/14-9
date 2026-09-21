@@ -106,115 +106,115 @@ type NavIconTheme = {
 
 const NAV_ICON_THEMES: Record<string, NavIconTheme> = {
   '/admin': {
-    containerInactive: 'bg-indigo-50/90 text-indigo-600 border-indigo-200/70 group-hover:bg-indigo-100/90 group-hover:border-indigo-300 group-hover:shadow-indigo-500/10',
+    containerInactive: 'bg-indigo-50/90 text-indigo-600 border-indigo-200/70 group-hover:bg-indigo-100/90 group-hover:border-indigo-300 group-hover:shadow-indigo-500/10 dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-800/40 dark:group-hover:bg-indigo-900/60',
     containerActive: 'bg-gradient-to-br from-indigo-500 to-blue-600 text-white border-indigo-400 shadow-md shadow-indigo-500/25',
-    iconInactive: 'text-indigo-600',
+    iconInactive: 'text-indigo-600 dark:text-indigo-400',
     iconActive: 'text-white',
   },
   '/admin/realtime': {
-    containerInactive: 'bg-emerald-50/90 text-emerald-600 border-emerald-200/70 group-hover:bg-emerald-100/90 group-hover:border-emerald-300 group-hover:shadow-emerald-500/10',
+    containerInactive: 'bg-emerald-50/90 text-emerald-600 border-emerald-200/70 group-hover:bg-emerald-100/90 group-hover:border-emerald-300 group-hover:shadow-emerald-500/10 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/40 dark:group-hover:bg-emerald-900/60',
     containerActive: 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-emerald-400 shadow-md shadow-emerald-500/25',
-    iconInactive: 'text-emerald-600',
+    iconInactive: 'text-emerald-600 dark:text-emerald-400',
     iconActive: 'text-white',
     hasPulse: true,
   },
   '/admin/notifications': {
-    containerInactive: 'bg-amber-50/90 text-amber-600 border-amber-200/70 group-hover:bg-amber-100/90 group-hover:border-amber-300 group-hover:shadow-amber-500/10',
+    containerInactive: 'bg-amber-50/90 text-amber-600 border-amber-200/70 group-hover:bg-amber-100/90 group-hover:border-amber-300 group-hover:shadow-amber-500/10 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/40 dark:group-hover:bg-amber-900/60',
     containerActive: 'bg-gradient-to-br from-amber-500 to-yellow-600 text-white border-amber-400 shadow-md shadow-amber-500/30',
-    iconInactive: 'text-amber-600',
+    iconInactive: 'text-amber-600 dark:text-amber-400',
     iconActive: 'text-white',
   },
   '/admin/users': {
-    containerInactive: 'bg-sky-50/90 text-sky-600 border-sky-200/70 group-hover:bg-sky-100/90 group-hover:border-sky-300 group-hover:shadow-sky-500/10',
+    containerInactive: 'bg-sky-50/90 text-sky-600 border-sky-200/70 group-hover:bg-sky-100/90 group-hover:border-sky-300 group-hover:shadow-sky-500/10 dark:bg-sky-950/40 dark:text-sky-400 dark:border-sky-800/40 dark:group-hover:bg-sky-900/60',
     containerActive: 'bg-gradient-to-br from-sky-500 to-blue-600 text-white border-sky-400 shadow-md shadow-sky-500/25',
-    iconInactive: 'text-sky-600',
+    iconInactive: 'text-sky-600 dark:text-sky-400',
     iconActive: 'text-white',
   },
   '/admin/roles': {
-    containerInactive: 'bg-amber-50/90 text-amber-600 border-amber-200/70 group-hover:bg-amber-100/90 group-hover:border-amber-300 group-hover:shadow-amber-500/10',
+    containerInactive: 'bg-amber-50/90 text-amber-600 border-amber-200/70 group-hover:bg-amber-100/90 group-hover:border-amber-300 group-hover:shadow-amber-500/10 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/40 dark:group-hover:bg-amber-900/60',
     containerActive: 'bg-gradient-to-br from-amber-500 to-yellow-600 text-white border-amber-400 shadow-md shadow-amber-500/30',
-    iconInactive: 'text-amber-600',
+    iconInactive: 'text-amber-600 dark:text-amber-400',
     iconActive: 'text-white',
   },
   '/admin/applications': {
-    containerInactive: 'bg-purple-50/90 text-purple-600 border-purple-200/70 group-hover:bg-purple-100/90 group-hover:border-purple-300 group-hover:shadow-purple-500/10',
+    containerInactive: 'bg-purple-50/90 text-purple-600 border-purple-200/70 group-hover:bg-purple-100/90 group-hover:border-purple-300 group-hover:shadow-purple-500/10 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800/40 dark:group-hover:bg-purple-900/60',
     containerActive: 'bg-gradient-to-br from-purple-500 to-violet-600 text-white border-purple-400 shadow-md shadow-purple-500/25',
-    iconInactive: 'text-purple-600',
+    iconInactive: 'text-purple-600 dark:text-purple-400',
     iconActive: 'text-white',
   },
   '/admin/appointments': {
-    containerInactive: 'bg-rose-50/90 text-rose-600 border-rose-200/70 group-hover:bg-rose-100/90 group-hover:border-rose-300 group-hover:shadow-rose-500/10',
+    containerInactive: 'bg-rose-50/90 text-rose-600 border-rose-200/70 group-hover:bg-rose-100/90 group-hover:border-rose-300 group-hover:shadow-rose-500/10 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/40 dark:group-hover:bg-rose-900/60',
     containerActive: 'bg-gradient-to-br from-rose-500 to-pink-600 text-white border-rose-400 shadow-md shadow-rose-500/25',
-    iconInactive: 'text-rose-600',
+    iconInactive: 'text-rose-600 dark:text-rose-400',
     iconActive: 'text-white',
   },
   '/admin/urgent-requirements': {
-    containerInactive: 'bg-orange-50/90 text-orange-600 border-orange-200/70 group-hover:bg-orange-100/90 group-hover:border-orange-300 group-hover:shadow-orange-500/10',
+    containerInactive: 'bg-orange-50/90 text-orange-600 border-orange-200/70 group-hover:bg-orange-100/90 group-hover:border-orange-300 group-hover:shadow-orange-500/10 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-800/40 dark:group-hover:bg-orange-900/60',
     containerActive: 'bg-gradient-to-br from-orange-500 to-red-600 text-white border-orange-400 shadow-md shadow-orange-500/30',
-    iconInactive: 'text-orange-600',
+    iconInactive: 'text-orange-600 dark:text-orange-400',
     iconActive: 'text-white',
     hasFlameGlow: true,
   },
   '/admin/countries': {
-    containerInactive: 'bg-teal-50/90 text-teal-600 border-teal-200/70 group-hover:bg-teal-100/90 group-hover:border-teal-300 group-hover:shadow-teal-500/10',
+    containerInactive: 'bg-teal-50/90 text-teal-600 border-teal-200/70 group-hover:bg-teal-100/90 group-hover:border-teal-300 group-hover:shadow-teal-500/10 dark:bg-teal-950/40 dark:text-teal-400 dark:border-teal-800/40 dark:group-hover:bg-teal-900/60',
     containerActive: 'bg-gradient-to-br from-teal-500 to-emerald-600 text-white border-teal-400 shadow-md shadow-teal-500/25',
-    iconInactive: 'text-teal-600',
+    iconInactive: 'text-teal-600 dark:text-teal-400',
     iconActive: 'text-white',
   },
   '/admin/blog': {
-    containerInactive: 'bg-fuchsia-50/90 text-fuchsia-600 border-fuchsia-200/70 group-hover:bg-fuchsia-100/90 group-hover:border-fuchsia-300 group-hover:shadow-fuchsia-500/10',
+    containerInactive: 'bg-fuchsia-50/90 text-fuchsia-600 border-fuchsia-200/70 group-hover:bg-fuchsia-100/90 group-hover:border-fuchsia-300 group-hover:shadow-fuchsia-500/10 dark:bg-fuchsia-950/40 dark:text-fuchsia-400 dark:border-fuchsia-800/40 dark:group-hover:bg-fuchsia-900/60',
     containerActive: 'bg-gradient-to-br from-fuchsia-500 to-pink-600 text-white border-fuchsia-400 shadow-md shadow-fuchsia-500/25',
-    iconInactive: 'text-fuchsia-600',
+    iconInactive: 'text-fuchsia-600 dark:text-fuchsia-400',
     iconActive: 'text-white',
   },
   '/admin/sessions': {
-    containerInactive: 'bg-slate-100/90 text-slate-600 border-slate-200/80 group-hover:bg-slate-200/80 group-hover:border-slate-300',
+    containerInactive: 'bg-slate-100/90 text-slate-600 border-slate-200/80 group-hover:bg-slate-200/80 group-hover:border-slate-300 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700/60 dark:group-hover:bg-slate-800',
     containerActive: 'bg-gradient-to-br from-slate-700 to-slate-900 text-white border-slate-600 shadow-md shadow-slate-700/25',
-    iconInactive: 'text-slate-600',
+    iconInactive: 'text-slate-600 dark:text-slate-300',
     iconActive: 'text-white',
   },
   '/admin/audit': {
-    containerInactive: 'bg-red-50/90 text-red-600 border-red-200/70 group-hover:bg-red-100/90 group-hover:border-red-300',
+    containerInactive: 'bg-red-50/90 text-red-600 border-red-200/70 group-hover:bg-red-100/90 group-hover:border-red-300 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800/40 dark:group-hover:bg-red-900/60',
     containerActive: 'bg-gradient-to-br from-red-500 to-rose-600 text-white border-red-400 shadow-md shadow-red-500/25',
-    iconInactive: 'text-red-600',
+    iconInactive: 'text-red-600 dark:text-red-400',
     iconActive: 'text-white',
   },
   '/admin/activity-logs': {
-    containerInactive: 'bg-blue-50/90 text-blue-600 border-blue-200/70 group-hover:bg-blue-100/90 group-hover:border-blue-300',
+    containerInactive: 'bg-blue-50/90 text-blue-600 border-blue-200/70 group-hover:bg-blue-100/90 group-hover:border-blue-300 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800/40 dark:group-hover:bg-blue-900/60',
     containerActive: 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-blue-400 shadow-md shadow-blue-500/25',
-    iconInactive: 'text-blue-600',
+    iconInactive: 'text-blue-600 dark:text-blue-400',
     iconActive: 'text-white',
   },
   '/admin/automations': {
-    containerInactive: 'bg-amber-50/90 text-amber-600 border-amber-200/70 group-hover:bg-amber-100/90 group-hover:border-amber-300',
+    containerInactive: 'bg-amber-50/90 text-amber-600 border-amber-200/70 group-hover:bg-amber-100/90 group-hover:border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/40 dark:group-hover:bg-amber-900/60',
     containerActive: 'bg-gradient-to-br from-amber-500 to-yellow-600 text-white border-amber-400 shadow-md shadow-amber-500/30',
-    iconInactive: 'text-amber-600',
+    iconInactive: 'text-amber-600 dark:text-amber-400',
     iconActive: 'text-white',
   },
   '/admin/email-templates': {
-    containerInactive: 'bg-cyan-50/90 text-cyan-600 border-cyan-200/70 group-hover:bg-cyan-100/90 group-hover:border-cyan-300',
+    containerInactive: 'bg-cyan-50/90 text-cyan-600 border-cyan-200/70 group-hover:bg-cyan-100/90 group-hover:border-cyan-300 dark:bg-cyan-950/40 dark:text-cyan-400 dark:border-cyan-800/40 dark:group-hover:bg-cyan-900/60',
     containerActive: 'bg-gradient-to-br from-cyan-500 to-sky-600 text-white border-cyan-400 shadow-md shadow-cyan-500/25',
-    iconInactive: 'text-cyan-600',
+    iconInactive: 'text-cyan-600 dark:text-cyan-400',
     iconActive: 'text-white',
   },
   '/admin/files': {
-    containerInactive: 'bg-amber-50/90 text-amber-600 border-amber-200/70 group-hover:bg-amber-100/90 group-hover:border-amber-300',
+    containerInactive: 'bg-amber-50/90 text-amber-600 border-amber-200/70 group-hover:bg-amber-100/90 group-hover:border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/40 dark:group-hover:bg-amber-900/60',
     containerActive: 'bg-gradient-to-br from-amber-500 to-orange-600 text-white border-amber-400 shadow-md shadow-amber-500/25',
-    iconInactive: 'text-amber-600',
+    iconInactive: 'text-amber-600 dark:text-amber-400',
     iconActive: 'text-white',
   },
   '/admin/settings': {
-    containerInactive: 'bg-zinc-100/90 text-zinc-600 border-zinc-200/80 group-hover:bg-zinc-200/80 group-hover:border-zinc-300',
+    containerInactive: 'bg-zinc-100/90 text-zinc-600 border-zinc-200/80 group-hover:bg-zinc-200/80 group-hover:border-zinc-300 dark:bg-zinc-800/60 dark:text-zinc-300 dark:border-zinc-700/60 dark:group-hover:bg-zinc-800',
     containerActive: 'bg-gradient-to-br from-zinc-700 to-zinc-900 text-white border-zinc-600 shadow-md shadow-zinc-700/25',
-    iconInactive: 'text-zinc-600',
+    iconInactive: 'text-zinc-600 dark:text-zinc-300',
     iconActive: 'text-white',
   },
 }
 
 const DEFAULT_NAV_THEME: NavIconTheme = {
-  containerInactive: 'bg-slate-100/90 text-slate-600 border-slate-200/80 group-hover:bg-slate-200/80',
+  containerInactive: 'bg-slate-100/90 text-slate-600 border-slate-200/80 group-hover:bg-slate-200/80 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700/60 dark:group-hover:bg-slate-800',
   containerActive: 'bg-gradient-to-br from-[var(--desk-gold)] to-amber-600 text-white border-amber-400 shadow-md shadow-amber-500/25',
-  iconInactive: 'text-slate-600',
+  iconInactive: 'text-slate-600 dark:text-slate-300',
   iconActive: 'text-white',
 }
 
@@ -359,7 +359,7 @@ const AdminLayout: React.FC = () => {
               <p className="text-xs font-semibold text-[var(--desk-navy)] truncate">
                 {profile.full_name || profile.email}
               </p>
-              <Badge className="mt-1 text-[10px] capitalize bg-[var(--desk-gold)]/15 text-[#8a6a1a] border border-[var(--desk-gold)]/25 hover:bg-[var(--desk-gold)]/15">
+              <Badge className="mt-1 text-[10px] capitalize bg-[var(--desk-gold)]/15 text-[#8a6a1a] dark:text-[#f3cf7a] border border-[var(--desk-gold)]/25 hover:bg-[var(--desk-gold)]/15">
                 {profile.user_role.replace(/_/g, ' ')}
               </Badge>
             </div>
@@ -390,7 +390,7 @@ const AdminLayout: React.FC = () => {
                     className={`group relative flex items-center gap-3 px-2.5 py-2 min-h-11 rounded-xl text-sm font-medium transition-all duration-200 ${
                       active
                         ? 'bg-[var(--desk-gold)]/15 text-[var(--desk-navy)] font-semibold border border-[var(--desk-gold)]/35 shadow-xs'
-                        : 'text-[var(--desk-navy)]/80 hover:bg-black/[0.03] hover:text-[var(--desk-navy)]'
+                        : 'text-[var(--desk-navy)]/80 hover:bg-black/[0.03] dark:hover:bg-white/[0.06] hover:text-[var(--desk-navy)]'
                     } ${collapsed ? 'justify-center px-1' : ''}`}
                   >
                     {active && !collapsed && (
@@ -440,11 +440,11 @@ const AdminLayout: React.FC = () => {
           to="/"
           onClick={onNavigate}
           title={collapsed ? 'Home Page' : undefined}
-          className={`group flex items-center gap-3 w-full px-2.5 py-2 min-h-11 rounded-xl text-sm font-medium text-[var(--desk-navy)]/80 hover:bg-black/[0.03] hover:text-[var(--desk-navy)] transition-all duration-200 ${
+          className={`group flex items-center gap-3 w-full px-2.5 py-2 min-h-11 rounded-xl text-sm font-medium text-[var(--desk-navy)]/80 hover:bg-black/[0.03] dark:hover:bg-white/[0.06] hover:text-[var(--desk-navy)] transition-all duration-200 ${
             collapsed ? 'justify-center px-1' : ''
           }`}
         >
-          <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-xl border border-blue-200/70 bg-blue-50/90 text-blue-600 shadow-2xs transition-all duration-200 group-hover:scale-105 group-hover:bg-blue-100 group-hover:shadow-xs">
+          <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-xl border border-blue-200/70 bg-blue-50/90 text-blue-600 dark:border-blue-800/40 dark:bg-blue-950/40 dark:text-blue-400 shadow-2xs transition-all duration-200 group-hover:scale-105 group-hover:bg-blue-100 group-hover:shadow-xs">
             <Home className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
           </div>
           {!collapsed && <span className="truncate">Home Page</span>}
@@ -454,11 +454,11 @@ const AdminLayout: React.FC = () => {
           to="/dashboard"
           onClick={onNavigate}
           title={collapsed ? 'Applicant Desk' : undefined}
-          className={`group flex items-center gap-3 w-full px-2.5 py-2 min-h-11 rounded-xl text-sm font-medium text-[var(--desk-navy)]/80 hover:bg-black/[0.03] hover:text-[var(--desk-navy)] transition-all duration-200 ${
+          className={`group flex items-center gap-3 w-full px-2.5 py-2 min-h-11 rounded-xl text-sm font-medium text-[var(--desk-navy)]/80 hover:bg-black/[0.03] dark:hover:bg-white/[0.06] hover:text-[var(--desk-navy)] transition-all duration-200 ${
             collapsed ? 'justify-center px-1' : ''
           }`}
         >
-          <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-xl border border-amber-200/70 bg-amber-50/90 text-amber-700 shadow-2xs transition-all duration-200 group-hover:scale-105 group-hover:bg-amber-100 group-hover:shadow-xs">
+          <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-xl border border-amber-200/70 bg-amber-50/90 text-amber-700 dark:border-amber-800/40 dark:bg-amber-950/40 dark:text-amber-400 shadow-2xs transition-all duration-200 group-hover:scale-105 group-hover:bg-amber-100 group-hover:shadow-xs">
             <LayoutDashboard className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
           </div>
           {!collapsed && <span className="truncate">Applicant Desk</span>}
@@ -468,11 +468,11 @@ const AdminLayout: React.FC = () => {
           type="button"
           onClick={handleSignOut}
           title={collapsed ? 'Sign Out' : undefined}
-          className={`group flex items-center gap-3 w-full px-2.5 py-2 min-h-11 rounded-xl text-sm font-medium text-red-700 hover:bg-red-50/70 transition-all duration-200 ${
+          className={`group flex items-center gap-3 w-full px-2.5 py-2 min-h-11 rounded-xl text-sm font-medium text-red-700 dark:text-red-400 hover:bg-red-50/70 dark:hover:bg-red-950/40 transition-all duration-200 ${
             collapsed ? 'justify-center px-1' : ''
           }`}
         >
-          <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-xl border border-red-200/70 bg-red-50/90 text-red-600 shadow-2xs transition-all duration-200 group-hover:scale-105 group-hover:bg-red-100 group-hover:shadow-xs">
+          <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-xl border border-red-200/70 bg-red-50/90 text-red-600 dark:border-red-800/40 dark:bg-red-950/40 dark:text-red-400 shadow-2xs transition-all duration-200 group-hover:scale-105 group-hover:bg-red-100 group-hover:shadow-xs">
             <LogOut className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
           </div>
           {!collapsed && <span className="truncate">Sign Out</span>}

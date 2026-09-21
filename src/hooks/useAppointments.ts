@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
+import { subscribePostgresChanges } from '@/lib/supabase/realtime'
 import { logger } from '@/lib/logger'
 import { useAuth } from './use-auth'
 import { toast } from 'sonner'
@@ -10,9 +12,11 @@ export type Appointment = {
   assigned_officer: string | null
   appointment_type: 'Video Call' | 'In-Person' | 'Phone Call'
   status: 'Scheduled' | 'Completed' | 'Cancelled'
+  raw_status?: string
   scheduled_at: string
   duration_minutes: number
   notes: string | null
+  consultant_notes?: string | null
   created_at: string
   updated_at: string
 }
@@ -28,6 +32,7 @@ type ConsultationRow = {
   scheduled_at: string
   duration_minutes: number | null
   user_notes: { notes?: string; meeting_type?: string } | null
+  consultant_notes?: string | null
   created_at: string
   updated_at: string
 }
@@ -52,9 +57,11 @@ function toAppointment(c: ConsultationRow): Appointment {
         : c.status === 'completed'
           ? 'Completed'
           : 'Scheduled',
+    raw_status: c.status,
     scheduled_at: c.scheduled_at,
     duration_minutes: c.duration_minutes || 30,
     notes: c.user_notes?.notes || null,
+    consultant_notes: c.consultant_notes || null,
     created_at: c.created_at,
     updated_at: c.updated_at,
   }
@@ -70,7 +77,7 @@ export function useAppointments() {
       if (!user) return []
       const { data, error } = await supabase
         .from('consultations')
-        .select('id,user_id,assigned_consultant,consultation_type,status,scheduled_at,duration_minutes,user_notes,created_at,updated_at')
+        .select('id,user_id,assigned_consultant,consultation_type,status,scheduled_at,duration_minutes,user_notes,consultant_notes,created_at,updated_at')
         .eq('user_id', user.id)
         .order('scheduled_at', { ascending: false })
 
@@ -83,6 +90,27 @@ export function useAppointments() {
     enabled: !!user,
     staleTime: 60 * 1000,
   })
+
+  // Live real-time updates when staff replies or modifies status
+  useEffect(() => {
+    if (!user?.id) return
+
+    const unsubscribe = subscribePostgresChanges(
+      supabase,
+      `user-appointments-${user.id}`,
+      {
+        event: '*',
+        schema: 'public',
+        table: 'consultations',
+        filter: `user_id=eq.${user.id}`,
+      },
+      () => {
+        void queryClient.invalidateQueries({ queryKey: ['appointments', user.id] })
+      },
+    )
+
+    return unsubscribe
+  }, [user?.id, queryClient])
 
   const bookMutation = useMutation({
     mutationFn: async (payload: { type: MeetingType; date: Date; timeSlot: string; notes?: string }) => {
