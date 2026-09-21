@@ -8,17 +8,17 @@ import { cn } from '@/lib/utils'
 const TONES = {
   work: {
     icon: Briefcase,
-    panel: 'border-amber-200 bg-amber-50/60',
-    text: 'text-[#8a5800]',
-    button: 'bg-[#a66a00] hover:bg-[#8a5800] text-white',
-    badge: 'bg-amber-100 text-[#8a5800]',
+    panel: 'border-amber-200 bg-amber-50/60 dark:border-amber-500/20 dark:bg-amber-950/20',
+    text: 'text-[#8a5800] dark:text-amber-300',
+    button: 'bg-[#a66a00] hover:bg-[#8a5800] dark:bg-amber-600 dark:hover:bg-amber-500 text-white',
+    badge: 'bg-amber-100 text-[#8a5800] dark:bg-amber-900/40 dark:text-amber-200',
   },
   study: {
     icon: GraduationCap,
-    panel: 'border-sky-200 bg-sky-50/60',
-    text: 'text-[#1f5f96]',
-    button: 'bg-[#2876b8] hover:bg-[#1f5f96] text-white',
-    badge: 'bg-sky-100 text-[#1f5f96]',
+    panel: 'border-sky-200 bg-sky-50/60 dark:border-sky-500/20 dark:bg-sky-950/20',
+    text: 'text-[#1f5f96] dark:text-sky-300',
+    button: 'bg-[#2876b8] hover:bg-[#1f5f96] dark:bg-sky-600 dark:hover:bg-sky-500 text-white',
+    badge: 'bg-sky-100 text-[#1f5f96] dark:bg-sky-900/40 dark:text-sky-200',
   },
 } as const
 
@@ -111,7 +111,7 @@ export default function RuleListEditor({
             variant="outline"
             onClick={onAiRefine}
             disabled={disabled || aiLoading || rules.length === 0}
-            className="min-h-11 shrink-0 rounded-full border-[var(--desk-line)] bg-white text-[var(--desk-navy)]"
+            className="min-h-11 shrink-0 rounded-full border-[var(--desk-line)] bg-[var(--desk-surface)] text-[var(--desk-navy)] dark:bg-[#121212] dark:border-white/10 dark:text-white"
           >
             {aiLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
@@ -135,7 +135,7 @@ export default function RuleListEditor({
             onKeyDown={onInputKeyDown}
             placeholder={placeholder}
             disabled={disabled}
-            className="h-11 flex-1 rounded-xl border-[var(--desk-line)] bg-white"
+            className="h-11 flex-1 rounded-xl border-[var(--desk-line)] bg-[var(--desk-surface)] text-[var(--desk-navy)] dark:bg-[#121212] dark:border-white/10 dark:text-white"
           />
           <Button type="button" onClick={handleAdd} disabled={disabled || !input.trim()} className={cn('min-h-11 rounded-xl px-5', styles.button)}>
             <Plus className="mr-1.5 h-4 w-4" aria-hidden="true" />
@@ -149,7 +149,7 @@ export default function RuleListEditor({
             aria-expanded={bulkOpen}
             aria-controls={`${ids}-bulk`}
             disabled={disabled}
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg text-xs font-semibold text-[#8a6a1a] hover:underline disabled:opacity-50"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg text-xs font-semibold text-[#8a6a1a] dark:text-amber-400 hover:underline disabled:opacity-50"
           >
             <ClipboardList className="h-3.5 w-3.5" aria-hidden="true" />
             {bulkOpen ? 'Close bulk paste' : 'Paste several rules at once'}
@@ -170,7 +170,7 @@ export default function RuleListEditor({
               rows={5}
               value={bulkText}
               onChange={(event) => setBulkText(event.target.value)}
-              className="rounded-xl border-[var(--desk-line)] bg-white"
+              className="rounded-xl border-[var(--desk-line)] bg-[var(--desk-surface)] text-[var(--desk-navy)] dark:bg-[#121212] dark:border-white/10 dark:text-white"
             />
             <div className="flex justify-end">
               <Button type="button" onClick={handleBulkAdd} disabled={!bulkText.trim()} className={cn('min-h-10 rounded-full', styles.button)}>
@@ -196,7 +196,7 @@ export default function RuleListEditor({
           {rules.map((rule, index) => (
             <li
               key={index}
-              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 rounded-xl border border-[var(--desk-line)] bg-white p-2 transition focus-within:border-[var(--desk-gold)]/60 sm:p-2.5"
+              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 rounded-xl border border-[var(--desk-line)] bg-[var(--desk-surface)] dark:bg-[#121212] dark:border-white/10 p-2 transition focus-within:border-[var(--desk-gold)]/60 sm:p-2.5"
             >
               <span className={cn('mt-1.5 grid h-7 min-w-7 place-items-center rounded-full px-1 text-xs font-semibold tabular-nums', styles.badge)}>
                 {index + 1}

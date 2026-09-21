@@ -442,10 +442,10 @@ export default function AdminUsersPage() {
     { value: 'deleted', label: 'Deleted', count: stats.deleted },
   ]
 
-  const selectClass = 'h-11 w-full rounded-xl border-[var(--desk-line)] bg-[var(--desk-surface)] text-sm sm:w-44'
+  const selectClass = 'h-11 w-full rounded-xl border-[var(--desk-line)] bg-[var(--desk-surface)] text-sm sm:w-44 text-[var(--desk-navy)] dark:bg-[#121212] dark:border-white/10 dark:text-white'
 
   return (
-    <div className="applicant-desk space-y-6 pb-10">
+    <div className="space-y-6 pb-10">
       <PageHeader
         title="User management"
         description="Search, review and manage every applicant and staff account in one place."
@@ -477,7 +477,7 @@ export default function AdminUsersPage() {
               <Button
                 type="button"
                 onClick={openCreate}
-                className="min-h-11 rounded-full bg-[var(--desk-navy)] px-5 text-[#fff8e7] hover:bg-[var(--desk-navy-soft)]"
+                className="min-h-11 rounded-full bg-[var(--desk-navy)] px-5 text-[#fff8e7] hover:bg-[var(--desk-navy-soft)] dark:bg-[var(--desk-gold)] dark:text-black dark:hover:bg-[var(--desk-gold-soft)] font-semibold"
               >
                 <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" />
                 Add user
@@ -494,7 +494,7 @@ export default function AdminUsersPage() {
             value={stats.total}
             hint={`${stats.recent} joined in 30 days`}
             icon={Users}
-            tone="bg-[#c49a2b]/12 text-[#8a6a1a]"
+            tone="bg-[#c49a2b]/12 text-[#8a6a1a] dark:bg-[#c49a2b]/20 dark:text-amber-300"
             loading={isLoading}
             active={statusFilter === 'all' && roleFilter === 'all'}
             onClick={clearFilters}
@@ -504,7 +504,7 @@ export default function AdminUsersPage() {
             value={stats.active}
             hint="Can sign in"
             icon={UserRoundCheck}
-            tone="bg-emerald-100/80 text-[#20875a]"
+            tone="bg-emerald-100/80 text-[#20875a] dark:bg-emerald-950/50 dark:text-emerald-300"
             loading={isLoading}
             active={statusFilter === 'active'}
             onClick={() => setStatusFilter('active')}
@@ -514,7 +514,7 @@ export default function AdminUsersPage() {
             value={stats.suspended}
             hint="Access paused"
             icon={UserRoundX}
-            tone="bg-amber-100/80 text-[#a66a00]"
+            tone="bg-amber-100/80 text-[#a66a00] dark:bg-amber-950/50 dark:text-amber-300"
             loading={isLoading}
             active={statusFilter === 'suspended'}
             onClick={() => setStatusFilter('suspended')}
@@ -524,7 +524,7 @@ export default function AdminUsersPage() {
             value={stats.staff}
             hint="Non-customer roles"
             icon={ShieldCheck}
-            tone="bg-[#1a2340] text-[#e8b84b]"
+            tone="bg-[#1a2340] text-[#e8b84b] dark:bg-sky-950/50 dark:text-sky-300"
             loading={isLoading}
           />
         </div>
@@ -589,7 +589,7 @@ export default function AdminUsersPage() {
                 className={cn(
                   'flex min-h-10 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-medium transition',
                   statusFilter === tab.value
-                    ? 'bg-[var(--desk-navy)] text-[#fff8e7]'
+                    ? 'bg-[var(--desk-navy)] text-[#fff8e7] dark:bg-[var(--desk-gold)] dark:text-black font-semibold shadow-xs'
                     : 'text-[var(--desk-muted)] hover:bg-[var(--desk-surface-soft)] hover:text-[var(--desk-navy)]',
                 )}
               >
@@ -597,7 +597,7 @@ export default function AdminUsersPage() {
                 <span
                   className={cn(
                     'rounded-full px-1.5 text-[11px] tabular-nums',
-                    statusFilter === tab.value ? 'bg-white/15' : 'bg-[var(--desk-line)]/60',
+                    statusFilter === tab.value ? 'bg-white/15 dark:bg-black/20' : 'bg-[var(--desk-line)]/60',
                   )}
                 >
                   {tab.count}
@@ -618,7 +618,7 @@ export default function AdminUsersPage() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search by name, email or phone…"
-                className="h-11 rounded-xl border-[var(--desk-line)] bg-[var(--desk-surface)] pl-10"
+                className="h-11 rounded-xl border-[var(--desk-line)] bg-[var(--desk-surface)] pl-10 text-[var(--desk-navy)] placeholder:text-[var(--desk-muted)] dark:bg-[#121212] dark:border-white/10 dark:text-white"
               />
             </div>
             <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
@@ -650,7 +650,7 @@ export default function AdminUsersPage() {
               <div
                 role="group"
                 aria-label="Layout"
-                className="col-span-2 hidden h-11 items-center rounded-xl border border-[var(--desk-line)] p-1 md:flex"
+                className="col-span-2 hidden h-11 items-center rounded-xl border border-[var(--desk-line)] p-1 md:flex dark:border-white/10 dark:bg-[#121212]"
               >
                 {(
                   [
@@ -666,7 +666,9 @@ export default function AdminUsersPage() {
                     aria-label={label}
                     className={cn(
                       'grid h-9 w-9 place-items-center rounded-lg transition',
-                      view === value ? 'bg-[var(--desk-navy)] text-[#fff8e7]' : 'text-[var(--desk-muted)] hover:text-[var(--desk-navy)]',
+                      view === value
+                        ? 'bg-[var(--desk-navy)] text-[#fff8e7] dark:bg-[var(--desk-gold)] dark:text-black font-semibold'
+                        : 'text-[var(--desk-muted)] hover:text-[var(--desk-navy)] dark:hover:text-white',
                     )}
                   >
                     <Icon className="h-4 w-4" aria-hidden="true" />
@@ -827,7 +829,7 @@ export default function AdminUsersPage() {
 
       <Dialog open={createOpen} onOpenChange={(open) => !creating && setCreateOpen(open)}>
         <DialogContent
-          className="applicant-desk max-h-[calc(100dvh-2rem)] gap-0 overflow-y-auto rounded-2xl border-[var(--desk-line)] bg-[var(--desk-surface)] p-0 text-[var(--desk-navy)] sm:max-w-xl"
+          className="max-h-[calc(100dvh-2rem)] gap-0 overflow-y-auto rounded-2xl border-[var(--desk-line)] bg-[var(--desk-surface)] p-0 text-[var(--desk-navy)] sm:max-w-xl dark:bg-[#0a0a0a] dark:border-white/15"
           onInteractOutside={(event) => event.preventDefault()}
         >
           <DialogHeader className="border-b border-[var(--desk-line)] px-5 pb-4 pt-5 text-left sm:px-6">
@@ -851,7 +853,7 @@ export default function AdminUsersPage() {
                   autoComplete="off"
                   value={createForm.full_name}
                   onChange={(e) => setCreateForm((p) => ({ ...p, full_name: e.target.value }))}
-                  className="h-11 rounded-xl border-[var(--desk-line)] bg-white"
+                  className="h-11 rounded-xl border-[var(--desk-line)] bg-[var(--desk-surface)] dark:bg-[#121212] dark:text-white"
                 />
               </div>
               <div className="space-y-1.5">
@@ -869,7 +871,7 @@ export default function AdminUsersPage() {
                   }}
                   aria-invalid={!!createErrors.email}
                   aria-describedby={createErrors.email ? 'create-user-email-error' : undefined}
-                  className="h-11 rounded-xl border-[var(--desk-line)] bg-white aria-[invalid=true]:border-[var(--desk-danger)]"
+                  className="h-11 rounded-xl border-[var(--desk-line)] bg-[var(--desk-surface)] dark:bg-[#121212] dark:text-white aria-[invalid=true]:border-[var(--desk-danger)]"
                 />
                 {createErrors.email && (
                   <p id="create-user-email-error" className="text-xs font-medium text-[var(--desk-danger)]">
@@ -909,7 +911,7 @@ export default function AdminUsersPage() {
                   }}
                   aria-invalid={!!createErrors.password}
                   aria-describedby={['create-user-strength', createErrors.password && 'create-user-password-error'].filter(Boolean).join(' ')}
-                  className="h-11 rounded-xl border-[var(--desk-line)] bg-white pr-12 font-mono aria-[invalid=true]:border-[var(--desk-danger)]"
+                  className="h-11 rounded-xl border-[var(--desk-line)] bg-[var(--desk-surface)] dark:bg-[#121212] dark:text-white pr-12 font-mono aria-[invalid=true]:border-[var(--desk-danger)]"
                 />
                 <button
                   type="button"
@@ -978,7 +980,7 @@ export default function AdminUsersPage() {
               <Button
                 type="submit"
                 disabled={creating}
-                className="min-h-11 rounded-full bg-[var(--desk-navy)] px-6 text-[#fff8e7] hover:bg-[var(--desk-navy-soft)]"
+                className="min-h-11 rounded-full bg-[var(--desk-navy)] px-6 text-[#fff8e7] hover:bg-[var(--desk-navy-soft)] dark:bg-[var(--desk-gold)] dark:text-black dark:hover:bg-[var(--desk-gold-soft)] font-semibold"
               >
                 {creating ? (
                   <>

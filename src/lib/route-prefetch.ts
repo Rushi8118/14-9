@@ -72,6 +72,11 @@ Object.assign(loaders, workspaceLoaders)
  * (one at a time, while the browser is idle) so switching pages never waits on the network.
  */
 export function warmRoutesWhenIdle(prefix: '/admin' | '/dashboard') {
+  // In development, dynamic import() compiles unbundled modules on-demand.
+  // Warming 18 heavy pages in parallel saturates Vite dev server CPU and freezes the UI.
+  if (import.meta.env.DEV) {
+    return () => {}
+  }
   const queue = Object.keys(workspaceLoaders).filter((path) => path.startsWith(prefix) && !warmed.has(path))
   const idle: (cb: () => void) => number =
     'requestIdleCallback' in window

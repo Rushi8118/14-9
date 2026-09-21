@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { ThemeDatePicker } from '@/components/ui/theme-date-picker'
 import {
   Dialog,
   DialogContent,
@@ -824,11 +825,26 @@ export default function UrgentRequirementsAdminPage() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-amber-500" />Listing Expires On</Label>
-                  <Input type="date" value={form.expiresAt} onChange={(e) => updateForm({ expiresAt: e.target.value })} min={new Date().toISOString().split('T')[0]} className="h-9 text-xs" />
+                  <ThemeDatePicker
+                    value={form.expiresAt}
+                    onChange={(val) => updateForm({ expiresAt: val })}
+                    minDate={new Date()}
+                    placeholder="Select expiry date"
+                    variant="admin"
+                    showShortcuts={false}
+                    className="h-9 text-xs"
+                  />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-red-500" />Application Deadline</Label>
-                  <Input type="date" value={form.deadlineAt} onChange={(e) => updateForm({ deadlineAt: e.target.value })} className="h-9 text-xs" />
+                  <ThemeDatePicker
+                    value={form.deadlineAt}
+                    onChange={(val) => updateForm({ deadlineAt: val })}
+                    placeholder="Select deadline date"
+                    variant="admin"
+                    showShortcuts={false}
+                    className="h-9 text-xs"
+                  />
                   <p className="text-[10px] text-muted-foreground">When candidates must apply by (separate from listing expiry).</p>
                 </div>
               </div>

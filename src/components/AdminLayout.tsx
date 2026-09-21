@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { usePermissions } from '@/hooks/usePermissions'
-import { warmRoutesWhenIdle } from '@/lib/route-prefetch'
+import { warmRoutesWhenIdle, prefetchRoute } from '@/lib/route-prefetch'
 import {
   Bell,
   LayoutDashboard,
@@ -250,70 +250,29 @@ function Breadcrumbs() {
   )
 }
 
-const AdminLayout: React.FC = () => {
-  const { isAdmin, canAccessAdmin, isLoading, signOut, profile, user } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
-  const [collapsed, setCollapsed] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [profileWaitExpired, setProfileWaitExpired] = useState(false)
-  const navGroups = useFilteredNavGroups()
+type SidebarContentProps = {
+  collapsed: boolean
+  setCollapsed: React.Dispatch<React.SetStateAction<boolean>>
+  profile: ReturnType<typeof useAuth>['profile']
+  navGroups: NavGroup[]
+  pathname: string
+  handleSignOut: () => void
+  onNavigate?: () => void
+}
 
-  const handleSignOut = async () => {
-    await signOut()
-    navigate('/')
-  }
-
-  useEffect(() => {
-    if (!user || profile) {
-      setProfileWaitExpired(false)
-      return
-    }
-    const timer = window.setTimeout(() => setProfileWaitExpired(true), 2500)
-    return () => window.clearTimeout(timer)
-  }, [user, profile])
-
-  const waitingForProfile = Boolean(user) && !profile && !profileWaitExpired
-  if (isLoading || waitingForProfile) {
-    return (
-      <div className="premium-desk min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[var(--desk-gold)]/30 border-t-[var(--desk-gold)]" />
-          <p className="text-sm text-[var(--desk-muted)]">Loading admin panel…</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!isAdmin && !canAccessAdmin) {
-    return (
-      <div className="premium-desk min-h-screen flex items-center justify-center p-4">
-        <Card className="p-8 max-w-md text-center desk-panel border-[var(--desk-line)]">
-          <Shield className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h2 className="desk-display text-2xl font-semibold mb-2 text-[var(--desk-navy)]">Access Denied</h2>
-          <p className="text-sm text-[var(--desk-muted)] mb-6">You don't have permission to access this area.</p>
-          <div className="flex gap-2 justify-center">
-            <Button variant="outline" asChild>
-              <Link to="/dashboard">Dashboard</Link>
-            </Button>
-            <Button asChild>
-              <Link to="/">Home</Link>
-            </Button>
-          </div>
-        </Card>
-      </div>
-    )
-  }
-
+const SidebarContent = React.memo(function SidebarContent({
+  collapsed,
+  setCollapsed,
+  profile,
+  navGroups,
+  pathname,
+  handleSignOut,
+  onNavigate,
+}: SidebarContentProps) {
   const isActive = (path: string) =>
-    path === '/admin' ? location.pathname === '/admin' : location.pathname.startsWith(path)
+    path === '/admin' ? pathname === '/admin' : pathname.startsWith(path)
 
-  const activeLabel =
-    navGroups.flatMap((g) => g.items).find((item) => isActive(item.path))?.label || 'Dashboard'
-
-  const sidebarWidth = collapsed ? 'w-[64px]' : 'w-64'
-
-  const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
+  return (
     <div className="h-full flex flex-col min-h-0">
       <div className={`shrink-0 flex items-center gap-3 p-4 border-b border-[var(--desk-line)] ${collapsed ? 'justify-center' : ''}`}>
         <Link
@@ -385,6 +344,8 @@ const AdminLayout: React.FC = () => {
                     key={item.path}
                     to={item.path}
                     onClick={onNavigate}
+                    onMouseEnter={() => prefetchRoute(item.path)}
+                    onFocus={() => prefetchRoute(item.path)}
                     title={collapsed ? item.label : undefined}
                     aria-current={active ? 'page' : undefined}
                     className={`group relative flex items-center gap-3 px-2.5 py-2 min-h-11 rounded-xl text-sm font-medium transition-all duration-200 ${
@@ -413,15 +374,13 @@ const AdminLayout: React.FC = () => {
 
                       {theme.hasPulse && (
                         <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2" aria-hidden="true">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 ring-1.5 ring-white" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 ring-1.5 ring-white shadow-xs" />
                         </span>
                       )}
 
                       {theme.hasFlameGlow && (
                         <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2" aria-hidden="true">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-60" />
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500 ring-1.5 ring-white" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500 ring-1.5 ring-white shadow-xs" />
                         </span>
                       )}
                     </div>
@@ -481,6 +440,70 @@ const AdminLayout: React.FC = () => {
       </div>
     </div>
   )
+})
+
+const AdminLayout: React.FC = () => {
+  const { isAdmin, canAccessAdmin, isLoading, signOut, profile, user } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [profileWaitExpired, setProfileWaitExpired] = useState(false)
+  const navGroups = useFilteredNavGroups()
+
+  const handleSignOut = async () => {
+    await signOut()
+    navigate('/')
+  }
+
+  useEffect(() => {
+    if (!user || profile) {
+      setProfileWaitExpired(false)
+      return
+    }
+    const timer = window.setTimeout(() => setProfileWaitExpired(true), 2500)
+    return () => window.clearTimeout(timer)
+  }, [user, profile])
+
+  const waitingForProfile = Boolean(user) && !profile && !profileWaitExpired
+  if (isLoading || waitingForProfile) {
+    return (
+      <div className="premium-desk min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[var(--desk-gold)]/30 border-t-[var(--desk-gold)]" />
+          <p className="text-sm text-[var(--desk-muted)]">Loading admin panel…</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAdmin && !canAccessAdmin) {
+    return (
+      <div className="premium-desk min-h-screen flex items-center justify-center p-4">
+        <Card className="p-8 max-w-md text-center desk-panel border-[var(--desk-line)]">
+          <Shield className="w-12 h-12 text-destructive mx-auto mb-4" />
+          <h2 className="desk-display text-2xl font-semibold mb-2 text-[var(--desk-navy)]">Access Denied</h2>
+          <p className="text-sm text-[var(--desk-muted)] mb-6">You don't have permission to access this area.</p>
+          <div className="flex gap-2 justify-center">
+            <Button variant="outline" asChild>
+              <Link to="/dashboard">Dashboard</Link>
+            </Button>
+            <Button asChild>
+              <Link to="/">Home</Link>
+            </Button>
+          </div>
+        </Card>
+      </div>
+    )
+  }
+
+  const isActive = (path: string) =>
+    path === '/admin' ? location.pathname === '/admin' : location.pathname.startsWith(path)
+
+  const activeLabel =
+    navGroups.flatMap((g) => g.items).find((item) => isActive(item.path))?.label || 'Dashboard'
+
+  const sidebarWidth = collapsed ? 'w-[64px]' : 'w-64'
 
   return (
     <div className="premium-desk h-dvh w-full flex overflow-hidden">
@@ -492,9 +515,17 @@ const AdminLayout: React.FC = () => {
         className={`desk-sidebar hidden lg:flex flex-col h-dvh border-r transition-all duration-200 shrink-0 overflow-hidden ${sidebarWidth}`}
         aria-label="Admin sidebar"
       >
-        <SidebarContent />
+        <SidebarContent
+          collapsed={collapsed}
+          setCollapsed={setCollapsed}
+          profile={profile}
+          navGroups={navGroups}
+          pathname={location.pathname}
+          handleSignOut={handleSignOut}
+        />
       </aside>
 
+      {/* Mobile drawer */}
       {mobileOpen && (
         <button
           type="button"
@@ -509,7 +540,15 @@ const AdminLayout: React.FC = () => {
         }`}
         aria-hidden={!mobileOpen}
       >
-        <SidebarContent onNavigate={() => setMobileOpen(false)} />
+        <SidebarContent
+          collapsed={false}
+          setCollapsed={setCollapsed}
+          profile={profile}
+          navGroups={navGroups}
+          pathname={location.pathname}
+          handleSignOut={handleSignOut}
+          onNavigate={() => setMobileOpen(false)}
+        />
       </aside>
 
       <div className="flex-1 flex flex-col h-dvh min-w-0 overflow-hidden">

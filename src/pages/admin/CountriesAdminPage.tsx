@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from 'react'
+import React, { useDeferredValue, useEffect, useMemo, useState, useCallback } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
 import {
@@ -27,7 +27,8 @@ import { generateCountryEligibilityWithAi } from '@/lib/ai/country-eligibility-g
 import { cn } from '@/lib/utils'
 import { FlagIcon } from '@/components/flag-icon'
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog'
-import CountryEditorDialog, { COUNTRY_REGIONS } from '@/components/admin/countries/CountryEditorDialog'
+import CountryEditorDialog from '@/components/admin/countries/CountryEditorDialog'
+import { COUNTRY_REGIONS } from '@/components/admin/countries/country-constants'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -46,7 +47,9 @@ import EmptyState from '@/components/dashboard/EmptyState'
 import InlineError from '@/components/dashboard/InlineError'
 import { StatusPill } from '@/components/dashboard/StatusPill'
 
-type StatusFilter = 'all' | 'published' | 'hidden' | 'unsaved' | 'attention'
+import { analyzeCountrySeo } from '@/lib/country-seo'
+
+type StatusFilter = 'all' | 'published' | 'hidden' | 'unsaved' | 'attention' | 'seo_ready' | 'seo_missing'
 type VisaFilter = 'all' | 'work' | 'study'
 type SortKey = 'order' | 'name' | 'updated'
 
@@ -107,6 +110,171 @@ function Stat({
 
 const PAGE_SIZE = 24
 
+type CountryCardProps = {
+  country: AdminCountryItem
+  seo: ReturnType<typeof analyzeCountrySeo>
+  reasons: string[]
+  canCreate: boolean
+  canUpdate: boolean
+  canDelete: boolean
+  isToggling: boolean
+  onEdit: (country: AdminCountryItem) => void
+  onEditSeo: (country: AdminCountryItem) => void
+  onToggle: (country: AdminCountryItem) => void
+  onDelete: (country: AdminCountryItem) => void
+}
+
+const CountryCard = React.memo(function CountryCard({
+  country,
+  seo,
+  reasons,
+  canCreate,
+  canUpdate,
+  canDelete,
+  isToggling,
+  onEdit,
+  onEditSeo,
+  onToggle,
+  onDelete,
+}: CountryCardProps) {
+  return (
+    <li>
+      <article
+        className={cn(
+          'group flex h-full flex-col rounded-2xl border bg-[var(--desk-surface)] p-4 transition-transform duration-150 hover:-translate-y-0.5 hover:border-[var(--desk-gold)]/45 hover:shadow-[0_16px_32px_-24px_rgba(26,35,64,0.45)]',
+          country.is_active ? 'border-[var(--desk-line)]' : 'border-dashed border-[var(--desk-line)] bg-[var(--desk-surface-soft)]',
+        )}
+      >
+        <div className="flex items-start gap-3">
+          <span className={cn('grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-[var(--desk-line)] bg-white text-3xl', !country.is_active && 'grayscale')}>
+            <FlagIcon country={country.name} code={country.code} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-base font-semibold text-[var(--desk-navy)]">{country.name}</h3>
+            <p className="truncate text-xs text-[var(--desk-muted)]">
+              <span className="font-mono">{country.code}</span>
+              {country.capital && ` · ${country.capital}`}
+              {country.region && ` · ${country.region}`}
+            </p>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" variant="ghost" size="icon" aria-label={`More actions for ${country.name}`} className="h-10 w-10 shrink-0 rounded-xl text-[var(--desk-muted)]">
+                <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onSelect={() => onEdit(country)}>
+                <PencilLine className="mr-2 h-4 w-4" aria-hidden="true" />
+                {canUpdate ? 'Edit details' : 'View details'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onEditSeo(country)}>
+                <Sparkles className="mr-2 h-4 w-4 text-[var(--desk-gold)]" aria-hidden="true" />
+                Edit SEO & meta tags
+              </DropdownMenuItem>
+              {canUpdate && country.source === 'database' && (
+                <DropdownMenuItem onSelect={() => onToggle(country)} disabled={isToggling}>
+                  {country.is_active ? <EyeOff className="mr-2 h-4 w-4" aria-hidden="true" /> : <Eye className="mr-2 h-4 w-4" aria-hidden="true" />}
+                  {country.is_active ? 'Hide from website' : 'Publish on website'}
+                </DropdownMenuItem>
+              )}
+              {country.source === 'database' && country.is_active && (
+                <DropdownMenuItem asChild>
+                  <a href={`/countries/${country.slug}`} target="_blank" rel="noreferrer">
+                    <Globe2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                    View live page
+                  </a>
+                </DropdownMenuItem>
+              )}
+              {canDelete && country.source === 'database' && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => onDelete(country)} className="text-[var(--desk-danger)] focus:bg-red-50 focus:text-[var(--desk-danger)]">
+                    <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Delete country
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <StatusPill tone={country.source !== 'database' ? 'warning' : country.is_active ? 'success' : 'neutral'} icon={country.source !== 'database' ? CircleDashed : country.is_active ? Eye : EyeOff}>
+            {country.source !== 'database' ? 'Not added yet' : country.is_active ? 'Published' : 'Hidden'}
+          </StatusPill>
+          {country.has_work_visa && (
+            <StatusPill tone="warning" icon={Briefcase}>
+              Work · {country.work_eligibility_criteria.length}
+            </StatusPill>
+          )}
+          {country.has_study_visa && (
+            <StatusPill tone="info" icon={GraduationCap}>
+              Study · {country.study_eligibility_criteria.length}
+            </StatusPill>
+          )}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onEditSeo(country)
+            }}
+            title="Click to view and optimize SEO"
+            className="transition-transform hover:scale-105 active:scale-95"
+          >
+            <StatusPill
+              tone={seo.score >= 70 ? 'success' : seo.score >= 45 ? 'warning' : 'danger'}
+              icon={Sparkles}
+            >
+              SEO {seo.score}%
+            </StatusPill>
+          </button>
+        </div>
+
+        <p className="mt-3 line-clamp-2 text-sm text-[var(--desk-muted)]">
+          {country.description || <span className="italic">No overview yet.</span>}
+        </p>
+
+        <dl className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-[var(--desk-surface-soft)] p-2.5 text-center text-xs">
+          <div>
+            <dt className="text-[var(--desk-muted)]">Success</dt>
+            <dd className="font-semibold tabular-nums text-[var(--desk-navy)]">{country.success_rate}%</dd>
+          </div>
+          <div>
+            <dt className="text-[var(--desk-muted)]">Processing</dt>
+            <dd className="font-semibold tabular-nums text-[var(--desk-navy)]">{country.avg_processing_days}d</dd>
+          </div>
+          <div>
+            <dt className="text-[var(--desk-muted)]">Living</dt>
+            <dd className="font-semibold tabular-nums text-[var(--desk-navy)]">₹{Math.round(country.monthly_living_cost / 1000)}k</dd>
+          </div>
+        </dl>
+
+        {reasons.length > 0 && (
+          <p className="mt-3 flex items-start gap-1.5 text-xs text-[var(--desk-warning)]">
+            <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            {reasons.join(' · ')}
+          </p>
+        )}
+
+        <div className="mt-auto flex items-center justify-between gap-2 pt-4">
+          <span className="text-xs text-[var(--desk-muted)]">
+            {country.source === 'database' ? `Updated ${formatDistanceToNow(new Date(country.updated_at), { addSuffix: true })}` : country.source === 'starter' ? 'Starter data · not saved' : 'Not added yet'}
+          </span>
+          <button
+            type="button"
+            onClick={() => onEdit(country)}
+            className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full bg-slate-900 px-4 text-xs font-semibold text-white shadow-xs transition-all duration-150 hover:bg-slate-800 hover:shadow-md active:scale-95 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+          >
+            <PencilLine className="h-3.5 w-3.5" aria-hidden="true" />
+            {country.source === 'database' ? (canUpdate ? 'Edit' : 'View') : canCreate ? 'Add & edit' : 'View'}
+          </button>
+        </div>
+      </article>
+    </li>
+  )
+})
+
 export default function CountriesAdminPage() {
   const {
     countries,
@@ -142,6 +310,7 @@ export default function CountriesAdminPage() {
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<AdminCountryItem | null>(null)
   const [seed, setSeed] = useState<Partial<AdminCountryItem> | null>(null)
+  const [editorTab, setEditorTab] = useState<'overview' | 'work' | 'study' | 'content' | 'stats' | 'seo'>('overview')
   const [deleteTarget, setDeleteTarget] = useState<AdminCountryItem | null>(null)
   const [togglingId, setTogglingId] = useState<string | null>(null)
 
@@ -154,18 +323,51 @@ export default function CountriesAdminPage() {
     [countries],
   )
 
-  const stats = useMemo(
-    () => ({
+  // Precompute SEO analysis and attention reasons once per countries list change
+  // so stats, filtering, and card badges do NOT repeatedly run expensive checks.
+  const { seoScores, attentionMap } = useMemo(() => {
+    const scores = new Map<string, ReturnType<typeof analyzeCountrySeo>>()
+    const attention = new Map<string, string[]>()
+    for (const c of countries) {
+      scores.set(c.id, analyzeCountrySeo(c))
+      attention.set(c.id, attentionReasons(c))
+    }
+    return { seoScores: scores, attentionMap: attention }
+  }, [countries])
+
+  const stats = useMemo(() => {
+    let published = 0
+    let hidden = 0
+    let unsaved = 0
+    let work = 0
+    let study = 0
+    let attention = 0
+    let seoReady = 0
+
+    for (const c of countries) {
+      if (c.source === 'database') {
+        if (c.is_active) published++
+        else hidden++
+        if ((attentionMap.get(c.id)?.length ?? 0) > 0) attention++
+      } else {
+        unsaved++
+      }
+      if (c.has_work_visa) work++
+      if (c.has_study_visa) study++
+      if ((seoScores.get(c.id)?.score ?? 0) >= 70) seoReady++
+    }
+
+    return {
       total: countries.length,
-      published: countries.filter((c) => c.source === 'database' && c.is_active).length,
-      hidden: countries.filter((c) => c.source === 'database' && !c.is_active).length,
-      unsaved: countries.filter((c) => c.source !== 'database').length,
-      work: countries.filter((c) => c.has_work_visa).length,
-      study: countries.filter((c) => c.has_study_visa).length,
-      attention: countries.filter((c) => c.source === 'database' && attentionReasons(c).length > 0).length,
-    }),
-    [countries],
-  )
+      published,
+      hidden,
+      unsaved,
+      work,
+      study,
+      attention,
+      seoReady,
+    }
+  }, [countries, seoScores, attentionMap])
 
   const filtered = useMemo(() => {
     const term = deferredSearch.trim().toLowerCase()
@@ -177,7 +379,9 @@ export default function CountriesAdminPage() {
       if (status === 'published' && (c.source !== 'database' || !c.is_active)) return false
       if (status === 'hidden' && (c.source !== 'database' || c.is_active)) return false
       if (status === 'unsaved' && c.source === 'database') return false
-      if (status === 'attention' && (c.source !== 'database' || attentionReasons(c).length === 0)) return false
+      if (status === 'attention' && (c.source !== 'database' || (attentionMap.get(c.id)?.length ?? 0) === 0)) return false
+      if (status === 'seo_ready' && (seoScores.get(c.id)?.score ?? 0) < 70) return false
+      if (status === 'seo_missing' && (seoScores.get(c.id)?.score ?? 0) >= 70) return false
       return true
     })
     return [...rows].sort((a, b) => {
@@ -185,9 +389,9 @@ export default function CountriesAdminPage() {
       if (sort === 'updated') return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
       return a.sort_order - b.sort_order || a.name.localeCompare(b.name)
     })
-  }, [countries, deferredSearch, region, visa, status, sort])
+  }, [countries, deferredSearch, region, visa, status, sort, seoScores, attentionMap])
 
-  // Render cards in pages: all ~250 countries with menus at once made the page lag.
+  // Render cards in pages: render initial 12 countries for fast initial layout.
   useEffect(() => setVisibleCount(PAGE_SIZE), [deferredSearch, region, visa, status, sort])
   const visibleCountries = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount])
 
@@ -199,13 +403,30 @@ export default function CountriesAdminPage() {
     setStatus('all')
   }
 
-  const openEditor = (country: AdminCountryItem | null, seedData: Partial<AdminCountryItem> | null = null) => {
+  const openEditor = (
+    country: AdminCountryItem | null,
+    seedData: Partial<AdminCountryItem> | null = null,
+    tab: 'overview' | 'work' | 'study' | 'content' | 'stats' | 'seo' = 'overview',
+  ) => {
     setEditing(country)
     setSeed(seedData)
+    setEditorTab(tab)
     setEditorOpen(true)
   }
 
-  const handleToggle = async (country: AdminCountryItem) => {
+  const handleEdit = useCallback((country: AdminCountryItem) => {
+    openEditor(country)
+  }, [])
+
+  const handleEditSeo = useCallback((country: AdminCountryItem) => {
+    openEditor(country, null, 'seo')
+  }, [])
+
+  const handleDeletePrompt = useCallback((country: AdminCountryItem) => {
+    setDeleteTarget(country)
+  }, [])
+
+  const handleToggle = useCallback(async (country: AdminCountryItem) => {
     if (togglingId) return
     setTogglingId(country.id)
     try {
@@ -216,7 +437,7 @@ export default function CountriesAdminPage() {
     } finally {
       setTogglingId(null)
     }
-  }
+  }, [togglingId, toggleCountryActive])
 
   const handleDelete = async () => {
     if (!deleteTarget) return
@@ -264,6 +485,8 @@ export default function CountriesAdminPage() {
   const statusTabs: { value: StatusFilter; label: string; count: number }[] = [
     { value: 'all', label: 'All', count: stats.total },
     { value: 'published', label: 'Published', count: stats.published },
+    { value: 'seo_ready', label: 'SEO Ready', count: stats.seoReady },
+    { value: 'seo_missing', label: 'SEO Needs Work', count: stats.total - stats.seoReady },
     { value: 'hidden', label: 'Hidden', count: stats.hidden },
     { value: 'unsaved', label: 'Not added yet', count: stats.unsaved },
     { value: 'attention', label: 'Needs attention', count: stats.attention },
@@ -272,7 +495,7 @@ export default function CountriesAdminPage() {
   const selectClass = 'h-11 w-full rounded-xl border-[var(--desk-line)] bg-[var(--desk-surface)] text-sm sm:w-44'
 
   return (
-    <div className="applicant-desk space-y-6 pb-10">
+    <div className="space-y-6 pb-10">
       <PageHeader
         title="Countries & eligibility"
         description="Edit every country detail in one place. Changes save to the database and refresh the public pages automatically."
@@ -345,9 +568,10 @@ export default function CountriesAdminPage() {
         </div>
       )}
 
-      <Reveal className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <Reveal className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-7">
         <Stat label="Countries" value={stats.total} icon={Globe2} tone="bg-[#c49a2b]/12 text-[#8a6a1a]" loading={isLoading} active={status === 'all' && visa === 'all'} onClick={clearFilters} />
         <Stat label="Published" value={stats.published} icon={Eye} tone="bg-emerald-100/80 text-[#20875a]" loading={isLoading} active={status === 'published'} onClick={() => setStatus('published')} />
+        <Stat label="SEO ready" value={stats.seoReady} icon={Sparkles} tone="bg-teal-100/80 text-[#0f766e] dark:bg-teal-950/50 dark:text-teal-300" loading={isLoading} active={status === 'seo_ready'} onClick={() => setStatus(status === 'seo_ready' ? 'all' : 'seo_ready')} />
         <Stat label="Hidden" value={stats.hidden} icon={EyeOff} tone="bg-slate-100 text-slate-600" loading={isLoading} active={status === 'hidden'} onClick={() => setStatus('hidden')} />
         <Stat label="Work routes" value={stats.work} icon={Briefcase} tone="bg-amber-100/80 text-[#a66a00]" loading={isLoading} active={visa === 'work'} onClick={() => setVisa('work')} />
         <Stat label="Study routes" value={stats.study} icon={GraduationCap} tone="bg-sky-100/80 text-[#2876b8]" loading={isLoading} active={visa === 'study'} onClick={() => setVisa('study')} />
@@ -473,121 +697,22 @@ export default function CountriesAdminPage() {
               />
             ) : (
               <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {visibleCountries.map((country) => {
-                  const reasons = attentionReasons(country)
-                  return (
-                    <li key={country.id}>
-                      <article
-                        className={cn(
-                          'group flex h-full flex-col rounded-2xl border bg-[var(--desk-surface)] p-4 transition hover:-translate-y-0.5 hover:border-[var(--desk-gold)]/45 hover:shadow-[0_16px_32px_-24px_rgba(26,35,64,0.45)]',
-                          country.is_active ? 'border-[var(--desk-line)]' : 'border-dashed border-[var(--desk-line)] bg-[var(--desk-surface-soft)]',
-                        )}
-                      >
-                        <div className="flex items-start gap-3">
-                          <span className={cn('grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-[var(--desk-line)] bg-white text-3xl', !country.is_active && 'grayscale')}>
-                            <FlagIcon country={country.name} code={country.code} />
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <h3 className="truncate text-base font-semibold text-[var(--desk-navy)]">{country.name}</h3>
-                            <p className="truncate text-xs text-[var(--desk-muted)]">
-                              <span className="font-mono">{country.code}</span>
-                              {country.capital && ` · ${country.capital}`}
-                              {country.region && ` · ${country.region}`}
-                            </p>
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button type="button" variant="ghost" size="icon" aria-label={`More actions for ${country.name}`} className="h-10 w-10 shrink-0 rounded-xl text-[var(--desk-muted)]">
-                                <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuItem onSelect={() => openEditor(country)}>
-                                <PencilLine className="mr-2 h-4 w-4" aria-hidden="true" />
-                                {canUpdate ? 'Edit details' : 'View details'}
-                              </DropdownMenuItem>
-                              {canUpdate && country.source === 'database' && (
-                                <DropdownMenuItem onSelect={() => void handleToggle(country)} disabled={togglingId === country.id}>
-                                  {country.is_active ? <EyeOff className="mr-2 h-4 w-4" aria-hidden="true" /> : <Eye className="mr-2 h-4 w-4" aria-hidden="true" />}
-                                  {country.is_active ? 'Hide from website' : 'Publish on website'}
-                                </DropdownMenuItem>
-                              )}
-                              {country.source === 'database' && country.is_active && (
-                                <DropdownMenuItem asChild>
-                                  <a href={`/countries/${country.slug}`} target="_blank" rel="noreferrer">
-                                    <Globe2 className="mr-2 h-4 w-4" aria-hidden="true" />
-                                    View live page
-                                  </a>
-                                </DropdownMenuItem>
-                              )}
-                              {canDelete && country.source === 'database' && (
-                                <>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem onSelect={() => setDeleteTarget(country)} className="text-[var(--desk-danger)] focus:bg-red-50 focus:text-[var(--desk-danger)]">
-                                    <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
-                                    Delete country
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                          <StatusPill tone={country.source !== 'database' ? 'warning' : country.is_active ? 'success' : 'neutral'} icon={country.source !== 'database' ? CircleDashed : country.is_active ? Eye : EyeOff}>
-                            {country.source !== 'database' ? 'Not added yet' : country.is_active ? 'Published' : 'Hidden'}
-                          </StatusPill>
-                          {country.has_work_visa && (
-                            <StatusPill tone="warning" icon={Briefcase}>
-                              Work · {country.work_eligibility_criteria.length}
-                            </StatusPill>
-                          )}
-                          {country.has_study_visa && (
-                            <StatusPill tone="info" icon={GraduationCap}>
-                              Study · {country.study_eligibility_criteria.length}
-                            </StatusPill>
-                          )}
-                        </div>
-
-                        <p className="mt-3 line-clamp-2 text-sm text-[var(--desk-muted)]">
-                          {country.description || <span className="italic">No overview yet.</span>}
-                        </p>
-
-                        <dl className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-[var(--desk-surface-soft)] p-2.5 text-center text-xs">
-                          <div>
-                            <dt className="text-[var(--desk-muted)]">Success</dt>
-                            <dd className="font-semibold tabular-nums text-[var(--desk-navy)]">{country.success_rate}%</dd>
-                          </div>
-                          <div>
-                            <dt className="text-[var(--desk-muted)]">Processing</dt>
-                            <dd className="font-semibold tabular-nums text-[var(--desk-navy)]">{country.avg_processing_days}d</dd>
-                          </div>
-                          <div>
-                            <dt className="text-[var(--desk-muted)]">Living</dt>
-                            <dd className="font-semibold tabular-nums text-[var(--desk-navy)]">₹{Math.round(country.monthly_living_cost / 1000)}k</dd>
-                          </div>
-                        </dl>
-
-                        {reasons.length > 0 && (
-                          <p className="mt-3 flex items-start gap-1.5 text-xs text-[var(--desk-warning)]">
-                            <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                            {reasons.join(' · ')}
-                          </p>
-                        )}
-
-                        <div className="mt-auto flex items-center justify-between gap-2 pt-4">
-                          <span className="text-xs text-[var(--desk-muted)]">
-                            {country.source === 'database' ? `Updated ${formatDistanceToNow(new Date(country.updated_at), { addSuffix: true })}` : country.source === 'starter' ? 'Starter data · not saved' : 'Not added yet'}
-                          </span>
-                          <Button type="button" onClick={() => openEditor(country)} className="min-h-10 rounded-full bg-[var(--desk-navy)] px-4 text-[#fff8e7] hover:bg-[var(--desk-navy-soft)]">
-                            <PencilLine className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                            {country.source === 'database' ? (canUpdate ? 'Edit' : 'View') : canCreate ? 'Add & edit' : 'View'}
-                          </Button>
-                        </div>
-                      </article>
-                    </li>
-                  )
-                })}
+                {visibleCountries.map((country) => (
+                  <CountryCard
+                    key={country.id}
+                    country={country}
+                    seo={seoScores.get(country.id) ?? analyzeCountrySeo(country)}
+                    reasons={attentionMap.get(country.id) ?? []}
+                    canCreate={canCreate}
+                    canUpdate={canUpdate}
+                    canDelete={canDelete}
+                    isToggling={togglingId === country.id}
+                    onEdit={handleEdit}
+                    onEditSeo={handleEditSeo}
+                    onToggle={handleToggle}
+                    onDelete={handleDeletePrompt}
+                  />
+                ))}
               </ul>
             )}
             {filtered.length > visibleCount && (
@@ -604,19 +729,22 @@ export default function CountriesAdminPage() {
         </section>
       </Reveal>
 
-      <CountryEditorDialog
-        open={editorOpen}
-        onOpenChange={setEditorOpen}
-        country={editing}
-        seed={seed}
-        allCountries={countries}
-        onSave={saveCountry}
-        isSaving={isSaving}
-        canSave={editing ? canUpdate : canCreate}
-      />
+      {editorOpen && (
+        <CountryEditorDialog
+          open={editorOpen}
+          onOpenChange={setEditorOpen}
+          country={editing}
+          seed={seed}
+          allCountries={countries}
+          onSave={saveCountry}
+          isSaving={isSaving}
+          canSave={editing ? canUpdate : canCreate}
+          initialTab={editorTab}
+        />
+      )}
 
       <Dialog open={aiOpen} onOpenChange={(open) => !aiLoading && setAiOpen(open)}>
-        <DialogContent className="applicant-desk rounded-2xl border-[var(--desk-line)] bg-[var(--desk-surface)] text-[var(--desk-navy)]">
+        <DialogContent className="rounded-2xl border-[var(--desk-line)] bg-[var(--desk-surface)] text-[var(--desk-navy)] dark:bg-[#0a0a0a] dark:border-white/15">
           <DialogHeader className="text-left">
             <DialogTitle className="desk-display flex items-center gap-2 text-xl">
               <Sparkles className="h-5 w-5 text-[var(--desk-gold)]" aria-hidden="true" />

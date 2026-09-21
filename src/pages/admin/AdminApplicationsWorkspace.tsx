@@ -28,6 +28,7 @@ import {
   Filter, MoreHorizontal, RefreshCw, Search, ShieldAlert, Trash2, X, Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ThemeDatePicker } from '@/components/ui/theme-date-picker'
 import { writeAuditLog } from '@/lib/audit-log'
 import {
   type AppRow, type DetailData, type Officer,
@@ -288,9 +289,22 @@ export default function AdminApplicationsWorkspace() {
         <Select value={typeFilter} onValueChange={setTypeFilter}><SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger><SelectContent><SelectItem value="all">All types</SelectItem>{TYPES.map(value => <SelectItem key={value} value={value}>{pretty(value)}</SelectItem>)}</SelectContent></Select>
         <Select value={priorityFilter} onValueChange={setPriorityFilter}><SelectTrigger><SelectValue placeholder="Priority" /></SelectTrigger><SelectContent><SelectItem value="all">All priorities</SelectItem>{PRIORITIES.map(value => <SelectItem key={value} value={value}>{pretty(value)}</SelectItem>)}</SelectContent></Select>
         <Select value={countryFilter} onValueChange={setCountryFilter}><SelectTrigger><SelectValue placeholder="Country" /></SelectTrigger><SelectContent><SelectItem value="all">All countries</SelectItem>{countries.map(country => <SelectItem key={country.id} value={country.id}>{country.name}</SelectItem>)}</SelectContent></Select>
-        <Select value={officerFilter} onValueChange={setOfficerFilter}><SelectTrigger><SelectValue placeholder="Officer" /></SelectTrigger><SelectContent><SelectItem value="all">All officers</SelectItem>{officers.map(officer => <SelectItem key={officer.id} value={officer.id}>{officer.full_name || officer.email}</SelectItem>)}</SelectContent></Select>
-        <Input aria-label="Created from" type="date" value={dateFrom} onChange={event => setDateFrom(event.target.value)} />
-        <Input aria-label="Created to" type="date" value={dateTo} onChange={event => setDateTo(event.target.value)} />
+        <ThemeDatePicker
+          value={dateFrom}
+          onChange={setDateFrom}
+          placeholder="Created from"
+          variant="admin"
+          showShortcuts={false}
+          className="h-10 text-xs w-36"
+        />
+        <ThemeDatePicker
+          value={dateTo}
+          onChange={setDateTo}
+          placeholder="Created to"
+          variant="admin"
+          showShortcuts={false}
+          className="h-10 text-xs w-36"
+        />
       </div>
     </div>
 

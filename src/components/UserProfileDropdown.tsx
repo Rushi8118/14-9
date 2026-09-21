@@ -115,12 +115,12 @@ export default function UserProfileDropdown() {
           id={menuId}
           role="menu"
           aria-label="Account menu"
-          className="absolute right-0 mt-3 w-[17.5rem] z-50 overflow-hidden rounded-2xl border border-[#C49A2B]/20 dark:border-[rgba(255,255,255,0.12)] bg-[#FCFBF8]/97 dark:bg-[#111726]/98 shadow-[0_18px_40px_-18px_rgba(26,35,64,0.45)] backdrop-blur-xl"
+          className="absolute right-0 mt-3 w-[17.5rem] z-50 overflow-hidden rounded-2xl border border-[#C49A2B]/20 dark:border-white/15 bg-[#FCFBF8]/97 dark:bg-[#0a0a0a] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.95)] backdrop-blur-xl"
         >
           {/* Identity */}
-          <div className="relative overflow-hidden border-b border-[#C49A2B]/15 bg-gradient-to-br from-[#1A2340] to-[#2a3555] px-4 py-3.5 text-[#FFF8E7]">
+          <div className="relative overflow-hidden border-b border-[#C49A2B]/15 dark:border-white/10 bg-gradient-to-br from-[#1A2340] to-[#2a3555] dark:from-[#000000] dark:to-[#121212] px-4 py-3.5 text-[#FFF8E7]">
             <div
-              className="pointer-events-none absolute -right-4 -top-6 h-20 w-20 rounded-full bg-[#C49A2B]/20"
+              className="pointer-events-none absolute -right-4 -top-6 h-20 w-20 rounded-full bg-[#C49A2B]/20 dark:bg-[#C49A2B]/10"
               aria-hidden="true"
             />
             <div className="relative flex items-center gap-3">
@@ -131,10 +131,10 @@ export default function UserProfileDropdown() {
                 className="ring-2 ring-[#C49A2B]/45"
               />
               <div className="min-w-0">
-                <p className="font-serif text-sm font-semibold truncate">
+                <p className="font-serif text-sm font-semibold truncate text-white">
                   {profile?.full_name || 'Applicant Account'}
                 </p>
-                <p className="text-[11px] text-[#FFF8E7]/75 truncate mt-0.5">{user.email}</p>
+                <p className="text-[11px] text-[#FFF8E7]/75 dark:text-slate-400 truncate mt-0.5">{user.email}</p>
               </div>
             </div>
           </div>
@@ -146,13 +146,13 @@ export default function UserProfileDropdown() {
                 type="button"
                 role="menuitem"
                 onClick={() => go('/admin')}
-                className={`w-full flex items-center justify-between gap-2 rounded-xl border border-[#C49A2B]/30 bg-[#C49A2B]/8 hover:bg-[#C49A2B]/15 px-3 py-2.5 min-h-11 text-left transition ${itemFocus}`}
+                className={`w-full flex items-center justify-between gap-2 rounded-xl border border-[#C49A2B]/30 dark:border-white/15 bg-[#C49A2B]/8 dark:bg-white/[0.04] hover:bg-[#C49A2B]/15 dark:hover:bg-white/[0.08] px-3 py-2.5 min-h-11 text-left transition ${itemFocus}`}
               >
                 <span className="flex items-center gap-2.5">
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#1A2340] text-[#C49A2B]" aria-hidden="true">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#1A2340] dark:bg-[#181818] text-[#C49A2B]" aria-hidden="true">
                     <Shield className="h-4 w-4" />
                   </span>
-                  <span className="text-sm font-semibold text-[#1A2340] dark:text-[#f1f5f9]">Admin Panel</span>
+                  <span className="text-sm font-semibold text-[#1A2340] dark:text-white">Admin Panel</span>
                 </span>
                 <ChevronRight className="h-4 w-4 text-[#C49A2B]" aria-hidden="true" />
               </button>

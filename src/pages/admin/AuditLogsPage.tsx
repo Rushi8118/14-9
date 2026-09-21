@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { ThemeDatePicker } from '@/components/ui/theme-date-picker'
 import { usePermissions } from '@/hooks/usePermissions'
 import { toast } from 'sonner'
 import { writeAuditLog } from '@/lib/audit-log'
@@ -138,8 +139,22 @@ export default function AuditLogsPage() {
             <SelectItem value="critical">Critical</SelectItem>
           </SelectContent>
         </Select>
-        <Input type="date" value={from} onChange={(e) => changeFilter(() => setFrom(e.target.value))} className="w-40" aria-label="From date" />
-        <Input type="date" value={to} onChange={(e) => changeFilter(() => setTo(e.target.value))} className="w-40" aria-label="To date" />
+        <ThemeDatePicker
+          value={from}
+          onChange={(val) => changeFilter(() => setFrom(val))}
+          placeholder="From date"
+          variant="admin"
+          showShortcuts={false}
+          className="h-10 text-xs w-36"
+        />
+        <ThemeDatePicker
+          value={to}
+          onChange={(val) => changeFilter(() => setTo(val))}
+          placeholder="To date"
+          variant="admin"
+          showShortcuts={false}
+          className="h-10 text-xs w-36"
+        />
       </div>
 
       {error && (

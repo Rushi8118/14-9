@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { ThemeDatePicker } from '@/components/ui/theme-date-picker'
 
 const focusRing =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ud-copper)] focus-visible:ring-offset-2'
@@ -102,17 +103,22 @@ export default function AppointmentsPage() {
 
           <form onSubmit={handleBook} className="space-y-5">
             <div className="space-y-1.5">
-              <label htmlFor={dateId} className="text-xs font-bold text-foreground/75 uppercase tracking-wide">
-                1. Choose Date
+              <label htmlFor={dateId} className="text-xs font-bold text-foreground/75 uppercase tracking-wide flex items-center justify-between">
+                <span>1. Choose Date</span>
+                {selectedDate && (
+                  <span className="text-[11px] font-semibold text-[var(--ud-copper)]">
+                    {new Date(selectedDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
+                )}
               </label>
-              <input
+              <ThemeDatePicker
                 id={dateId}
-                type="date"
-                required
-                min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
                 value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className={`w-full h-11 px-3.5 text-sm font-semibold rounded-xl border border-border/60 bg-[var(--ud-canvas)]/20 ${focusRing}`}
+                onChange={setSelectedDate}
+                minDate={new Date(Date.now() + 86400000)}
+                placeholder="Choose consultation date..."
+                variant="dashboard"
+                showShortcuts={true}
               />
             </div>
 

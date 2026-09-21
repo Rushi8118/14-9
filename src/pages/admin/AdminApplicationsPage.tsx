@@ -19,6 +19,7 @@ import { Empty } from '@/components/ui/empty'
 import { Loader2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
+import { ThemeDatePicker } from '@/components/ui/theme-date-picker'
 
 type AppRow = {
   id: string
@@ -269,26 +270,22 @@ export default function AdminApplicationsPage() {
               </SelectGroup>
             </SelectContent>
           </Select>
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="date"
-              placeholder="From"
-              value={dateFrom}
-              onChange={e => setDateFrom(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="date"
-              placeholder="To"
-              value={dateTo}
-              onChange={e => setDateTo(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+          <ThemeDatePicker
+            value={dateFrom}
+            onChange={setDateFrom}
+            placeholder="From date"
+            variant="admin"
+            showShortcuts={false}
+            className="h-9 text-xs w-36"
+          />
+          <ThemeDatePicker
+            value={dateTo}
+            onChange={setDateTo}
+            placeholder="To date"
+            variant="admin"
+            showShortcuts={false}
+            className="h-9 text-xs w-36"
+          />
         </div>
       </div>
 

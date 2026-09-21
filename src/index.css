@@ -799,10 +799,26 @@ canvas {
   box-shadow: 0 8px 18px -12px rgba(196, 154, 43, 0.75);
 }
 
-.premium-desk .desk-panel {
+.premium-desk .desk-panel,
+.premium-desk .desk-card {
   background: var(--desk-surface);
   border: 1px solid var(--desk-line);
+  border-radius: 1rem;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.75) inset;
+}
+
+.premium-desk .desk-card-interactive {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.premium-desk .desk-card-interactive:hover {
+  transform: translateY(-2px);
+  border-color: rgba(196, 154, 43, 0.45);
+  box-shadow: 0 16px 32px -22px rgba(26, 35, 64, 0.4);
+}
+
+.premium-desk .desk-card-interactive:active {
+  transform: translateY(0) scale(0.99);
 }
 
 .premium-desk .desk-stat-rail {
@@ -852,10 +868,17 @@ canvas {
   backdrop-filter: blur(14px);
 }
 
-.dark .premium-desk .desk-panel {
-  background: #0a0a0a;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+.dark .premium-desk .desk-panel,
+.dark .premium-desk .desk-card {
+  background: #0a0a0a !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+}
+
+.dark .premium-desk .desk-card-interactive:hover {
+  transform: translateY(-2px);
+  border-color: rgba(229, 184, 76, 0.45) !important;
+  box-shadow: 0 16px 32px -22px rgba(0, 0, 0, 0.9) !important;
 }
 
 .dark .premium-desk .desk-nav-active {
@@ -1583,3 +1606,80 @@ html:has(.premium-desk.h-dvh) body {
 .premium-desk.h-dvh main {
   overscroll-behavior: contain;
 }
+
+/* ============================================================
+   GLOBAL THEMED CALENDAR & DATEPICKER STYLING
+   ============================================================ */
+
+/* Force browser native date pickers to inherit brand gold/copper accents */
+input[type="date"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="time"] {
+  accent-color: #c49a2b !important;
+  color-scheme: light;
+}
+
+.dark input[type="date"],
+.dark input[type="datetime-local"],
+.dark input[type="month"],
+.dark input[type="time"] {
+  accent-color: #d4a373 !important;
+  color-scheme: dark;
+}
+
+/* Styled calendar picker indicator inside native inputs */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 3px;
+  opacity: 0.75;
+  transition: all 0.2s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  background-color: rgba(196, 154, 43, 0.18);
+  transform: scale(1.08);
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.85) sepia(50%) saturate(400%) hue-rotate(5deg);
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  background-color: rgba(212, 163, 115, 0.25);
+}
+
+/* ==========================================================================
+   GLOBAL TOGGLE SWITCH OVERRIDES (NEVER BLACK IN EITHER ON OR OFF STATE)
+   ========================================================================== */
+button[role="switch"][data-state="checked"],
+[data-slot="switch"][data-state="checked"] {
+  background-color: #10b981 !important; /* Vibrant Emerald 500 */
+  border-color: #059669 !important;
+}
+
+button[role="switch"][data-state="checked"]:hover,
+[data-slot="switch"][data-state="checked"]:hover {
+  background-color: #059669 !important; /* Emerald 600 */
+}
+
+button[role="switch"][data-state="unchecked"],
+[data-slot="switch"][data-state="unchecked"] {
+  background-color: #cbd5e1 !important; /* Soft Slate 300 in light mode */
+  border-color: #94a3b8 !important;
+}
+
+.dark button[role="switch"][data-state="unchecked"],
+.dark [data-slot="switch"][data-state="unchecked"] {
+  background-color: #475569 !important; /* Medium Slate 600 in dark mode */
+  border-color: #64748b !important;
+}
+
+button[role="switch"] [data-slot="switch-thumb"],
+[data-slot="switch"] [data-slot="switch-thumb"] {
+  background-color: #ffffff !important; /* Crisp pure white thumb */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) !important;
+}
+
