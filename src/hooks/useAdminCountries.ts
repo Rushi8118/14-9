@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { subscribePostgresChanges } from '@/lib/supabase/realtime'
 import { countries as ISO_COUNTRY_CODES } from 'country-flag-icons'
+import { writeAuditLog } from '@/lib/audit-log'
+import { createDiffPayload } from '@/lib/diff-utils'
 
 export type AdminCountryItem = {
   id: string
@@ -1312,13 +1314,50 @@ export function useAdminCountries() {
   const saveMutation = useMutation({
     mutationFn: async ({ input, existing }: { input: CountryInput; existing?: AdminCountryItem | null }) => {
       const payload = toPayload(input, existing?.raw)
+      const isExistingDb = existing?.source === 'database'
       const { data, error } =
-        existing?.source === 'database'
+        isExistingDb
           ? await supabase.from('countries').update(payload).eq('id', existing.id).select('*').maybeSingle()
           : await supabase.from('countries').insert(payload).select('*').maybeSingle()
       if (error) throw new CountrySaveError(friendlyDbError(error))
       if (!data) throw new CountrySaveError("The change wasn't saved. Your account may not have permission to edit countries.")
-      return fromRow(data as CountryRow)
+      
+      const item = fromRow(data as CountryRow)
+
+      // Detailed audit and activity logging with from/to diffs
+      try {
+        if (existing) {
+          const diff = createDiffPayload(existing, input)
+          void writeAuditLog({
+            action: 'country.updated',
+            resource: 'countries',
+            resourceId: item.id,
+            oldValue: diff.oldValue,
+            newValue: diff.newValue,
+            summary: diff.summary || `Updated country "${item.name}"`,
+          })
+        } else {
+          void writeAuditLog({
+            action: 'country.created',
+            resource: 'countries',
+            resourceId: item.id,
+            newValue: {
+              name: item.name,
+              code: item.code,
+              capital: item.capital,
+              region: item.region,
+              is_active: item.is_active,
+              has_work_visa: item.has_work_visa,
+              has_study_visa: item.has_study_visa,
+            },
+            summary: `Created country "${item.name}" (${item.code})`,
+          })
+        }
+      } catch {
+        // Logging should never fail the mutation
+      }
+
+      return item
     },
     onSuccess: (item) => {
       queryClient.setQueryData<AdminCountryItem[]>(queryKey, (prev = []) => {
@@ -1338,14 +1377,24 @@ export function useAdminCountries() {
 
   const toggleCountryActive = useCallback(
     async (item: AdminCountryItem) => {
+      const nextActive = !item.is_active
       const previous = queryClient.getQueryData<AdminCountryItem[]>(queryKey)
       if (item.source === 'database') {
         queryClient.setQueryData<AdminCountryItem[]>(queryKey, (prev = []) =>
-          prev.map((c) => (c.id === item.id ? { ...c, is_active: !c.is_active } : c)),
+          prev.map((c) => (c.id === item.id ? { ...c, is_active: nextActive } : c)),
         )
       }
       try {
-        return await saveAsync({ input: countryToInput(item, { is_active: !item.is_active }), existing: item })
+        const result = await saveAsync({ input: countryToInput(item, { is_active: nextActive }), existing: item })
+        void writeAuditLog({
+          action: 'country.status_toggled',
+          resource: 'countries',
+          resourceId: item.id,
+          oldValue: { is_active: item.is_active, name: item.name, code: item.code },
+          newValue: { is_active: nextActive, name: item.name, code: item.code },
+          summary: `Status of "${item.name}": "${item.is_active ? 'Active' : 'Hidden'}" ➔ "${nextActive ? 'Active' : 'Hidden'}"`,
+        })
+        return result
       } catch (err) {
         if (previous) queryClient.setQueryData(queryKey, previous)
         throw err
@@ -1366,6 +1415,22 @@ export function useAdminCountries() {
           'Your database rules do not allow deleting countries yet. Hide the country instead, or apply the countries admin migration.',
         )
       }
+
+      void writeAuditLog({
+        action: 'country.deleted',
+        resource: 'countries',
+        resourceId: item.id,
+        severity: 'warning',
+        oldValue: {
+          name: item.name,
+          code: item.code,
+          capital: item.capital,
+          region: item.region,
+          is_active: item.is_active,
+        },
+        summary: `Deleted country "${item.name}" (${item.code})`,
+      })
+
       return item.id
     },
     onSuccess: (id) => {

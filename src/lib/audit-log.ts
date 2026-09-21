@@ -71,6 +71,8 @@ type AuditLogParams = {
   requestId?: string
   success?: boolean
   errorReason?: string
+  /** Human-friendly change summary */
+  summary?: string
 }
 
 /** Best-effort audit write: never throws, never blocks the caller's main
@@ -79,6 +81,21 @@ type AuditLogParams = {
  *  the RPC stores them as-is. */
 export async function writeAuditLog(params: AuditLogParams): Promise<string | null> {
   try {
+    // 1. Dual-log to activity_logs so both "Audit Logs" and "Activity Logs" record the action
+    try {
+      const { logActivity } = await import('./activity-logger')
+      logActivity('form_submit', params.action, `${params.resource}${params.resourceId ? ` #${params.resourceId.slice(0, 8)}` : ''}`, {
+        resource: params.resource,
+        resourceId: params.resourceId,
+        oldValue: params.oldValue,
+        newValue: params.newValue,
+        summary: params.summary,
+      })
+    } catch {
+      // ignore
+    }
+
+    // 2. Primary write via write_audit_log RPC
     const { data, error } = await supabase.rpc('write_audit_log', {
       p_action: params.action,
       p_resource: params.resource,
@@ -98,7 +115,20 @@ export async function writeAuditLog(params: AuditLogParams): Promise<string | nu
 
     if (error) {
       logger.warn('write_audit_log RPC failed:', error.message)
-      return null
+      // Resilient fallback: direct insert to audit_logs table
+      try {
+        const { data: insertData } = await supabase.from('audit_logs').insert({
+          action: params.action,
+          resource: params.resource,
+          resource_id: params.resourceId ?? null,
+          old_value: params.oldValue ?? null,
+          new_value: params.newValue ?? null,
+          severity: params.severity ?? 'info',
+        }).select('id').maybeSingle()
+        return (insertData as any)?.id ?? null
+      } catch {
+        return null
+      }
     }
 
     return data as string

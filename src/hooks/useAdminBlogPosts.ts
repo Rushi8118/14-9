@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { absoluteUrl } from '@/lib/seo/site'
 import { sanitizeRichText } from '@/lib/security/sanitizeHtml'
 import { writeAuditLog } from '@/lib/audit-log'
+import { createDiffPayload } from '@/lib/diff-utils'
 
 export type AdminBlogFaqItem = { question: string; answer: string }
 
@@ -223,12 +224,30 @@ export function useAdminBlogPosts() {
       toast.success(
         vars.status === 'published' ? 'Blog published.' : 'Blog saved as draft.',
       )
-      void writeAuditLog({
-        action: vars.id ? 'blog.updated' : 'blog.created',
-        resource: 'blog_posts',
-        resourceId: post.id,
-        newValue: { title: post.title, slug: post.slug, status: post.status },
-      })
+      try {
+        const existing = (query.data || []).find((p) => p.id === post.id || p.slug === post.slug)
+        if (existing) {
+          const diff = createDiffPayload(existing, post)
+          void writeAuditLog({
+            action: vars.id ? 'blog.updated' : 'blog.created',
+            resource: 'blog_posts',
+            resourceId: post.id,
+            oldValue: diff.oldValue,
+            newValue: diff.newValue,
+            summary: diff.summary || `Updated blog post "${post.title}"`,
+          })
+        } else {
+          void writeAuditLog({
+            action: 'blog.created',
+            resource: 'blog_posts',
+            resourceId: post.id,
+            newValue: { title: post.title, slug: post.slug, status: post.status },
+            summary: `Created blog post "${post.title}"`,
+          })
+        }
+      } catch {
+        // Logging should not throw
+      }
       if (vars.status === 'published') {
         void writeAuditLog({ action: 'blog.published', resource: 'blog_posts', resourceId: post.id, newValue: { slug: post.slug } })
       }
@@ -251,6 +270,7 @@ export function useAdminBlogPosts() {
       if (error) throw error
     },
     onSuccess: (_, input) => {
+      const existing = (query.data || []).find((p) => p.id === input.id)
       queryClient.invalidateQueries({ queryKey: ['admin-blog-posts'] })
       queryClient.invalidateQueries({ queryKey: ['blogPosts'] })
       toast.success('Status updated.')
@@ -258,7 +278,9 @@ export function useAdminBlogPosts() {
         action: input.status === 'published' ? 'blog.published' : 'blog.unpublished',
         resource: 'blog_posts',
         resourceId: input.id,
-        newValue: { status: input.status },
+        oldValue: { status: existing?.status, title: existing?.title },
+        newValue: { status: input.status, title: existing?.title },
+        summary: `Status of "${existing?.title || input.id}": "${existing?.status || 'draft'}" ➔ "${input.status}"`,
       })
     },
     onError: (error: Error) => toast.error(error.message || 'Failed to update status'),
@@ -271,10 +293,18 @@ export function useAdminBlogPosts() {
       return id
     },
     onSuccess: (id) => {
+      const existing = (query.data || []).find((p) => p.id === id)
       queryClient.invalidateQueries({ queryKey: ['admin-blog-posts'] })
       queryClient.invalidateQueries({ queryKey: ['blogPosts'] })
       toast.success('Post deleted.')
-      void writeAuditLog({ action: 'blog.deleted', resource: 'blog_posts', resourceId: id, severity: 'warning' })
+      void writeAuditLog({
+        action: 'blog.deleted',
+        resource: 'blog_posts',
+        resourceId: id,
+        severity: 'warning',
+        oldValue: { title: existing?.title, slug: existing?.slug },
+        summary: `Deleted blog post "${existing?.title || id}"`,
+      })
     },
     onError: (error: Error) => toast.error(error.message || 'Failed to delete post'),
   })

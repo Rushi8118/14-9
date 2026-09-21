@@ -10,6 +10,7 @@ import { ThemeDatePicker } from '@/components/ui/theme-date-picker'
 import { usePermissions } from '@/hooks/usePermissions'
 import { toast } from 'sonner'
 import { writeAuditLog } from '@/lib/audit-log'
+import { ChangeDiffViewer } from '@/components/admin/ChangeDiffViewer'
 
 const SEVERITY_COLORS = {
   info:     'bg-blue-50 text-blue-700 border-blue-200',
@@ -261,22 +262,12 @@ export default function AuditLogsPage() {
               <DetailRow label="Severity" value={selected.severity} />
               <DetailRow label="IP address" value={selected.ip_address} mono />
               {(selected.old_value != null || selected.new_value != null) && (
-                <div>
-                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Before / after</p>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <div>
-                      <p className="mb-1 text-[11px] font-medium text-muted-foreground">Before</p>
-                      <pre className="max-h-56 overflow-auto rounded-lg bg-red-50 p-2 text-xs text-red-900 dark:bg-red-950/30 dark:text-red-200">
-                        {selected.old_value != null ? JSON.stringify(selected.old_value, null, 2) : '—'}
-                      </pre>
-                    </div>
-                    <div>
-                      <p className="mb-1 text-[11px] font-medium text-muted-foreground">After</p>
-                      <pre className="max-h-56 overflow-auto rounded-lg bg-emerald-50 p-2 text-xs text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
-                        {selected.new_value != null ? JSON.stringify(selected.new_value, null, 2) : '—'}
-                      </pre>
-                    </div>
-                  </div>
+                <div className="pt-2">
+                  <ChangeDiffViewer
+                    oldValue={selected.old_value}
+                    newValue={selected.new_value}
+                    action={selected.action}
+                  />
                 </div>
               )}
             </div>

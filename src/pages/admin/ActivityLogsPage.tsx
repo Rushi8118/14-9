@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { ChangeDiffViewer } from '@/components/admin/ChangeDiffViewer'
 
 type ActivityLog = {
   id: number
@@ -239,9 +240,13 @@ export default function ActivityLogsPage() {
                   </div>
                 ) : null)}
                 {Object.keys(selected.details ?? {}).length > 0 && (
-                  <div>
-                    <dt className="mb-1 text-xs font-medium text-muted-foreground">Details</dt>
-                    <dd><pre className="max-h-80 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-muted p-3 text-xs">{JSON.stringify(selected.details, null, 2)}</pre></dd>
+                  <div className="pt-2">
+                    <ChangeDiffViewer
+                      oldValue={selected.details?.oldValue}
+                      newValue={selected.details?.newValue}
+                      details={selected.details}
+                      action={selected.action}
+                    />
                   </div>
                 )}
               </dl>

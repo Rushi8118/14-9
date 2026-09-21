@@ -84,17 +84,32 @@ async function main() {
     }
     const page = await browser.newPage()
 
+    // Abort heavy or stall-prone external media (images, videos) to prevent network hangs and speed up prerender
+    await page.route('**/*', (route) => {
+      const type = route.request().resourceType()
+      if (type === 'image' || type === 'media') {
+        return route.abort()
+      }
+      return route.continue()
+    })
+
     for (const route of ROUTES) {
       const url = `${BASE}${route === '/404' ? '/this-page-does-not-exist-prerender' : route}`
-      await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 })
-      await page.waitForSelector('#root', { timeout: 30000 })
-      // Give helmet/lazy routes a moment to settle
-      await sleep(400)
-      const html = await page.content()
-      const target = outFileForRoute(route === '/404' ? '/404' : route)
-      await mkdir(path.dirname(target), { recursive: true })
-      await writeFile(target, html, 'utf8')
-      console.log(`prerendered ${route} -> ${path.relative(root, target)}`)
+      try {
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
+        await page.waitForSelector('#root', { timeout: 15000 }).catch(() => {})
+        await page.waitForFunction(() => (document.getElementById('root')?.innerText?.length || 0) > 10, { timeout: 8000 }).catch(() => {})
+        await page.waitForLoadState('networkidle', { timeout: 2000 }).catch(() => {})
+        // Give helmet/lazy routes a moment to settle
+        await sleep(300)
+        const html = await page.content()
+        const target = outFileForRoute(route === '/404' ? '/404' : route)
+        await mkdir(path.dirname(target), { recursive: true })
+        await writeFile(target, html, 'utf8')
+        console.log(`prerendered ${route} -> ${path.relative(root, target)}`)
+      } catch (err) {
+        console.warn(`prerender failed for ${route}:`, err.message)
+      }
     }
 
     await browser.close()

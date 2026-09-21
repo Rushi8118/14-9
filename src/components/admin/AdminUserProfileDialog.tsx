@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/select'
 import { StatusBadge, roleBadge } from '@/components/admin/StatusBadge'
 import { writeAuditLog } from '@/lib/audit-log'
+import { createDiffPayload } from '@/lib/diff-utils'
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -215,6 +216,7 @@ export function AdminUserProfileDialog({ userId, onClose }: AdminUserProfileDial
       await queryClient.invalidateQueries({ queryKey: ['admin-users'] })
 
       if (user) {
+        const diff = createDiffPayload(user, form)
         if (user.user_role !== form.user_role) {
           void writeAuditLog({
             action: 'user.role_changed',
@@ -222,6 +224,7 @@ export function AdminUserProfileDialog({ userId, onClose }: AdminUserProfileDial
             resourceId: userId,
             oldValue: { user_role: user.user_role },
             newValue: { user_role: form.user_role },
+            summary: `User Role: "${user.user_role}" ➔ "${form.user_role}"`,
             severity: 'warning',
           })
         }
@@ -232,12 +235,18 @@ export function AdminUserProfileDialog({ userId, onClose }: AdminUserProfileDial
             resourceId: userId,
             oldValue: { status: user.status },
             newValue: { status: form.status },
+            summary: `User Status: "${user.status}" ➔ "${form.status}"`,
             severity: form.status === 'suspended' ? 'warning' : 'info',
           })
         }
-        if (user.user_role === form.user_role && user.status === form.status) {
-          void writeAuditLog({ action: 'user.updated', resource: 'user_profiles', resourceId: userId })
-        }
+        void writeAuditLog({
+          action: 'user.updated',
+          resource: 'user_profiles',
+          resourceId: userId,
+          oldValue: diff.oldValue,
+          newValue: diff.newValue,
+          summary: diff.summary || `Updated user ${user.email || userId}`,
+        })
       }
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : 'Failed to update user')

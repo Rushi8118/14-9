@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { writeAuditLog } from '@/lib/audit-log'
+import { createDiffPayload } from '@/lib/diff-utils'
 
 export type UrgentRequirementFaqItem = { question: string; answer: string }
 
@@ -776,14 +777,37 @@ export function useAdminUrgentRequirements() {
           ? `"${saved.title}" is now live.`
           : `"${saved.title}" saved as ${saved.status}.`,
       )
-      void writeAuditLog({
-        action: input.id
-          ? (saved.status === 'active' ? 'urgent_requirement.published' : saved.status === 'closed' ? 'urgent_requirement.closed' : 'urgent_requirement.updated')
-          : 'urgent_requirement.created',
-        resource: 'urgent_requirements',
-        resourceId: saved.id,
-        newValue: { title: saved.title, slug: saved.slug, status: saved.status },
-      })
+      try {
+        const existing = requirements.find((r) => r.id === input.id || r.slug === input.slug)
+        if (existing) {
+          const diff = createDiffPayload(existing, input)
+          void writeAuditLog({
+            action: (saved.status === 'active' ? 'urgent_requirement.published' : saved.status === 'closed' ? 'urgent_requirement.closed' : 'urgent_requirement.updated'),
+            resource: 'urgent_requirements',
+            resourceId: saved.id,
+            oldValue: diff.oldValue,
+            newValue: diff.newValue,
+            summary: diff.summary || `Updated urgent requirement "${saved.title}"`,
+          })
+        } else {
+          void writeAuditLog({
+            action: 'urgent_requirement.created',
+            resource: 'urgent_requirements',
+            resourceId: saved.id,
+            newValue: {
+              title: saved.title,
+              slug: saved.slug,
+              country: saved.country,
+              vacancies: saved.vacancies,
+              salary: saved.salary,
+              status: saved.status,
+            },
+            summary: `Created urgent opening "${saved.title}"`,
+          })
+        }
+      } catch {
+        // Logging should not throw
+      }
       return saved
     } catch (err: any) {
       toast.error(err?.message || 'Failed to save!')

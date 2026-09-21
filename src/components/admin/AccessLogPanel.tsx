@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { ChangeDiffViewer } from '@/components/admin/ChangeDiffViewer'
 import {
   Select,
   SelectContent,
@@ -881,22 +882,12 @@ function AdminActionsPreview() {
               <DetailRow label="Resource ID" value={selected.resource_id} mono />
               <DetailRow label="Severity" value={selected.severity} />
               {(selected.old_value != null || selected.new_value != null) && (
-                <div>
-                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Before / after</p>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <div>
-                      <p className="mb-1 text-[11px] font-medium text-muted-foreground">Before</p>
-                      <pre className="max-h-56 overflow-auto rounded-lg bg-red-50 p-2 text-xs text-red-900 dark:bg-red-950/30 dark:text-red-200">
-                        {selected.old_value != null ? JSON.stringify(selected.old_value, null, 2) : '—'}
-                      </pre>
-                    </div>
-                    <div>
-                      <p className="mb-1 text-[11px] font-medium text-muted-foreground">After</p>
-                      <pre className="max-h-56 overflow-auto rounded-lg bg-emerald-50 p-2 text-xs text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
-                        {selected.new_value != null ? JSON.stringify(selected.new_value, null, 2) : '—'}
-                      </pre>
-                    </div>
-                  </div>
+                <div className="pt-2">
+                  <ChangeDiffViewer
+                    oldValue={selected.old_value}
+                    newValue={selected.new_value}
+                    action={selected.action}
+                  />
                 </div>
               )}
             </div>
