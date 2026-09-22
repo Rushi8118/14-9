@@ -26,6 +26,12 @@ type ActivityLog = {
   details: Record<string, unknown>
   device_type: string | null
   browser: string | null
+  table_name?: string | null
+  record_id?: string | null
+  action_type?: string | null
+  changes?: unknown
+  old_value?: unknown
+  new_value?: unknown
 }
 
 type Person = { id: string; full_name: string | null; email: string | null }
@@ -34,6 +40,7 @@ const PAGE_SIZE = 50
 
 const CATEGORIES = [
   { value: 'all', label: 'All events' },
+  { value: 'data_change', label: 'Data changes' },
   { value: 'click', label: 'Clicks' },
   { value: 'navigation', label: 'Page views' },
   { value: 'form_submit', label: 'Form submits' },
@@ -43,6 +50,7 @@ const CATEGORIES = [
 ]
 
 const CATEGORY_STYLE: Record<string, { icon: typeof Info; className: string }> = {
+  data_change: { icon: FileInput, className: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
   click: { icon: MousePointerClick, className: 'bg-blue-50 text-blue-700 border-blue-200' },
   navigation: { icon: Navigation, className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   form_submit: { icon: FileInput, className: 'bg-violet-50 text-violet-700 border-violet-200' },
@@ -217,41 +225,66 @@ export default function ActivityLogsPage() {
 
       <Sheet open={selected !== null} onOpenChange={(open) => { if (!open) setSelected(null) }}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
-          {selected && (
-            <>
-              <SheetHeader>
-                <SheetTitle className="break-words">{selected.action}</SheetTitle>
-                <SheetDescription>{format(new Date(selected.created_at), 'dd MMM yyyy, HH:mm:ss')}</SheetDescription>
-              </SheetHeader>
-              <dl className="mt-4 space-y-2 px-4 text-sm">
-                {([
-                  ['User', personLabel(selected.user_id)],
-                  ['User ID', selected.user_id],
-                  ['Type', selected.category],
-                  ['Page', selected.page_path],
-                  ['Element', selected.target],
-                  ['Device', selected.device_type],
-                  ['Browser', selected.browser],
-                  ['Session', selected.session_id],
-                ] as const).map(([label, value]) => value ? (
-                  <div key={label} className="flex justify-between gap-3 border-b border-border/50 pb-1.5">
-                    <dt className="shrink-0 text-xs font-medium text-muted-foreground">{label}</dt>
-                    <dd className="break-all text-right font-mono text-xs">{value}</dd>
-                  </div>
-                ) : null)}
-                {Object.keys(selected.details ?? {}).length > 0 && (
-                  <div className="pt-2">
-                    <ChangeDiffViewer
-                      oldValue={selected.details?.oldValue}
-                      newValue={selected.details?.newValue}
-                      details={selected.details}
-                      action={selected.action}
-                    />
-                  </div>
-                )}
-              </dl>
-            </>
-          )}
+          {selected && (() => {
+            const tableName = selected.table_name || (selected.details?.table_name as string) || (selected.details?.resource as string) || null
+            const recordId = selected.record_id || (selected.details?.record_id as string) || (selected.details?.resourceId as string) || null
+            const actionType = selected.action_type || (selected.details?.action_type as string) || (
+              selected.action.toLowerCase().includes('created') ? 'Created' :
+              selected.action.toLowerCase().includes('deleted') ? 'Deleted' :
+              selected.action.toLowerCase().includes('updated') ? 'Updated' : null
+            )
+            const hasDataChange = tableName || actionType || selected.changes || selected.details?.changes || selected.details?.oldValue || selected.details?.newValue || selected.old_value || selected.new_value
+
+            return (
+              <>
+                <SheetHeader>
+                  <SheetTitle className="break-words">{selected.action}</SheetTitle>
+                  <SheetDescription>{format(new Date(selected.created_at), 'dd MMM yyyy, HH:mm:ss')}</SheetDescription>
+                </SheetHeader>
+                <dl className="mt-4 space-y-2 px-4 text-sm">
+                  {([
+                    ['User', personLabel(selected.user_id)],
+                    ['User ID', selected.user_id],
+                    ['Table / Module', tableName],
+                    ['Record ID', recordId],
+                    ['Action Type', actionType],
+                    ['Type', selected.category],
+                    ['Page', selected.page_path],
+                    ['Element', selected.target],
+                    ['Device', selected.device_type],
+                    ['Browser', selected.browser],
+                    ['Session', selected.session_id],
+                  ] as const).map(([label, value]) => value ? (
+                    <div key={label} className="flex justify-between gap-3 border-b border-border/50 pb-1.5">
+                      <dt className="shrink-0 text-xs font-medium text-muted-foreground">{label}</dt>
+                      <dd className="break-all text-right font-mono text-xs">{value}</dd>
+                    </div>
+                  ) : null)}
+                  {hasDataChange ? (
+                    <div className="pt-3">
+                      <ChangeDiffViewer
+                        oldValue={selected.old_value ?? selected.details?.oldValue ?? selected.details?.old_value}
+                        newValue={selected.new_value ?? selected.details?.newValue ?? selected.details?.new_value}
+                        changes={selected.changes as any}
+                        details={selected.details}
+                        action={selected.action}
+                        actionType={actionType ?? undefined}
+                        tableName={tableName ?? undefined}
+                        recordId={recordId ?? undefined}
+                      />
+                    </div>
+                  ) : Object.keys(selected.details ?? {}).length > 0 ? (
+                    <div className="pt-3">
+                      <ChangeDiffViewer
+                        details={selected.details}
+                        action={selected.action}
+                      />
+                    </div>
+                  ) : null}
+                </dl>
+              </>
+            )
+          })()}
         </SheetContent>
       </Sheet>
     </div>

@@ -1,8 +1,18 @@
 /**
  * Diffing and change-tracking utility for audit and activity logs.
- * Computes deep or shallow field-level differences between before/after states
- * and produces human-readable labels, values, and summaries.
+ * Computes field-level differences between original database records and submitted values,
+ * producing structured change records with friendly labels, formatted values,
+ * and safe handling for sensitive fields.
  */
+
+export type ChangeItem = {
+  field: string
+  field_name: string
+  old_value: string
+  new_value: string
+  fromRaw?: unknown
+  toRaw?: unknown
+}
 
 export type FieldDiff = {
   field: string
@@ -14,21 +24,38 @@ export type FieldDiff = {
   type: 'changed' | 'added' | 'removed'
 }
 
+export type DetailedChangeResult = {
+  table_name: string
+  record_id: string
+  action_type: 'Created' | 'Updated' | 'Deleted'
+  changes: ChangeItem[]
+  hasChanges: boolean
+  old_value: Record<string, unknown>
+  new_value: Record<string, unknown>
+  summary: string
+}
+
 const IGNORED_DIFF_KEYS = new Set([
   'id',
   'created_at',
   'updated_at',
   'source',
   'raw',
-  'password',
-  'token',
-  'secret',
+  'created_by',
+  'updated_by',
 ])
 
+const SENSITIVE_KEY_PATTERN = /password|token|secret|api_key|auth_token|cvv|otp|pin|salt|hash|bearer/i
+
+export function isSensitiveField(key: string): boolean {
+  return SENSITIVE_KEY_PATTERN.test(key)
+}
+
 const FRIENDLY_FIELD_NAMES: Record<string, string> = {
-  name: 'Country / Item Name',
-  title: 'Title',
-  slug: 'URL Slug',
+  // Countries
+  name: 'Country name',
+  avg_processing_days: 'Average processing time',
+  is_active: 'Status',
   code: 'Country ISO Code',
   flag_emoji: 'Flag Emoji',
   capital: 'Capital City',
@@ -44,7 +71,6 @@ const FRIENDLY_FIELD_NAMES: Record<string, string> = {
   climate_summary: 'Climate Summary',
   has_work_visa: 'Work Visa Available',
   has_study_visa: 'Study Visa Available',
-  is_active: 'Active Status (Website Visibility)',
   sort_order: 'Sort Order',
   meta_title: 'SEO Meta Title',
   meta_desc: 'SEO Meta Description',
@@ -53,20 +79,34 @@ const FRIENDLY_FIELD_NAMES: Record<string, string> = {
   study_eligibility_criteria: 'Study Visa Eligibility',
   images: 'Gallery Images',
   success_rate: 'Visa Success Rate (%)',
-  avg_processing_days: 'Avg Processing Time (Days)',
   monthly_living_cost: 'Monthly Living Cost',
   monthly_family_cost: 'Monthly Family Cost',
+
+  // Blog Posts
+  title: 'Title',
+  slug: 'URL Slug',
+  summary: 'Summary Overview',
+  content: 'Body Content',
+  excerpt: 'Excerpt',
+  status: 'Status',
+  featured_image: 'Featured Image',
+  published_at: 'Published At',
+
+  // Urgent Requirements & Jobs
+  job_title: 'Job Title',
   vacancies: 'Open Vacancies',
   salary: 'Salary / Compensation',
   category: 'Category / Visa Type',
   employer: 'Employer Name',
-  status: 'Publish Status',
-  summary: 'Summary Overview',
-  content: 'Body Content',
+  country: 'Destination Country',
   deadline_at: 'Application Deadline',
   expires_at: 'Expiration Date',
+
+  // Users & Roles
   user_role: 'User Role',
+  role: 'User Role',
   full_name: 'Full Name',
+  email: 'Email Address',
   phone: 'Phone Number',
   is_suspended: 'Account Suspended',
 }
@@ -80,51 +120,219 @@ export function getFieldLabel(key: string): string {
     .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
-export function formatDiffValue(val: unknown): string {
-  if (val === null || val === undefined) return '— (empty)'
-  if (typeof val === 'boolean') return val ? 'Active / Yes (true)' : 'Hidden / No (false)'
-  if (typeof val === 'number') return String(val)
+function isEmptyValue(val: unknown): boolean {
+  if (val === null || val === undefined) return true
+  if (typeof val === 'string' && val.trim() === '') return true
+  if (Array.isArray(val) && val.length === 0) return true
+  return false
+}
+
+export function formatDiffValue(val: unknown, key?: string): string {
+  if (isEmptyValue(val)) return '—'
+
+  if (typeof val === 'boolean') {
+    const isStatusKey = key && (key.includes('active') || key.includes('status'))
+    if (isStatusKey) {
+      return val ? 'Active' : 'Inactive'
+    }
+    return val ? 'Yes' : 'No'
+  }
+
+  if (typeof val === 'number') {
+    if (key === 'avg_processing_days' || key === 'processing_days') {
+      return `${val} days`
+    }
+    return String(val)
+  }
+
   if (typeof val === 'string') {
     const trimmed = val.trim()
-    if (!trimmed) return '— (empty string)'
-    if (trimmed.length > 250) return `${trimmed.slice(0, 247)}...`
+    if (!trimmed) return '—'
     return trimmed
   }
+
   if (Array.isArray(val)) {
-    if (val.length === 0) return '[] (empty list)'
-    if (val.every((item) => typeof item === 'string')) {
-      if (val.length <= 3) return val.join(', ')
-      return `${val.slice(0, 3).join(', ')} (+${val.length - 3} more)`
+    if (val.length === 0) return '—'
+    if (val.every((item) => typeof item === 'string' || typeof item === 'number')) {
+      return val.join(', ')
     }
-    return `[${val.length} items]`
+    try {
+      return JSON.stringify(val)
+    } catch {
+      return '[Array]'
+    }
   }
+
   if (typeof val === 'object') {
     try {
       const str = JSON.stringify(val)
-      return str.length > 100 ? `${str.slice(0, 97)}...` : str
+      return str === '{}' ? '—' : str
     } catch {
       return '[Object]'
     }
   }
+
   return String(val)
 }
 
 function areValuesEqual(a: unknown, b: unknown): boolean {
+  if (isEmptyValue(a) && isEmptyValue(b)) return true
+  if (isEmptyValue(a) || isEmptyValue(b)) return false
+
   if (a === b) return true
-  if (a === null || a === undefined) return b === null || b === undefined
-  if (b === null || b === undefined) return false
-  if (typeof a === 'object' || typeof b === 'object') {
+
+  if (typeof a === 'boolean' || typeof b === 'boolean') {
+    return Boolean(a) === Boolean(b)
+  }
+
+  if (typeof a === 'number' || typeof b === 'number') {
+    const numA = Number(a)
+    const numB = Number(b)
+    if (!isNaN(numA) && !isNaN(numB)) return numA === numB
+  }
+
+  if (typeof a === 'string' && typeof b === 'string') {
+    return a.trim() === b.trim()
+  }
+
+  if (typeof a === 'object' && typeof b === 'object') {
     try {
       return JSON.stringify(a) === JSON.stringify(b)
     } catch {
       return false
     }
   }
+
   return false
 }
 
 /**
- * Compute differences between two states.
+ * Detailed change computation comparing original database record with submitted values.
+ * Handles 'Created', 'Updated', and 'Deleted' action types.
+ */
+export function computeDetailedChanges(
+  originalRecord: unknown,
+  submittedRecord: unknown,
+  actionType: 'Created' | 'Updated' | 'Deleted',
+  options: {
+    tableName?: string
+    recordId?: string
+    ignoredKeys?: string[]
+  } = {}
+): DetailedChangeResult {
+  const ignore = new Set([...IGNORED_DIFF_KEYS, ...(options.ignoredKeys || [])])
+  const tableName = options.tableName || 'record'
+  const recordId = options.recordId || ''
+  const changes: ChangeItem[] = []
+  const oldValueObj: Record<string, unknown> = {}
+  const newValueObj: Record<string, unknown> = {}
+
+  const orig = (typeof originalRecord === 'object' && originalRecord !== null ? originalRecord : {}) as Record<string, unknown>
+  const subm = (typeof submittedRecord === 'object' && submittedRecord !== null ? submittedRecord : {}) as Record<string, unknown>
+
+  if (actionType === 'Created') {
+    // For created records: old value is "—", new value is the submitted value
+    for (const [key, val] of Object.entries(subm)) {
+      if (ignore.has(key) || isSensitiveField(key)) continue
+      if (isEmptyValue(val)) continue
+
+      const fieldLabel = getFieldLabel(key)
+      const formattedNew = formatDiffValue(val, key)
+
+      changes.push({
+        field: key,
+        field_name: fieldLabel,
+        old_value: '—',
+        new_value: formattedNew,
+        fromRaw: null,
+        toRaw: val,
+      })
+      newValueObj[key] = val
+    }
+  } else if (actionType === 'Deleted') {
+    // For deleted records: old value is the record value, new value is "—"
+    for (const [key, val] of Object.entries(orig)) {
+      if (ignore.has(key) || isSensitiveField(key)) continue
+      if (isEmptyValue(val)) continue
+
+      const fieldLabel = getFieldLabel(key)
+      const formattedOld = formatDiffValue(val, key)
+
+      changes.push({
+        field: key,
+        field_name: fieldLabel,
+        old_value: formattedOld,
+        new_value: '—',
+        fromRaw: val,
+        toRaw: null,
+      })
+      oldValueObj[key] = val
+    }
+  } else {
+    // Action 'Updated': Compare original with submitted
+    const allKeys = new Set([...Object.keys(orig), ...Object.keys(subm)])
+
+    for (const key of allKeys) {
+      if (ignore.has(key) || isSensitiveField(key)) continue
+
+      // Only check keys present in either original or submitted
+      const oldVal = orig[key]
+      const newVal = key in subm ? subm[key] : oldVal
+
+      // If key wasn't in submitted changes and exists in original, it wasn't edited
+      if (!(key in subm)) continue
+
+      if (!areValuesEqual(oldVal, newVal)) {
+        const fieldLabel = getFieldLabel(key)
+        const oldFormatted = formatDiffValue(oldVal, key)
+        const newFormatted = formatDiffValue(newVal, key)
+
+        changes.push({
+          field: key,
+          field_name: fieldLabel,
+          old_value: oldFormatted,
+          new_value: newFormatted,
+          fromRaw: oldVal,
+          toRaw: newVal,
+        })
+        oldValueObj[key] = oldVal
+        newValueObj[key] = newVal
+      }
+    }
+  }
+
+  const hasChanges = changes.length > 0
+
+  let summary = ''
+  if (!hasChanges) {
+    summary = 'No values changed'
+  } else if (actionType === 'Created') {
+    summary = `Created new ${tableName} (${changes.length} fields)`
+  } else if (actionType === 'Deleted') {
+    summary = `Deleted ${tableName}`
+  } else if (changes.length <= 3) {
+    summary = changes
+      .map((c) => `${c.field_name}: "${c.old_value}" ➔ "${c.new_value}"`)
+      .join('; ')
+  } else {
+    const first3 = changes.slice(0, 3).map((c) => c.field_name).join(', ')
+    summary = `${changes.length} fields updated: ${first3} (+${changes.length - 3} more)`
+  }
+
+  return {
+    table_name: tableName,
+    record_id: recordId,
+    action_type: actionType,
+    changes,
+    hasChanges,
+    old_value: oldValueObj,
+    new_value: newValueObj,
+    summary,
+  }
+}
+
+/**
+ * Backward compatibility: Compute differences between two states.
  */
 export function computeFieldDiffs(
   oldObj: unknown,
@@ -142,11 +350,10 @@ export function computeFieldDiffs(
   const oldRec = (isOldObject ? oldObj : {}) as Record<string, unknown>
   const newRec = (isNewObject ? newObj : {}) as Record<string, unknown>
 
-  // Collect all unique keys
   const allKeys = new Set([...Object.keys(oldRec), ...Object.keys(newRec)])
 
   for (const key of allKeys) {
-    if (ignore.has(key)) continue
+    if (ignore.has(key) || isSensitiveField(key)) continue
 
     const hasOld = key in oldRec
     const hasNew = key in newRec
@@ -155,14 +362,14 @@ export function computeFieldDiffs(
     const newVal = newRec[key]
 
     if (!hasOld && hasNew) {
-      if (newVal === null || newVal === undefined || newVal === '') continue
+      if (isEmptyValue(newVal)) continue
       diffs.push({
         field: key,
         label: getFieldLabel(key),
         from: undefined,
         to: newVal,
-        fromFormatted: '— (none)',
-        toFormatted: formatDiffValue(newVal),
+        fromFormatted: '—',
+        toFormatted: formatDiffValue(newVal, key),
         type: 'added',
       })
     } else if (hasOld && !hasNew) {
@@ -171,8 +378,8 @@ export function computeFieldDiffs(
         label: getFieldLabel(key),
         from: oldVal,
         to: undefined,
-        fromFormatted: formatDiffValue(oldVal),
-        toFormatted: '— (removed)',
+        fromFormatted: formatDiffValue(oldVal, key),
+        toFormatted: '—',
         type: 'removed',
       })
     } else if (!areValuesEqual(oldVal, newVal)) {
@@ -181,8 +388,8 @@ export function computeFieldDiffs(
         label: getFieldLabel(key),
         from: oldVal,
         to: newVal,
-        fromFormatted: formatDiffValue(oldVal),
-        toFormatted: formatDiffValue(newVal),
+        fromFormatted: formatDiffValue(oldVal, key),
+        toFormatted: formatDiffValue(newVal, key),
         type: 'changed',
       })
     }
@@ -192,8 +399,7 @@ export function computeFieldDiffs(
 }
 
 /**
- * Creates an object containing only the fields that actually changed,
- * returning { oldValue: { ... }, newValue: { ... }, changes: [...] }
+ * Backward compatibility helper for legacy callers.
  */
 export function createDiffPayload(
   oldObj: unknown,
@@ -205,32 +411,19 @@ export function createDiffPayload(
   changes: Array<{ field: string; label: string; from: unknown; to: unknown }>
   summary: string
 } {
-  const diffs = computeFieldDiffs(oldObj, newObj, ignoredKeys)
+  const detailed = computeDetailedChanges(oldObj, newObj, 'Updated', { ignoredKeys })
 
-  const oldValue: Record<string, unknown> = {}
-  const newValue: Record<string, unknown> = {}
-  const changes = diffs.map((d) => {
-    oldValue[d.field] = d.from
-    newValue[d.field] = d.to
-    return {
-      field: d.field,
-      label: d.label,
-      from: d.from,
-      to: d.to,
-    }
-  })
+  const changes = detailed.changes.map((c) => ({
+    field: c.field,
+    label: c.field_name,
+    from: c.old_value,
+    to: c.new_value,
+  }))
 
-  let summary = ''
-  if (diffs.length === 0) {
-    summary = 'No field changes'
-  } else if (diffs.length <= 3) {
-    summary = diffs
-      .map((d) => `${d.label}: "${d.fromFormatted}" ➔ "${d.toFormatted}"`)
-      .join('; ')
-  } else {
-    const first3 = diffs.slice(0, 3).map((d) => d.label).join(', ')
-    summary = `${diffs.length} fields modified: ${first3} (+${diffs.length - 3} more)`
+  return {
+    oldValue: detailed.old_value,
+    newValue: detailed.new_value,
+    changes,
+    summary: detailed.summary,
   }
-
-  return { oldValue, newValue, changes, summary }
 }

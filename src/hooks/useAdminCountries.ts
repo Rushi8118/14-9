@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase/client'
 import { subscribePostgresChanges } from '@/lib/supabase/realtime'
 import { countries as ISO_COUNTRY_CODES } from 'country-flag-icons'
 import { writeAuditLog } from '@/lib/audit-log'
-import { createDiffPayload } from '@/lib/diff-utils'
+import { createDiffPayload, computeDetailedChanges } from '@/lib/diff-utils'
 
 export type AdminCountryItem = {
   id: string
@@ -1313,6 +1313,15 @@ export function useAdminCountries() {
 
   const saveMutation = useMutation({
     mutationFn: async ({ input, existing }: { input: CountryInput; existing?: AdminCountryItem | null }) => {
+      // 1. Compare original database record with submitted values before saving
+      let originalRecord: Record<string, unknown> | null = null
+      if (existing?.id && existing.source === 'database') {
+        const { data: dbRow } = await supabase.from('countries').select('*').eq('id', existing.id).maybeSingle()
+        originalRecord = (dbRow as Record<string, unknown>) || (existing as unknown as Record<string, unknown>)
+      } else if (existing) {
+        originalRecord = existing as unknown as Record<string, unknown>
+      }
+
       const payload = toPayload(input, existing?.raw)
       const isExistingDb = existing?.source === 'database'
       const { data, error } =
@@ -1327,30 +1336,40 @@ export function useAdminCountries() {
       // Detailed audit and activity logging with from/to diffs
       try {
         if (existing) {
-          const diff = createDiffPayload(existing, input)
+          const diff = computeDetailedChanges(
+            originalRecord || existing,
+            input,
+            'Updated',
+            { tableName: 'countries', recordId: item.id }
+          )
+
           void writeAuditLog({
             action: 'country.updated',
             resource: 'countries',
             resourceId: item.id,
-            oldValue: diff.oldValue,
-            newValue: diff.newValue,
+            actionType: 'Updated',
+            changes: diff.changes,
+            oldValue: diff.old_value,
+            newValue: diff.new_value,
             summary: diff.summary || `Updated country "${item.name}"`,
           })
         } else {
+          const diff = computeDetailedChanges(
+            null,
+            input,
+            'Created',
+            { tableName: 'countries', recordId: item.id }
+          )
+
           void writeAuditLog({
             action: 'country.created',
             resource: 'countries',
             resourceId: item.id,
-            newValue: {
-              name: item.name,
-              code: item.code,
-              capital: item.capital,
-              region: item.region,
-              is_active: item.is_active,
-              has_work_visa: item.has_work_visa,
-              has_study_visa: item.has_study_visa,
-            },
-            summary: `Created country "${item.name}" (${item.code})`,
+            actionType: 'Created',
+            changes: diff.changes,
+            oldValue: {},
+            newValue: diff.new_value,
+            summary: diff.summary || `Created country "${item.name}" (${item.code})`,
           })
         }
       } catch {
@@ -1386,10 +1405,19 @@ export function useAdminCountries() {
       }
       try {
         const result = await saveAsync({ input: countryToInput(item, { is_active: nextActive }), existing: item })
+        const diff = computeDetailedChanges(
+          { is_active: item.is_active, name: item.name },
+          { is_active: nextActive, name: item.name },
+          'Updated',
+          { tableName: 'countries', recordId: item.id }
+        )
+
         void writeAuditLog({
           action: 'country.status_toggled',
           resource: 'countries',
           resourceId: item.id,
+          actionType: 'Updated',
+          changes: diff.changes,
           oldValue: { is_active: item.is_active, name: item.name, code: item.code },
           newValue: { is_active: nextActive, name: item.name, code: item.code },
           summary: `Status of "${item.name}": "${item.is_active ? 'Active' : 'Hidden'}" ➔ "${nextActive ? 'Active' : 'Hidden'}"`,
@@ -1408,6 +1436,11 @@ export function useAdminCountries() {
       if (item.source !== 'database') {
         throw new CountrySaveError('This starter country is not stored in the database, so there is nothing to delete.')
       }
+
+      let originalRecord: Record<string, unknown> | null = null
+      const { data: dbRow } = await supabase.from('countries').select('*').eq('id', item.id).maybeSingle()
+      originalRecord = (dbRow as Record<string, unknown>) || (item as unknown as Record<string, unknown>)
+
       const { data, error } = await supabase.from('countries').delete().eq('id', item.id).select('id')
       if (error) throw new CountrySaveError(friendlyDbError(error))
       if (!data?.length) {
@@ -1416,19 +1449,23 @@ export function useAdminCountries() {
         )
       }
 
+      const diff = computeDetailedChanges(
+        originalRecord,
+        null,
+        'Deleted',
+        { tableName: 'countries', recordId: item.id }
+      )
+
       void writeAuditLog({
         action: 'country.deleted',
         resource: 'countries',
         resourceId: item.id,
         severity: 'warning',
-        oldValue: {
-          name: item.name,
-          code: item.code,
-          capital: item.capital,
-          region: item.region,
-          is_active: item.is_active,
-        },
-        summary: `Deleted country "${item.name}" (${item.code})`,
+        actionType: 'Deleted',
+        changes: diff.changes,
+        oldValue: diff.old_value,
+        newValue: {},
+        summary: diff.summary || `Deleted country "${item.name}" (${item.code})`,
       })
 
       return item.id

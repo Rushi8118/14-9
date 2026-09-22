@@ -267,6 +267,8 @@ export default function AuditLogsPage() {
                     oldValue={selected.old_value}
                     newValue={selected.new_value}
                     action={selected.action}
+                    tableName={selected.resource || undefined}
+                    recordId={selected.resource_id || undefined}
                   />
                 </div>
               )}

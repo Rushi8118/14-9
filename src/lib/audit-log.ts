@@ -73,6 +73,8 @@ type AuditLogParams = {
   errorReason?: string
   /** Human-friendly change summary */
   summary?: string
+  actionType?: 'Created' | 'Updated' | 'Deleted'
+  changes?: any[]
 }
 
 /** Best-effort audit write: never throws, never blocks the caller's main
@@ -81,15 +83,34 @@ type AuditLogParams = {
  *  the RPC stores them as-is. */
 export async function writeAuditLog(params: AuditLogParams): Promise<string | null> {
   try {
-    // 1. Dual-log to activity_logs so both "Audit Logs" and "Activity Logs" record the action
+    // 1. Dual-log to activity_logs with detailed change history so "Activity Logs" records exactly what changed
     try {
-      const { logActivity } = await import('./activity-logger')
-      logActivity('form_submit', params.action, `${params.resource}${params.resourceId ? ` #${params.resourceId.slice(0, 8)}` : ''}`, {
-        resource: params.resource,
-        resourceId: params.resourceId,
-        oldValue: params.oldValue,
-        newValue: params.newValue,
+      const { logDataChange } = await import('./activity-logger')
+      const actionType = params.actionType || (
+        params.action.includes('created') ? 'Created' :
+        params.action.includes('deleted') ? 'Deleted' : 'Updated'
+      )
+
+      let changeItems = Array.isArray(params.changes) ? params.changes : null
+      if (!changeItems && (params.oldValue !== undefined || params.newValue !== undefined)) {
+        const { computeDetailedChanges } = await import('./diff-utils')
+        const diffRes = computeDetailedChanges(params.oldValue, params.newValue, actionType, {
+          tableName: params.resource,
+          recordId: params.resourceId,
+        })
+        changeItems = diffRes.changes
+      }
+
+      await logDataChange({
+        action: params.action,
+        table_name: params.resource,
+        record_id: params.resourceId || '',
+        action_type: actionType,
+        changes: changeItems || [],
+        old_value: (params.oldValue as Record<string, unknown>) || undefined,
+        new_value: (params.newValue as Record<string, unknown>) || undefined,
         summary: params.summary,
+        immediate: true,
       })
     } catch {
       // ignore

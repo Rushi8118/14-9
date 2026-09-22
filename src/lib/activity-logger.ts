@@ -1,19 +1,20 @@
 import { supabase } from '@/lib/supabase/client'
 import { detectBrowser, detectDeviceType, getVisitSessionId } from '@/lib/site-visit-tracker'
+import type { ChangeItem } from '@/lib/diff-utils'
 
 /**
  * Stores every click, navigation, form submit and application error in
  * `activity_logs`. Events are batched and flushed every few seconds (and when
  * the tab is hidden) so logging never slows the site down.
  *
- * Privacy: input values are never read. Clicks record the element's label;
+ * Privacy: input values are never read for generic events. Clicks record the element's label;
  * text inside password/email/phone fields or anything marked
  * `data-log-ignore` is never captured.
  */
 
-type Category = 'click' | 'navigation' | 'form_submit' | 'error' | 'api_error' | 'app'
+export type Category = 'click' | 'navigation' | 'form_submit' | 'data_change' | 'error' | 'api_error' | 'app'
 
-type ActivityEvent = {
+export type ActivityEvent = {
   category: Category
   action: string
   page_path: string
@@ -23,6 +24,25 @@ type ActivityEvent = {
   session_id: string
   device_type: string
   browser: string
+  table_name?: string | null
+  record_id?: string | null
+  action_type?: string | null
+  changes?: ChangeItem[] | unknown
+  old_value?: unknown
+  new_value?: unknown
+}
+
+export type LogDataChangeParams = {
+  action: string
+  table_name: string
+  record_id: string
+  action_type: 'Created' | 'Updated' | 'Deleted'
+  changes: ChangeItem[]
+  old_value?: Record<string, unknown>
+  new_value?: Record<string, unknown>
+  summary?: string
+  target?: string | null
+  immediate?: boolean
 }
 
 const FLUSH_MS = 5000
@@ -38,6 +58,7 @@ let minuteCount = 0
 const clip = (value: unknown, max: number) => (typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '')
 
 function currentPath() {
+  if (typeof window === 'undefined') return '/'
   return `${window.location.pathname}${window.location.search}`.slice(0, 500)
 }
 
@@ -57,17 +78,79 @@ export function logActivity(category: Category, action: string, target?: string 
     session_id: getVisitSessionId(),
     device_type: detectDeviceType(),
     browser: detectBrowser(),
+    table_name: (details.table_name as string) || (details.resource as string) || null,
+    record_id: (details.record_id as string) || (details.resourceId as string) || null,
+    action_type: (details.action_type as string) || null,
+    changes: details.changes ?? null,
+    old_value: details.old_value ?? details.oldValue ?? null,
+    new_value: details.new_value ?? details.newValue ?? null,
   })
   if (queue.length >= MAX_BATCH) void flush()
 }
 
-async function flush() {
+/**
+ * Log a structured data modification (Create, Update, Delete) to activity_logs
+ * with field-level change history and immediate flush.
+ */
+export async function logDataChange(params: LogDataChangeParams): Promise<void> {
+  if (typeof window === 'undefined') return
+  const now = Date.now()
+
+  const detailsPayload: Record<string, unknown> = {
+    table_name: params.table_name,
+    record_id: params.record_id,
+    action_type: params.action_type,
+    changes: params.changes,
+    old_value: params.old_value,
+    new_value: params.new_value,
+    oldValue: params.old_value,
+    newValue: params.new_value,
+    summary: params.summary,
+    resource: params.table_name,
+    resourceId: params.record_id,
+  }
+
+  const event: ActivityEvent = {
+    category: 'form_submit',
+    action: clip(params.action, 200) || `${params.table_name}.${params.action_type.toLowerCase()}`,
+    page_path: currentPath(),
+    target: params.target ? clip(params.target, 300) : `${params.table_name}${params.record_id ? ` #${params.record_id.slice(0, 8)}` : ''}`,
+    details: detailsPayload,
+    occurred_at: new Date(now).toISOString(),
+    session_id: getVisitSessionId(),
+    device_type: detectDeviceType(),
+    browser: detectBrowser(),
+    table_name: params.table_name,
+    record_id: params.record_id,
+    action_type: params.action_type,
+    changes: params.changes,
+    old_value: params.old_value,
+    new_value: params.new_value,
+  }
+
+  queue.push(event)
+
+  if (params.immediate !== false) {
+    await flush()
+  } else if (queue.length >= MAX_BATCH) {
+    void flush()
+  }
+}
+
+export async function flush() {
   if (flushing || queue.length === 0) return
   flushing = true
   const batch = queue.splice(0, MAX_BATCH)
   try {
     const { error } = await supabase.from('activity_logs').insert(batch)
-    if (error && import.meta.env.DEV) console.warn('[activity-logger] insert failed:', error.message)
+    if (error) {
+      // Fallback: If extended columns don't exist yet in the database, insert base columns
+      const fallbackBatch = batch.map(({ table_name, record_id, action_type, changes, old_value, new_value, ...base }) => base)
+      const { error: fallbackError } = await supabase.from('activity_logs').insert(fallbackBatch)
+      if (fallbackError && import.meta.env.DEV) {
+        console.warn('[activity-logger] insert failed:', fallbackError.message)
+      }
+    }
   } catch {
     // never break the site because logging failed
   } finally {

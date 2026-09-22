@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { absoluteUrl } from '@/lib/seo/site'
 import { sanitizeRichText } from '@/lib/security/sanitizeHtml'
 import { writeAuditLog } from '@/lib/audit-log'
-import { createDiffPayload } from '@/lib/diff-utils'
+import { createDiffPayload, computeDetailedChanges } from '@/lib/diff-utils'
 
 export type AdminBlogFaqItem = { question: string; answer: string }
 
@@ -227,21 +227,33 @@ export function useAdminBlogPosts() {
       try {
         const existing = (query.data || []).find((p) => p.id === post.id || p.slug === post.slug)
         if (existing) {
-          const diff = createDiffPayload(existing, post)
+          const diff = computeDetailedChanges(existing, post, vars.id ? 'Updated' : 'Created', {
+            tableName: 'blog_posts',
+            recordId: post.id,
+          })
           void writeAuditLog({
             action: vars.id ? 'blog.updated' : 'blog.created',
             resource: 'blog_posts',
             resourceId: post.id,
-            oldValue: diff.oldValue,
-            newValue: diff.newValue,
+            actionType: vars.id ? 'Updated' : 'Created',
+            changes: diff.changes,
+            oldValue: diff.old_value,
+            newValue: diff.new_value,
             summary: diff.summary || `Updated blog post "${post.title}"`,
           })
         } else {
+          const diff = computeDetailedChanges(null, post, 'Created', {
+            tableName: 'blog_posts',
+            recordId: post.id,
+          })
           void writeAuditLog({
             action: 'blog.created',
             resource: 'blog_posts',
             resourceId: post.id,
-            newValue: { title: post.title, slug: post.slug, status: post.status },
+            actionType: 'Created',
+            changes: diff.changes,
+            oldValue: {},
+            newValue: diff.new_value,
             summary: `Created blog post "${post.title}"`,
           })
         }
