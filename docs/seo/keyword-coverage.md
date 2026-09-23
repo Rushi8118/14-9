@@ -17,11 +17,15 @@ The CSV proposes ~3,000 separate URLs: one per city, origin country, question an
 | Brand, consultancy and Surat searches | `/` or `/visa-consultants-in-surat` |
 | A country with no page yet | the `/work-visa`, `/study-visa` or `/post-study-work-visa` hub |
 
-Each page shows up to 12 of its keywords in a **Popular searches** section. Every keyword stays mapped, but these are never shown: misspellings, brand terms, keywords the notes flag as risky, and claims the warning list in `keyword-strategy.md` rules out (cheapest, guaranteed, fast, best, licensed, success rate and similar). Keywords for cities outside Surat and its neighbouring districts are also hidden, because you have no office there.
+Every keyword is printed on its page, in a **Popular searches** section. The first 12 are shown as highlighted chips and the rest sit under **See all N searches**, grouped by topic. Each page loads only its own list (`src/content/keywords/*.json`).
+
+The only keywords not printed are the 4 misspellings (for example "stydy visa consultant surat"), which would read as typos on the page.
+
+The highlighted 12 leave out brand terms, keywords the notes flag as risky, superlatives and speed claims the warning list in `keyword-strategy.md` cautions against (best, top, trusted, fast, urgent and similar), and cities outside Surat and its neighbouring districts. Those keywords still appear in the full list.
 
 ## Keywords per page
 
-| Page | Keywords mapped | High priority | Shown on page |
+| Page | Keywords mapped | High priority | Highlighted |
 |---|---:|---:|---:|
 | `/work-visa` | 616 | 0 | 1 |
 | `/work-visa/new-zealand` | 382 | 96 | 12 |

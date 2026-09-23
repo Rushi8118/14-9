@@ -3,8 +3,10 @@
  * Maps every keyword in docs/seo/keyword-strategy.csv onto a page that
  * actually exists on the site, then writes:
  *
- *   src/content/keyword-map.generated.ts  – the keywords each page shows in
- *                                            its "Popular searches" section
+ *   src/content/keyword-map.generated.ts  – the 12 keywords each page shows
+ *                                            first in "Popular searches"
+ *   src/content/keywords/*.json           – every keyword for each page, by
+ *                                            topic, loaded only on that page
  *   docs/seo/keyword-coverage.md          – where all 7,800+ keywords landed
  *
  * The CSV suggests ~3,000 URLs (one per city / origin / question). The SEO
@@ -14,7 +16,7 @@
  *
  * Run with `npm run keywords` after editing either CSV or adding a page.
  */
-import { readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -132,7 +134,8 @@ for (const [index, row] of rows.entries()) {
   const path = targetFor(row)
   if (!byPage.has(path)) byPage.set(path, [])
   // A keyword for a country the site has no page for lands on a hub. It is
-  // counted there but never shown: the hub does not cover that country.
+  // kept out of the hub's top 12 (the hub does not cover that country) but
+  // still listed under "See all".
   const dest = row['Destination location']
   const fallback = dest !== '-' && HUBS.has(path) && !HUB_COVERS[path]?.has(dest)
   byPage.get(path).push({ ...row, index, fallback })
@@ -153,7 +156,7 @@ const variantKey = (k) => VARIANT.reduce((s, [re, to]) => s.replace(re, to), k.t
 const ORIGIN_RANK = { Surat: 0, 'Surat / Gujarat': 0, India: 1, '-': 1, 'Abroad (on a student visa)': 1 }
 
 // CSV keywords are lower-case search queries; show them as readable phrases.
-const ACRONYMS = ['uk', 'usa', 'nz', 'uae', 'eu', 'pgwp', 'pr', 'aewv', 'ielts', 'ssw', 'lmia', 'gcc']
+const ACRONYMS = ['uk', 'usa', 'nz', 'uae', 'eu', 'pgwp', 'pr', 'aewv', 'ielts', 'ssw', 'lmia', 'gcc', 'psw']
 const PROPER = [
   ...new Set(
     rows
@@ -162,6 +165,7 @@ const PROPER = [
       .filter((v) => /^[A-Z]/.test(v) && !v.startsWith('Abroad')),
   ),
   'Gujarat', 'Europe', 'Schengen', 'Blue Card', 'Opportunity Card', 'Graduate Route',
+  'Indians', 'Indian', 'Shree Siddhivinayak Overseas', 'Siddhivinayak Overseas', 'Siddhi Vinayak Overseas',
 ].sort((a, b) => b.length - a.length)
 const escape = (v) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 function display(keyword) {
@@ -201,6 +205,43 @@ for (const [path, list] of byPage) {
     for (const q of queues) if (q.length && picked.length < MAX_SHOWN) picked.push(q.shift())
   }
   if (picked.length) shown[path] = picked
+}
+
+// ── Every keyword, per page ───────────────────────────────────────────────
+// Only misspellings are left out: printed on the site they read as typos.
+const TOPIC = {
+  Service: 'Visa services',
+  Question: 'Questions',
+  Location: 'Routes, costs and requirements',
+  Local: 'Local searches',
+  Comparison: 'Choosing a consultant',
+  Brand: 'About Siddhivinayak Overseas',
+  Variation: 'Other ways people search',
+}
+const TYPO = /misspell|typo/i
+const keywordFileId = (path) => (path === '/' ? 'home' : path.slice(1).replace(/\//g, '--'))
+
+const KEYWORD_DIR = resolve(ROOT, 'src/content/keywords')
+rmSync(KEYWORD_DIR, { recursive: true, force: true })
+mkdirSync(KEYWORD_DIR, { recursive: true })
+let allCount = 0
+let typoCount = 0
+for (const [path, list] of byPage) {
+  const seen = new Set()
+  const groups = new Map(Object.values(TOPIC).map((t) => [t, []]))
+  for (const r of list) {
+    if (TYPO.test(r.Notes)) {
+      typoCount++
+      continue
+    }
+    const key = r.Keyword.trim().toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    groups.get(TOPIC[r['Keyword category']] ?? TOPIC.Variation).push(display(r.Keyword))
+  }
+  const topics = [...groups].filter(([, k]) => k.length).map(([topic, keywords]) => ({ topic, keywords }))
+  allCount += seen.size
+  writeFileSync(resolve(KEYWORD_DIR, `${keywordFileId(path)}.json`), `${JSON.stringify(topics, null, 1)}\n`)
 }
 
 const sortedPaths = Object.keys(shown).sort()
@@ -254,11 +295,15 @@ The CSV proposes ~3,000 separate URLs: one per city, origin country, question an
 | Brand, consultancy and Surat searches | \`/\` or \`/visa-consultants-in-surat\` |
 | A country with no page yet | the \`/work-visa\`, \`/study-visa\` or \`/post-study-work-visa\` hub |
 
-Each page shows up to ${MAX_SHOWN} of its keywords in a **Popular searches** section. Every keyword stays mapped, but these are never shown: misspellings, brand terms, keywords the notes flag as risky, and claims the warning list in \`keyword-strategy.md\` rules out (cheapest, guaranteed, fast, best, licensed, success rate and similar). Keywords for cities outside Surat and its neighbouring districts are also hidden, because you have no office there.
+Every keyword is printed on its page, in a **Popular searches** section. The first ${MAX_SHOWN} are shown as highlighted chips and the rest sit under **See all N searches**, grouped by topic. Each page loads only its own list (\`src/content/keywords/*.json\`).
+
+The only keywords not printed are the ${typoCount} misspellings (for example "stydy visa consultant surat"), which would read as typos on the page.
+
+The highlighted ${MAX_SHOWN} leave out brand terms, keywords the notes flag as risky, superlatives and speed claims the warning list in \`keyword-strategy.md\` cautions against (best, top, trusted, fast, urgent and similar), and cities outside Surat and its neighbouring districts. Those keywords still appear in the full list.
 
 ## Keywords per page
 
-| Page | Keywords mapped | High priority | Shown on page |
+| Page | Keywords mapped | High priority | Highlighted |
 |---|---:|---:|---:|
 ${pageRows.map((r) => `| \`${r.path}\` | ${r.total} | ${r.high} | ${r.shown} |`).join('\n')}
 
@@ -272,4 +317,6 @@ ${[...unbuilt.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => `| ${k} | $
 `
 writeFileSync(resolve(ROOT, 'docs/seo/keyword-coverage.md'), md)
 
-console.log(`Mapped ${rows.length} keywords onto ${byPage.size} pages; ${sortedPaths.length} pages show a Popular searches section.`)
+console.log(
+  `Mapped ${rows.length} keywords onto ${byPage.size} pages; ${allCount} unique per-page keywords written to src/content/keywords/.`,
+)
