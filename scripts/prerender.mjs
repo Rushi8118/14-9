@@ -18,6 +18,10 @@ const BASE = `http://127.0.0.1:${PORT}`
 // Same list as the sitemap, plus the static 404 page.
 const ROUTES = [...(await getPublicRoutes(root)).map((route) => route.path), '/404']
 
+// Google's tag must not load or be serialized during prerender; see page.route below.
+const ANALYTICS_HOST = /(?:googletagmanager|google-analytics)\.com/
+const ANALYTICS_SCRIPT = /<script[^>]*(?:googletagmanager|google-analytics)\.com[^>]*>\s*<\/script>/gi
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -86,6 +90,11 @@ async function main() {
 
     // Abort heavy or stall-prone external media (images, videos) to prevent network hangs and speed up prerender
     await page.route('**/*', (route) => {
+      // This browser runs initAnalytics(), so letting the tag load would report one
+      // visit per route to the GA property from the build machine on every build.
+      if (ANALYTICS_HOST.test(route.request().url())) {
+        return route.abort()
+      }
       const type = route.request().resourceType()
       if (type === 'image' || type === 'media') {
         return route.abort()
@@ -102,7 +111,10 @@ async function main() {
         await page.waitForLoadState('networkidle', { timeout: 2000 }).catch(() => {})
         // Give helmet/lazy routes a moment to settle
         await sleep(300)
-        const html = await page.content()
+        // initAnalytics() appends the tag script at runtime. Serializing it would bake it
+        // into the snapshot, where it loads before gtag is configured with
+        // send_page_view:false and can cost a duplicate pageview.
+        const html = (await page.content()).replace(ANALYTICS_SCRIPT, '')
         const target = outFileForRoute(route === '/404' ? '/404' : route)
         await mkdir(path.dirname(target), { recursive: true })
         await writeFile(target, html, 'utf8')

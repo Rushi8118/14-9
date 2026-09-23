@@ -31,19 +31,36 @@ Verified in Chromium: LCP element is the AVIF; `canvas` count is 0 on mobile and
 
 **Verified in a browser:** `typeof window.gtag === 'function'`, the tag script is requested with the configured ID, and `dataLayer` gains a second `page_view` entry after navigating from `/` to `/work-visa`.
 
-### What you must do — this is the one step I cannot do for you
+### The measurement ID
 
-1. Create a GA4 property at analytics.google.com, copy the Measurement ID (`G-XXXXXXXXXX`).
-2. Add it to your **hosting provider's environment variables** (not a committed file):
-   ```
-   VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
-   ```
-   Or, to use Tag Manager instead, set `VITE_GTM_ID=GTM-XXXXXXX`. GTM takes precedence.
-3. Redeploy. Vite inlines env vars at build time, so a rebuild is required.
-4. In GA4 → Admin → Events, mark `phone_click`, `whatsapp_click` and `form_submit` as **Key events**.
-5. Link GA4 to Search Console.
+The GA4 measurement ID now lives in `.env.production`, which Vite loads for every
+production build. It is committed: a measurement ID is public by design, visible in
+the page source of any site running Google Analytics, and keeping it untracked meant
+tracking silently switched off on any machine that built without a local `.env`.
 
-Without the variable, nothing is injected and every call stays a no-op — correct behaviour for local development.
+Vite inlines the value at build time, so **turning tracking on or changing the ID
+needs a rebuild and a redeploy** — uploading files to the host will not do it. To
+use Tag Manager instead, set `VITE_GTM_ID=GTM-XXXXXXX` there; GTM takes precedence.
+
+Still to do in the GA4 console:
+
+1. Under Admin → Events, mark `phone_click`, `whatsapp_click` and `form_submit` as
+   **Key events**.
+2. Link the property to Search Console.
+
+With neither variable set, nothing is injected and every call stays a no-op, which is
+the correct behaviour for local development.
+
+### Prerendering and the tag
+
+`scripts/prerender.mjs` renders every public route in a real browser, which runs
+`initAnalytics()`. Two consequences are handled there rather than in the app:
+
+- Requests to `googletagmanager.com` and `google-analytics.com` are aborted, so a
+  build does not report one visit per route to the property from the build machine.
+- The tag script the app appends is stripped before the snapshot is written.
+  Otherwise it would be baked into every prerendered file, where it loads ahead of
+  the `config { send_page_view: false }` call and risks a duplicate pageview.
 
 ---
 
