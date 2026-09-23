@@ -7,6 +7,7 @@ import { SeoHead } from '@/components/seo/SeoHead'
 import { FaqSection } from '@/components/seo/FaqSection'
 import { CtaBand } from '@/components/seo/CtaBand'
 import { RelatedLinks } from '@/components/seo/RelatedLinks'
+import { KeywordTopics } from '@/components/seo/KeywordTopics'
 import type { DestinationContent } from '@/content/destination-types'
 import {
   articleSchema,
@@ -200,6 +201,7 @@ export function DestinationPage({ content, showWhatsAppFab = true }: Destination
         ) : null}
 
         <FaqSection faqs={content.faqs} />
+        <KeywordTopics path={content.path} />
         <ImmigrationDisclaimer country={content.country} jobs={content.kind === 'work'} />
         <RelatedLinks links={content.related} />
         <CtaBand />

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { SeoHead } from '@/components/seo/SeoHead'
 import { FaqSection } from '@/components/seo/FaqSection'
 import { CtaBand } from '@/components/seo/CtaBand'
+import { KeywordTopics } from '@/components/seo/KeywordTopics'
 import { WORK_COUNTRIES } from '@/content/work-countries'
 import {
   breadcrumbSchema,
@@ -146,6 +147,7 @@ export default function WorkVisaPage() {
 
         <ProcessSection />
         <FaqSection faqs={FAQS} />
+        <KeywordTopics path="/work-visa" />
         <CtaBand title="Not sure which country fits you?" />
       </main>
       <SiteFooter />

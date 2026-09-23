@@ -10,6 +10,7 @@
     "dev": "vite",
     "build": "vite build && node scripts/generate-sitemap.mjs && node --no-deprecation scripts/prerender.mjs",
     "sitemap": "node scripts/generate-sitemap.mjs",
+    "keywords": "node scripts/build-keyword-map.mjs",
     "images": "node scripts/optimize-images.mjs",
     "seo:ping": "node scripts/indexnow.mjs",
     "build:only": "vite build",

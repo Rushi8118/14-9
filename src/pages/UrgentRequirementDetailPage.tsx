@@ -23,6 +23,7 @@ import { breadcrumbSchema, faqSchema, jobPostingSchema } from '@/lib/seo/schema'
 import { isAdminInputRequired } from '@/lib/ai/guardrails'
 import { toast } from 'sonner'
 import { FlagIcon } from '@/components/flag-icon'
+import { workVisaPathFor } from '@/lib/seo/keyword-suggest'
 
 /** Never show the internal "Admin input required" placeholder to the
  *  public — swap it for a neutral call-to-action instead. */
@@ -159,6 +160,16 @@ export default function UrgentRequirementDetailPage() {
   const displaySalary = publicText(requirement.salary, 'Contact us for salary details')
   const displayExperience = publicText(requirement.experience_required, 'Relevant experience — contact us for details')
   const faqItems = (requirement.faq || []).filter((f) => f.question?.trim() && f.answer?.trim())
+  // Keywords chosen in the admin (focus + related + long-tail), shown as visible
+  // copy so search engines can match the listing to what people type.
+  const searchTerms = Array.from(
+    new Map(
+      [requirement.focus_keyword, ...(requirement.related_keywords || []), ...(requirement.long_tail_keywords || [])]
+        .filter((k): k is string => typeof k === 'string' && k.trim().length > 0 && !isAdminInputRequired(k))
+        .map((k) => [k.trim().toLowerCase(), k.trim()] as const),
+    ).values(),
+  )
+  const countryWorkVisaPath = workVisaPathFor(requirement.country || '')
 
   // JobPosting is only rendered when the underlying facts are real (not
   // "Admin input required" placeholders) — schema.org rich results are
@@ -344,6 +355,26 @@ export default function UrgentRequirementDetailPage() {
                         <p className="mt-1 text-sm text-muted-foreground">{item.answer}</p>
                       </div>
                     ))}
+                  </div>
+                )}
+                {searchTerms.length > 0 && (
+                  <div className="mt-8 border-t border-border pt-6">
+                    <h2 className="text-lg font-semibold text-foreground">Popular searches for this opening</h2>
+                    <ul className="mt-3 flex flex-wrap gap-2">
+                      {searchTerms.map((term) => (
+                        <li key={term} className="rounded-full border border-border/60 bg-muted/30 px-3 py-1 text-xs text-foreground/90">
+                          {term.charAt(0).toUpperCase() + term.slice(1)}
+                        </li>
+                      ))}
+                    </ul>
+                    {countryWorkVisaPath && (
+                      <p className="mt-3 text-sm text-muted-foreground">
+                        More on the route:{' '}
+                        <Link to={countryWorkVisaPath} className="font-medium text-primary hover:underline">
+                          {requirement.country} work visa guide
+                        </Link>
+                      </p>
+                    )}
                   </div>
                 )}
                 <p className="mt-8 border-t border-border pt-4 text-xs italic text-muted-foreground">

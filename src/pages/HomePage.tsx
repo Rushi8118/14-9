@@ -9,6 +9,7 @@ import { Testimonials } from '@/components/testimonials'
 import { SeoContentSection } from '@/components/seo-content-section'
 import { SiteFooter, WhatsAppFab } from '@/components/site-footer'
 import { CtaBand } from '@/components/seo/CtaBand'
+import { KeywordTopics } from '@/components/seo/KeywordTopics'
 import { SeoHead } from '@/components/seo/SeoHead'
 import {
   localBusinessSchema,
@@ -47,6 +48,7 @@ export default function HomePage() {
         <WhyUs />
         <Testimonials />
         <SeoContentSection />
+        <KeywordTopics path="/" />
         <CtaBand />
       </main>
       <SiteFooter />
