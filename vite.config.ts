@@ -45,11 +45,14 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
+        /**
+         * Only libraries that every page needs are grouped here. three.js and recharts
+         * are deliberately absent: naming them made Rollup treat them as entry
+         * dependencies, so ~1.1MB shipped on every page load even though only the
+         * homepage globe and the admin dashboard use them. Left unnamed, Rollup splits
+         * them into the dynamic chunks that actually import them.
+         */
         manualChunks(id) {
-          if (id.includes('node_modules/three-stdlib')) return 'vendor-three-stdlib'
-          if (id.includes('node_modules/@react-three')) return 'vendor-react-three'
-          if (id.includes('node_modules/three')) return 'vendor-three'
-          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) return 'vendor-charts'
           if (id.includes('node_modules/framer-motion')) return 'vendor-framer'
           if (id.includes('node_modules/@supabase')) return 'vendor-supabase'
           if (id.includes('node_modules/@tanstack')) return 'vendor-query'

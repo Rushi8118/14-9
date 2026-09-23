@@ -10,8 +10,10 @@ import App from './App'
 import { reloadForNewDeploy } from './lib/chunk-reload'
 import './index.css'
 import { startActivityLogger } from './lib/activity-logger'
+import { initAnalytics } from './lib/analytics'
 
 startActivityLogger()
+initAnalytics()
 
 // After a deploy, a tab still running the old build asks for chunks that no longer exist.
 window.addEventListener('vite:preloadError', (event) => {

@@ -6,6 +6,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { RouteProgress } from './components/route-progress'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
 import { lazyWithReload as lazy } from './lib/chunk-reload'
+import { trackPageView } from './lib/analytics'
 
 // Eager-load the most-visited public pages so clicks feel instant
 import HomePage from './pages/HomePage'
@@ -24,6 +25,17 @@ function ScrollToTop() {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [pathname])
+  return null
+}
+
+/** GA4 counts one page_view per load; React Router navigations need their own. */
+function AnalyticsPageViews() {
+  const { pathname, search } = useLocation()
+  useEffect(() => {
+    // Let react-helmet-async apply the new document.title before the hit is sent.
+    const timer = window.setTimeout(() => trackPageView(pathname + search), 0)
+    return () => window.clearTimeout(timer)
+  }, [pathname, search])
   return null
 }
 
@@ -248,6 +260,7 @@ function App() {
     <>
       <RouteThemeSync />
       <ScrollToTop />
+      <AnalyticsPageViews />
       <RouteProgress />
       <SiteVisitTracker />
       <AppErrorBoundary resetKey={pathname}>
