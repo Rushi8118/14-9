@@ -1,16 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ChevronDown, Search } from 'lucide-react'
 import { KEYWORD_MAP } from '@/content/keyword-map.generated'
-
-type KeywordTopic = { topic: string; keywords: string[] }
-
-// One chunk per page, so a page only downloads its own keywords.
-const ALL_KEYWORDS = import.meta.glob<KeywordTopic[]>('../../content/keywords/*.json', {
-  import: 'default',
-})
-
-const fileFor = (path: string) =>
-  `../../content/keywords/${path === '/' ? 'home' : path.slice(1).replace(/\//g, '--')}.json`
+import { loadPageKeywords, type KeywordTopic } from '@/content/keyword-files'
 
 type KeywordTopicsProps = {
   /** Route path the keywords were mapped to, e.g. `/work-visa/germany`. */
@@ -28,10 +19,8 @@ export function KeywordTopics({ path }: KeywordTopicsProps) {
   const [topics, setTopics] = useState<KeywordTopic[]>([])
 
   useEffect(() => {
-    const load = ALL_KEYWORDS[fileFor(path)]
-    if (!load) return
     let active = true
-    load()
+    loadPageKeywords(path)
       .then((data) => {
         if (active) setTopics(data)
       })

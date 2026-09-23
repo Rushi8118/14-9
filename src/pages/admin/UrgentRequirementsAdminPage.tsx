@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from 'react'
+import React, { useEffect, useId, useRef, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Flame, Plus, Sparkles, Pencil, Trash2, Eye, EyeOff, Clock, Users,
@@ -38,6 +38,8 @@ import {
 } from '@/hooks/useUrgentRequirements'
 import { synthesizeUrgentRequirement, type GeneratedUrgentRequirement } from '@/lib/ai/urgent-requirement-generator'
 import { BlogContent } from '@/components/blog/BlogContent'
+import { KeywordSuggestPanel, useKeywordSuggestions } from '@/components/admin/KeywordSuggestPanel'
+import { mergeKeywords, pickAutoKeywords, splitByLength } from '@/lib/seo/keyword-suggest'
 import { SeoPanel } from '@/components/admin/SeoPanel'
 import { FlagIcon } from '@/components/flag-icon'
 import { toast } from 'sonner'
@@ -149,7 +151,14 @@ function formFromRequirement(req: UrgentRequirement): FormState {
   }
 }
 
-function ChipsInput({ values, onChange, placeholder }: { values: string[]; onChange: (next: string[]) => void; placeholder: string }) {
+function ChipsInput({ values, onChange, placeholder, suggestions = [] }: { values: string[]; onChange: (next: string[]) => void; placeholder: string; suggestions?: string[] }) {
+  const listId = useId()
+  const add = (input: HTMLInputElement) => {
+    const value = input.value.trim()
+    if (value && !values.some((v) => v.toLowerCase() === value.toLowerCase())) onChange([...values, value])
+    input.value = ''
+  }
+  const available = suggestions.filter((s) => !values.some((v) => v.toLowerCase() === s.toLowerCase()))
   return (
     <div className="flex flex-wrap gap-1.5 rounded-xl border border-input bg-background p-2">
       {values.map((v, i) => (
@@ -163,15 +172,23 @@ function ChipsInput({ values, onChange, placeholder }: { values: string[]; onCha
       <input
         type="text"
         placeholder={placeholder}
+        list={available.length ? listId : undefined}
         className="min-w-[5rem] flex-1 border-none bg-transparent text-xs outline-none"
         onKeyDown={(e) => {
           if (e.key !== 'Enter' && e.key !== ',') return
           e.preventDefault()
-          const value = e.currentTarget.value.trim()
-          if (value && !values.includes(value)) onChange([...values, value])
-          e.currentTarget.value = ''
+          add(e.currentTarget)
+        }}
+        onInput={(e) => {
+          // Picking an entry from the suggestion list adds it straight away.
+          if ((e.nativeEvent as InputEvent).inputType === 'insertReplacementText' || !(e.nativeEvent as InputEvent).inputType) {
+            if (available.some((s) => s.toLowerCase() === e.currentTarget.value.trim().toLowerCase())) add(e.currentTarget)
+          }
         }}
       />
+      {available.length > 0 && (
+        <datalist id={listId}>{available.map((s) => <option key={s} value={s} />)}</datalist>
+      )}
     </div>
   )
 }
@@ -239,6 +256,46 @@ export default function UrgentRequirementsAdminPage() {
     })
     setDirty(true)
   }
+
+  // ── Keyword suggestions (Google autocomplete + the site's keyword plan) ──
+  const keywordSuggestions = useKeywordSuggestions(
+    { title: form.title, country: form.country, category: form.category, visaType: form.visaType },
+    isOpen,
+  )
+  const suggestionPool = useMemo(
+    () => [...(keywordSuggestions.data?.google ?? []), ...(keywordSuggestions.data?.plan ?? [])],
+    [keywordSuggestions.data],
+  )
+  /** Set after AI generation: add the top suggestions once they load for the new draft. */
+  const autoAddKeywords = useRef(false)
+
+  const addKeywords = (keywords: string[]) => {
+    const { related, longTail } = splitByLength(keywords)
+    updateForm({
+      relatedKeywords: mergeKeywords(form.relatedKeywords, related),
+      longTailKeywords: mergeKeywords(form.longTailKeywords, longTail),
+    })
+  }
+
+  useEffect(() => {
+    if (!autoAddKeywords.current || !keywordSuggestions.isCurrent || !keywordSuggestions.data) return
+    autoAddKeywords.current = false
+    const picked = pickAutoKeywords(keywordSuggestions.data)
+    const firstGoogle = keywordSuggestions.data.google[0]
+    const added =
+      mergeKeywords(form.relatedKeywords, picked.related).length - form.relatedKeywords.length +
+      mergeKeywords(form.longTailKeywords, picked.longTail).length - form.longTailKeywords.length
+    setForm((current) => ({
+      ...current,
+      focusKeyword: current.focusKeyword || firstGoogle || '',
+      relatedKeywords: mergeKeywords(current.relatedKeywords, picked.related),
+      longTailKeywords: mergeKeywords(current.longTailKeywords, picked.longTail),
+    }))
+    setDirty(true)
+    if (added > 0) toast.success(`Added ${added} popular keywords for ${form.country}. Review them in the SEO keyword fields.`)
+    // Runs once per generation, when that draft's suggestions arrive.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keywordSuggestions.isCurrent, keywordSuggestions.data])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -330,6 +387,7 @@ export default function UrgentRequirementsAdminPage() {
     try {
       const generated = await synthesizeUrgentRequirement(aiPrompt, form.country)
       applyGenerated(generated)
+      autoAddKeywords.current = true
       toast.success(
         generated.adminInputRequired.length
           ? `Draft generated — ${generated.adminInputRequired.length} field(s) need admin input before publishing.`
@@ -922,7 +980,8 @@ export default function UrgentRequirementsAdminPage() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Focus keyword</Label>
-                  <Input value={form.focusKeyword} onChange={(e) => updateForm({ focusKeyword: e.target.value })} className="h-9 text-xs" />
+                  <Input list="urgent-focus-keyword-suggestions" value={form.focusKeyword} onChange={(e) => updateForm({ focusKeyword: e.target.value })} className="h-9 text-xs" />
+                  <datalist id="urgent-focus-keyword-suggestions">{suggestionPool.map((k) => <option key={k} value={k} />)}</datalist>
                 </div>
               </div>
               <div className="space-y-1">
@@ -931,14 +990,22 @@ export default function UrgentRequirementsAdminPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs">Related keywords (AI suggestions)</Label>
-                  <ChipsInput values={form.relatedKeywords} onChange={(v) => updateForm({ relatedKeywords: v })} placeholder="Add and press Enter…" />
+                  <Label className="text-xs">Related keywords</Label>
+                  <ChipsInput values={form.relatedKeywords} onChange={(v) => updateForm({ relatedKeywords: v })} placeholder="Type to see suggestions…" suggestions={suggestionPool} />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Long-tail keywords (AI suggestions)</Label>
-                  <ChipsInput values={form.longTailKeywords} onChange={(v) => updateForm({ longTailKeywords: v })} placeholder="Add and press Enter…" />
+                  <Label className="text-xs">Long-tail keywords</Label>
+                  <ChipsInput values={form.longTailKeywords} onChange={(v) => updateForm({ longTailKeywords: v })} placeholder="Type to see suggestions…" suggestions={suggestionPool} />
                 </div>
               </div>
+              <KeywordSuggestPanel
+                suggestions={keywordSuggestions}
+                country={form.country}
+                focusKeyword={form.focusKeyword}
+                selected={[...form.relatedKeywords, ...form.longTailKeywords]}
+                onAdd={addKeywords}
+                onSetFocus={(k) => updateForm({ focusKeyword: k })}
+              />
               <div className="space-y-1">
                 <Label className="text-xs">Tags</Label>
                 <ChipsInput values={form.tags} onChange={(v) => updateForm({ tags: v })} placeholder="Add tag…" />
