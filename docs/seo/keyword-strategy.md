@@ -5,18 +5,39 @@
 **Office:** 620, 6th Floor, Pragti IT Park, Kiran Chowk to Yogi Chowk Road, Surat 395006
 **Languages:** English (primary). Gujarati and Hindi are spoken in counselling but the site is English-only — see "Language decision" below.
 
-**Full keyword table:** [`keyword-strategy.csv`](./keyword-strategy.csv) — **6,163 unique keywords**, 12 columns (Keyword, Category, Intent, Origin, Destination, Service, Page type, URL slug, Title tag, Meta description, Priority, Notes). Open it in Excel or Google Sheets and filter by Priority or Category.
+**Full keyword table:** [`keyword-strategy.csv`](./keyword-strategy.csv) — **7,843 unique keywords**, 12 columns (Keyword, Category, Intent, Origin, Destination, Service, Page type, URL slug, Title tag, Meta description, Priority, Notes). Open it in Excel or Google Sheets and filter by Priority or Category.
+
+Same keywords in the alternative 12-column shape (intent / target country / target city / page / competition / internal links / content requirements): [`keyword-plan.csv`](./keyword-plan.csv).
 
 | Category | Keywords |
 |---|---|
-| Location (country/city pairs) | 4,521 |
-| Service | 818 |
-| Comparison (modifiers) | 352 |
-| Local (Surat/Gujarat) | 315 |
-| Question | 126 |
+| Location (country/city pairs) | 5,857 |
+| Service | 956 |
+| Comparison (modifiers) | 420 |
+| Local (Surat/Gujarat) | 410 |
+| Question | 168 |
 | Variation (misspellings, abbreviations) | 19 |
-| Brand | 12 |
-| **Priority split** | 658 High · 4,178 Medium · 1,327 Low |
+| Brand | 13 |
+
+### Coverage check against the brief
+
+I re-verified the file against every destination and modifier in the request. All 30 named destination countries are present — Germany, France, Italy, Spain, Portugal, Netherlands, Belgium, Austria, Switzerland, Ireland, Sweden, Norway, Denmark, Finland, Poland, Czech Republic, Hungary, Romania, Greece, Canada, Australia, New Zealand, Japan, South Korea, UAE, Saudi Arabia, Qatar, Singapore, Malaysia, Thailand — plus the extra destinations found in your code.
+
+**Four genuine gaps were found and filled (+1,680 keywords):**
+
+1. **Spelled-out country names.** The first version generated `uk`, `usa`, `nz` and `uae` only. "new zealand work visa" and "united kingdom work visa" are distinct, higher-volume search strings than their abbreviations. Both forms are now separate entries, as the brief asked.
+2. **"online" and "local"** — safe, accurate modifiers for your remote counselling. Added.
+3. **"booking", "company", "provider"** — natural phrasings real applicants use. Added.
+4. **"phone number"** — contact-detail navigational queries. Added.
+
+**Four modifiers from the brief remain deliberately excluded.** This is a recommendation, not an oversight:
+
+| Excluded | Reason |
+|---|---|
+| **cheap** | A price claim you would have to defend, and it attracts clients who churn. "Affordable" (44 keywords, included) captures the same intent defensibly. |
+| **licensed** | Unless you hold ICCRC/CICC, MARA or OISC registration, this is misrepresentation — and in Canada and Australia, advertising immigration advice without registration is a criminal offence. **Tell me you hold one and I will add the entire tier.** |
+| **same day / 24-hour** | No work or study visa is issued same-day. These queries belong to passport and travel agencies; the traffic cannot convert for you, and the phrasing implies a promise you cannot keep. "Fast" and "urgent" are included (22 each) but flagged Low and tied to honest timeline content. |
+| **official** | Implies a government relationship you do not have. The people searching it want the embassy site, not a consultancy. |
 
 ---
 
