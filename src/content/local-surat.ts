@@ -39,6 +39,13 @@ export const suratLocalPage: DestinationContent = {
       ],
     },
     {
+      heading: 'Study abroad consultants in Surat for every major destination',
+      body: [
+        'As study abroad consultants in Surat we counsel for Canada, the UK, Australia, the USA, Germany, Ireland and New Zealand. Canada remains the most common first question we get, so if you are looking for a Canada visa consultant in Surat, start with an honest eligibility check rather than an application.',
+        'We also handle the step most agencies skip: what happens when a study visa ends. If you are already abroad and your course is finishing, we map the post-study work routes for that country.',
+      ],
+    },
+    {
       heading: 'Why local Surat counselling helps',
       body: [
         'Online forms are easy. Choosing the wrong country, underfunding a visa, or submitting inconsistent documents is expensive. In-person or video counselling from a Surat team that understands Gujarat academic patterns (gaps, backlogs, medium of instruction, sponsor structures) helps you avoid generic advice.',
@@ -61,6 +68,10 @@ export const suratLocalPage: DestinationContent = {
     {
       question: 'Where is Siddhivinayak Overseas located in Surat?',
       answer: `We are at ${NAP.fullAddress}. Please call before visiting so a counsellor is available.`,
+    },
+    {
+      question: 'Which landmark is your Surat office near?',
+      answer: `We are on the Kiran Chowk to Yogi Chowk Road in Pragti IT Park, Surat. If you are coming from Yogi Chowk, we are a short distance along that road. Call ${NAP.phoneINDisplay} and we will guide you in.`,
     },
     {
       question: 'Do you help with both study and work visas?',

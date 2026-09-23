@@ -1,5 +1,5 @@
-import { Navigate, useParams } from 'react-router-dom'
-import { useMemo } from 'react'
+import { useParams } from 'react-router-dom'
+import { Suspense, lazy, useMemo } from 'react'
 import { DestinationPage } from '@/components/seo/DestinationPage'
 import { buildWorkCountryContent } from '@/content/work-countries'
 import {
@@ -10,6 +10,9 @@ import {
   workUK,
 } from '@/content/work-destinations'
 import { useAdminCountries } from '@/hooks/useAdminCountries'
+
+// Lazy so a valid country page does not ship the 404 page's bundle.
+const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
 
 const DETAILED = {
   japan: workJapan,
@@ -55,8 +58,13 @@ export default function WorkVisaCountryPage() {
     }
   }, [baseContent, countries, slug, normalized])
 
+  // A redirect here would answer 200 and read as a soft 404; render the noindex 404 instead.
   if (!liveContent) {
-    return <Navigate to="/work-visa" replace />
+    return (
+      <Suspense fallback={null}>
+        <NotFoundPage />
+      </Suspense>
+    )
   }
 
   return <DestinationPage content={liveContent} />
