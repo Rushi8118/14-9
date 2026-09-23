@@ -16,6 +16,11 @@ DirectorySlash Off
   # which covers post-study work rights for that country.
   RewriteRule ^post-study-work-visa/(uk|ireland|new-zealand|germany|australia|france|canada)$ /study-in-$1 [R=301,L]
 
+  # WorkVisaCountryPage maps the spelled-out slugs onto the short ones, so these URLs
+  # served duplicate content on a 200. Redirect them to the canonical page instead.
+  RewriteRule ^work-visa/united-kingdom$ /work-visa/uk [R=301,L]
+  RewriteRule ^work-visa/united-states$ /work-visa/usa [R=301,L]
+
   # 2. Canonical URLs have no trailing slash (root excepted)
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteRule ^(.+)/$ /$1 [R=301,L]

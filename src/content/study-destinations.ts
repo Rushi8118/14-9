@@ -1,5 +1,32 @@
 import type { DestinationContent } from './destination-types'
 
+/**
+ * The country's own post-study work page. Students finishing a course are the highest-intent
+ * visitors these pages get, so they are pointed at the specific route, not the generic hub.
+ */
+const POST_STUDY_ROUTE: Record<string, { label: string; to: string; description: string }> = {
+  '/study-in-canada': {
+    label: 'Canada Post-Study Work Visa: PGWP to PR',
+    to: '/pathways/canada-pgwp-to-pr',
+    description: 'Finishing your course? Your work visa options after graduation.',
+  },
+  '/study-in-uk': {
+    label: 'UK Post-Study Work Visa: Graduate Route',
+    to: '/pathways/uk-graduate-visa-to-skilled-worker-visa',
+    description: 'Finishing your course? How to stay and work in the UK.',
+  },
+  '/study-in-australia': {
+    label: 'Australia Post-Study Work Visa: Subclass 485',
+    to: '/pathways/australia-485-to-employer-sponsored-visa',
+    description: 'Finishing your course? Your work visa options after graduation.',
+  },
+  '/study-in-new-zealand': {
+    label: 'New Zealand Post-Study Work Visa: AEWV',
+    to: '/pathways/new-zealand-accredited-employer-work-visa',
+    description: 'Finishing your course? How to move to an accredited employer.',
+  },
+}
+
 const sharedStudyRelated = (current: string) =>
   [
     { label: 'Study Visa Consultants in Surat', to: '/study-visa', description: 'All study destinations we support.' },
@@ -14,7 +41,11 @@ function studyPage(input: Omit<DestinationContent, 'kind' | 'serviceType' | 'rel
     ...input,
     kind: 'study',
     serviceType: 'Study visa consultancy',
-    related: [...(input.relatedExtra ?? []), ...sharedStudyRelated(input.path)],
+    related: [
+      ...(POST_STUDY_ROUTE[input.path] ? [POST_STUDY_ROUTE[input.path]] : []),
+      ...(input.relatedExtra ?? []),
+      ...sharedStudyRelated(input.path),
+    ],
   }
 }
 
