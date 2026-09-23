@@ -121,7 +121,14 @@ export default function BlogPostPage() {
           </header>
           {post.featured_image && (
             <div className="mt-8 overflow-hidden rounded-2xl border border-border">
-              <img src={post.featured_image} alt={post.image_alt || post.title} className="w-full object-cover" loading="lazy" />
+              {/* Dimensions are unknown until the image loads, so the ratio is reserved in CSS to avoid layout shift. */}
+              <img
+                src={post.featured_image}
+                alt={post.image_alt || post.title}
+                className="aspect-[16/9] w-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
               {post.image_caption && (
                 <p className="bg-muted/40 px-4 py-2 text-center text-xs text-muted-foreground">{post.image_caption}</p>
               )}

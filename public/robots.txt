@@ -1,10 +1,8 @@
+# /admin, /dashboard and /403 are deliberately NOT disallowed: they send
+# X-Robots-Tag: noindex (see .htaccess). Blocking them here would stop crawlers
+# reading that header, which is what actually keeps them out of the index.
 User-agent: *
 Allow: /
-Disallow: /dashboard
-Disallow: /dashboard/
-Disallow: /admin
-Disallow: /admin/
-Disallow: /403
 
 User-agent: GPTBot
 Allow: /

@@ -9,18 +9,44 @@ function GlobePoster() {
   return (
     <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-transparent">
       <div className="relative h-64 w-64 rounded-full overflow-hidden shadow-[0_0_60px_rgba(245,184,61,0.4)] ring-1 ring-amber-300/40">
-        <img
-          src="/earth-blue-marble.jpg"
-          alt="Realistic 3D Earth"
-          width={640}
-          height={640}
-          fetchPriority="high"
-          decoding="async"
-          className="h-full w-full object-cover scale-150"
-        />
+        {/* Homepage LCP element. 768px covers the 256px container at 2x DPR; the
+            AVIF is ~56KB against 501KB for the full-size blue-marble texture. */}
+        <picture>
+          <source srcSet="/earth-poster-768.avif" type="image/avif" />
+          <source srcSet="/earth-poster-768.webp" type="image/webp" />
+          <img
+            src="/earth-poster-768.jpg"
+            alt="Rotating globe illustrating the countries Siddhivinayak Overseas supports"
+            width={768}
+            height={768}
+            fetchPriority="high"
+            decoding="async"
+            className="h-full w-full object-cover scale-150"
+          />
+        </picture>
       </div>
     </div>
   )
+}
+
+/**
+ * The 3D globe is decorative and costs a three.js bundle plus texture downloads,
+ * so phones and data-saver users get the poster image instead.
+ */
+function useGlobeEnabled() {
+  const [enabled, setEnabled] = useState(false)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData
+    if (saveData) return
+
+    const query = window.matchMedia('(min-width: 1024px)')
+    const apply = () => setEnabled(query.matches)
+    apply()
+    query.addEventListener('change', apply)
+    return () => query.removeEventListener('change', apply)
+  }, [])
+  return enabled
 }
 
 function GlobeError() {
@@ -49,7 +75,7 @@ class GlobeErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
 }
 
 export function Hero() {
-  const [showGlobe, setShowGlobe] = useState(true)
+  const showGlobe = useGlobeEnabled()
   const [inView, setInView] = useState(true)
   const sectionRef = useRef<HTMLElement>(null)
 

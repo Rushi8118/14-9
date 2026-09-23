@@ -108,13 +108,13 @@ export function InteractiveGlobe({
 
     // Load Photorealistic NASA Satellite Textures
     const textureLoader = new THREE.TextureLoader()
-    const earthMap = textureLoader.load("/earth-blue-marble.jpg")
+    const earthMap = textureLoader.load("/earth-blue-marble.webp")
     earthMap.colorSpace = THREE.SRGBColorSpace
     earthMap.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 4)
 
-    const normalMap = textureLoader.load("/earth-normal.jpg")
-    const specularMap = textureLoader.load("/earth-specular.jpg")
-    const cloudMap = textureLoader.load("/earth-clouds.png")
+    const normalMap = textureLoader.load("/earth-normal.webp")
+    const specularMap = textureLoader.load("/earth-specular.webp")
+    const cloudMap = textureLoader.load("/earth-clouds.webp")
     cloudMap.colorSpace = THREE.SRGBColorSpace
 
     // 1. Photorealistic Earth Sphere

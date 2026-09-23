@@ -2,7 +2,11 @@
  * Single source of truth for public, indexable URLs.
  * Used by the sitemap generator and the prerender step so the two never drift apart.
  */
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { loadEnv } from 'vite'
+
+const execFileAsync = promisify(execFile)
 
 export const SITE_URL = 'https://siddhivinayakoverseas.com'
 
@@ -68,6 +72,43 @@ export const STATIC_ROUTES = [
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
+/**
+ * Content file whose last commit date represents each static route. Routes that share a
+ * file share a date, which is accurate: editing the file is what changes those pages.
+ */
+function sourceFileForRoute(route) {
+  if (route.startsWith('/work-visa/')) return 'src/content/work-countries.ts'
+  if (route.startsWith('/study-in-')) return 'src/content/study-destinations.ts'
+  if (route.startsWith('/pathways')) return 'src/content/pathways.ts'
+  if (route.startsWith('/guides')) return 'src/content/guides.ts'
+  if (route === '/visa-consultants-in-surat') return 'src/content/local-surat.ts'
+  return null
+}
+
+/** Last commit date for a path, as YYYY-MM-DD. Returns undefined outside a git checkout. */
+async function gitLastModified(root, file) {
+  try {
+    const { stdout } = await execFileAsync('git', ['log', '-1', '--format=%cI', '--', file], { cwd: root })
+    const value = stdout.trim()
+    return value ? value.slice(0, 10) : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/** Resolves lastmod for every static route, reading each backing file's history once. */
+async function staticRouteDates(root, routes) {
+  const files = [...new Set(routes.map(sourceFileForRoute).filter(Boolean))]
+  const dates = new Map()
+  await Promise.all(
+    files.map(async (file) => {
+      const date = await gitLastModified(root, file)
+      if (date) dates.set(file, date)
+    }),
+  )
+  return (route) => dates.get(sourceFileForRoute(route))
+}
+
 /** Reads public rows through the Supabase REST API with the publishable key (RLS applies). */
 async function fetchPublicSlugs(env, table, filter, extraFields = []) {
   const baseUrl = env.VITE_SUPABASE_URL
@@ -118,8 +159,12 @@ export async function getPublicRoutes(root) {
       .map((row) => ({ path: `/blog/${row.slug}`, lastmod: isoDate(row.updated_at) })),
     ...requirements.map((row) => ({ path: `/urgent-requirements/${row.slug}`, lastmod: isoDate(row.updated_at) })),
   ]
+  const lastmodFor = await staticRouteDates(root, STATIC_ROUTES)
   const seen = new Set()
-  return [...STATIC_ROUTES.map((path) => ({ path })), ...dynamic].filter(({ path }) => {
+  return [
+    ...STATIC_ROUTES.map((path) => ({ path, lastmod: lastmodFor(path) })),
+    ...dynamic,
+  ].filter(({ path }) => {
     if (seen.has(path)) return false
     seen.add(path)
     return true

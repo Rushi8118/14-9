@@ -40,7 +40,8 @@ export function SeoHead({
       <html lang="en-IN" />
       <title>{documentTitle}</title>
       <meta name="description" content={description} />
-      {keywords ? <meta name="keywords" content={keywords} /> : null}
+      {/* meta keywords is ignored by every search engine and only advertises targets to
+          competitors. The prop stays so content files keep their internal keyword notes. */}
       <link rel="canonical" href={url} />
       <meta
         name="robots"

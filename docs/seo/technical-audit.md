@@ -30,24 +30,27 @@ The second biggest is a 501 KB image loaded at highest priority as your homepage
 
 ### The findings, ranked
 
-| # | Finding | Severity | Effort |
+**Status as of 23 September 2026: 10 of 17 findings are fixed in code and verified in a real browser.** See [`fixes-applied.md`](./fixes-applied.md) for the measurements.
+
+| # | Finding | Severity | Status |
 |---|---|---|---|
-| 1 | GA4/GTM tag missing — all conversion tracking fires into nothing | 🔴 Critical | 1 hour |
-| 2 | 501 KB LCP hero image + 1.3 MB of 3D globe textures on the homepage | 🔴 Critical | 1 day |
-| 3 | `/post-study-work-visa/*` country pages are 301-redirected away — your best keyword cluster has no landing pages | 🔴 Critical | 2 weeks |
-| 4 | CMS-published blog posts are not prerendered until the next deploy | 🟠 High | 1 day |
-| 5 | Invalid `/pathways/*` URLs client-redirect instead of 404ing (soft 404) | 🟠 High | 30 min |
-| 6 | Render-blocking Google Fonts stylesheet in `<head>` | 🟠 High | 2 hours |
-| 7 | 13 of 19 `<img>` tags have no `width`/`height` — CLS risk | 🟠 High | 2 hours |
-| 8 | No WebP/AVIF anywhere; every image is JPEG/PNG | 🟠 High | 4 hours |
-| 9 | `/countries/:slug/programs/:programSlug` pages are orphaned — in no sitemap, no internal links | 🟡 Medium | 1 day |
-| 10 | Four dead top-level directories (~1.3 MB) from an abandoned Next.js build | 🟡 Medium | 1 hour |
-| 11 | `public/sw.js` service worker is served but never registered | 🟡 Medium | 15 min |
-| 12 | Sitemap has no `<lastmod>` for the 80 static routes | 🟡 Medium | 1 hour |
-| 13 | `robots.txt` disallows `/admin` and `/dashboard`, which blocks their own noindex tags | 🟡 Medium | 15 min |
-| 14 | No Bing Webmaster Tools / IndexNow verification evidence in repo | 🟡 Medium | 1 hour |
-| 15 | `meta keywords` tag present (ignored by every engine since 2009) | 🟢 Low | 5 min |
-| 16 | No `hreflang` — correct today, but revisit if you ever add Gujarati | 🟢 Low | — |
+| 1 | GA4/GTM tag missing — all conversion tracking fires into nothing | 🔴 Critical | ✅ **Fixed** — needs your tag ID in `.env` |
+| 2 | 501 KB LCP hero image + 1.3 MB of 3D globe textures on the homepage | 🔴 Critical | ✅ **Fixed** — LCP now a 56 KB AVIF |
+| 3 | `/post-study-work-visa/*` country pages are 301-redirected away | 🔴 Critical | ⏳ Content work — 2 weeks |
+| 4 | CMS-published blog posts are not prerendered until the next deploy | 🟠 High | ⏳ Needs your host's deploy-hook URL |
+| 5 | Invalid `/pathways/*` URLs client-redirect instead of 404ing (soft 404) | 🟠 High | ✅ **Fixed** |
+| 6 | Render-blocking Google Fonts stylesheet in `<head>` | 🟠 High | 🔶 Partial — `fonts.gstatic.com` preconnect added; self-hosting still open |
+| 7 | Images without `width`/`height` — CLS risk | 🟠 High | ✅ **Fixed** on public pages |
+| 8 | No WebP/AVIF anywhere; every image is JPEG/PNG | 🟠 High | ✅ **Fixed** — `npm run images` |
+| 9 | `/countries/:slug/programs/:programSlug` pages are orphaned | 🟡 Medium | ⏳ Needs your decision: index or noindex |
+| 10 | Four dead top-level directories (~1.3 MB) from an abandoned Next.js build | 🟡 Medium | ⏳ **Awaiting your OK to delete** |
+| 11 | `public/sw.js` service worker is served but never registered | 🟡 Medium | ✅ **Fixed** — deleted |
+| 12 | Sitemap has no `<lastmod>` for the static routes | 🟡 Medium | ✅ **Fixed** — derived from git history |
+| 13 | `robots.txt` disallows `/admin` and `/dashboard`, blocking their own noindex tags | 🟡 Medium | ✅ **Fixed** |
+| 14 | No Bing Webmaster Tools / IndexNow verification evidence in repo | 🟡 Medium | ⏳ Account setup, not code |
+| 15 | `meta keywords` tag present (ignored by every engine since 2009) | 🟢 Low | ✅ **Fixed** |
+| 16 | No `hreflang` — correct today, but revisit if you ever add Gujarati | 🟢 Low | — No action |
+| **17** | **NEW: every vendor chunk preloaded on every page (~1.1 MB of three.js + charts)** | 🔴 **Critical** | ✅ **Fixed** — found while testing |
 
 ---
 

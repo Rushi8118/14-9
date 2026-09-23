@@ -170,7 +170,10 @@ export default function StudyVisaPage() {
                   <img
                     src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=1200&q=80"
                     alt="Students with passports and global study visa planning"
+                    width={1200}
+                    height={800}
                     loading="lazy"
+                    decoding="async"
                     className="absolute inset-0 h-full w-full object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent" />
