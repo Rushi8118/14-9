@@ -17,6 +17,14 @@ export function organizationSchema() {
     '@type': 'Organization',
     '@id': organizationId(),
     name: SITE_NAME,
+    // Spacing and spelling variants people actually type. These belong here, not in
+    // visible copy, which is where putting them would read as keyword stuffing.
+    alternateName: [
+      'Siddhi Vinayak Overseas',
+      'Shree Siddhivinayak Overseas',
+      'Sidhivinayak Overseas',
+      'Siddhivinayak Overseas Surat',
+    ],
     url: SITE_URL,
     logo: `${SITE_URL}/favicon/android-chrome-512x512.png`,
     image: DEFAULT_OG_IMAGE,
@@ -76,6 +84,7 @@ export function websiteSchema() {
     '@type': 'WebSite',
     '@id': `${SITE_URL}/#website`,
     name: SITE_NAME,
+    alternateName: 'Siddhi Vinayak Overseas',
     url: SITE_URL,
     publisher: { '@id': organizationId() },
     inLanguage: 'en-IN',

@@ -159,6 +159,9 @@ export const pathways: DestinationContent[] = [
       { question: 'Can you provide a sponsored job offer?', answer: 'We can introduce suitable candidates to registered employers who are recruiting. The employer interviews you and decides. We never sell job offers or Certificates of Sponsorship — buying one can lead to refusal, visa cancellation and bans.' },
       { question: 'Does a job offer extend my Student visa?', answer: 'No. You must make a new Skilled Worker application and have it approved. Until then, your current visa conditions and expiry date still apply.' },
       { question: 'How do I check if a UK employer can sponsor me?', answer: 'Search the employer name on the official Register of licensed sponsors: workers on GOV.UK.' },
+      { question: 'Can I convert my student visa to a work visa in the UK?', answer: 'In many cases yes. Eligible students can switch into the Skilled Worker route from inside the UK if a licensed sponsor offers an eligible job at the required salary. The timing rules are strict: you normally need to have completed your course, and you must apply before your Student visa expires.' },
+      { question: 'My UK student visa is expiring — what should I do?', answer: 'Act before it expires, not after. The realistic options are switching to a sponsored Skilled Worker role, moving onto the Graduate Route if you qualify, or leaving the UK before the expiry date. Overstaying harms future applications to the UK and elsewhere, so start the review while you still have time to act.' },
+      { question: 'Can I get a UK work visa after graduation?', answer: 'Yes, by one of two routes. The Graduate Route needs no sponsor but cannot be extended. The Skilled Worker visa requires a job offer from a licensed sponsor but can count towards settlement. Which fits depends on whether you already have that offer.' },
     ],
   }),
 
@@ -213,6 +216,9 @@ export const pathways: DestinationContent[] = [
       { question: 'Can I extend my Graduate visa?', answer: 'No. The Graduate visa cannot be extended. You need to switch to another route, such as Skilled Worker, before it expires.' },
       { question: 'What happens if I do not find a sponsor in time?', answer: 'You would need to leave the UK or qualify for a different visa before your Graduate visa ends. We can review other routes, including moving to another country.' },
       { question: 'Is the Graduate visa better than Skilled Worker?', answer: 'They serve different purposes. Graduate gives flexibility without a sponsor for a limited time; Skilled Worker is employer-tied but can lead towards settlement.' },
+      { question: 'What is the UK post-study work visa?', answer: 'In everyday use it means the Graduate Route, which lets eligible graduates stay and work in the UK without a sponsor for a fixed period. It is not extendable, so most people use that time to find a sponsoring employer and switch to the Skilled Worker visa.' },
+      { question: 'What are my UK graduate work visa options?', answer: 'Either stay on the Graduate Route for its fixed length while you build experience, or switch to the Skilled Worker visa once a licensed sponsor offers you an eligible role. A smaller number of graduates qualify for other routes such as Global Talent. We assess which is realistic for your profile.' },
+      { question: 'Can I get UK work visa sponsorship as an international student?', answer: 'Yes, but only from employers holding a Home Office sponsor licence. Check the public register of licensed sponsors before accepting an offer, because an employer without a licence cannot sponsor you no matter how willing they are.' },
     ],
   }),
 
@@ -269,6 +275,9 @@ export const pathways: DestinationContent[] = [
       { question: 'Does a PGWP lead directly to PR?', answer: 'No. The PGWP is a work permit. Permanent residence is a separate application through programs such as Express Entry or a PNP.' },
       { question: 'Can I extend my PGWP?', answer: 'Generally no, apart from limited policies announced by IRCC. Check the current IRCC guidance for your situation.' },
       { question: 'Can you get me an LMIA job?', answer: 'We can introduce you to registered Canadian employers who are recruiting. The employer decides and applies for any LMIA. Never pay for an LMIA or job offer — it is illegal in Canada.' },
+      { question: 'What is the Canada post-study work visa?', answer: 'It is the Post-Graduation Work Permit (PGWP), an open work permit for eligible graduates of designated learning institutions. It lets you work for most employers without a job offer, and the Canadian experience it gives you is what most permanent residence routes are assessed on.' },
+      { question: 'Can I convert my study permit to a work permit in Canada?', answer: 'You apply for the PGWP rather than convert, and eligibility depends on your institution, programme length and field of study, which have changed in recent years. Apply within the window after your final results, and check the current IRCC rules for your programme before you rely on it.' },
+      { question: 'My Canadian study permit is expiring — what are my options?', answer: 'Apply for the PGWP if you are eligible and within the application window, apply for another permit, or leave before the expiry date. Maintained status may let you stay while a decision is pending if you applied before expiry, which is why timing matters more than anything else here.' },
     ],
   }),
 
@@ -325,6 +334,9 @@ export const pathways: DestinationContent[] = [
       { question: 'Is the 482 visa still available?', answer: 'The Temporary Skill Shortage (482) visa was replaced for new applications by the Skills in Demand visa in December 2024. Check the Department of Home Affairs for current streams.' },
       { question: 'Can an employer charge me for sponsorship?', answer: 'No. It is against Australian law for anyone to ask for or receive payment in return for sponsorship.' },
       { question: 'Can you give me Australian immigration advice?', answer: 'Advice about Australian visas must come from a registered migration agent or an Australian legal practitioner. Where needed, our partner lawyers provide it.' },
+      { question: 'What is the Australia post-study work visa?', answer: 'It is the Temporary Graduate visa, subclass 485, which lets eligible graduates live and work in Australia temporarily after study. Its length depends on your qualification and, for some streams, where you studied.' },
+      { question: 'Can I get an Australian work visa after graduation?', answer: 'Yes. Most graduates start on the subclass 485, then move to an employer-sponsored route such as the Skills in Demand visa, which needs an approved sponsor and usually a skills assessment. Some graduates qualify for points-tested skilled visas instead.' },
+      { question: 'My subclass 485 visa is expiring — what next?', answer: 'The 485 is temporary and generally cannot be extended. Before it ends you need an employer-sponsored or skilled visa, or you must leave. Start the sponsorship conversation early, because skills assessments and sponsor approvals both take time.' },
     ],
   }),
 
@@ -375,6 +387,9 @@ export const pathways: DestinationContent[] = [
       { question: 'Where can I find accredited employers?', answer: 'Immigration New Zealand publishes the list of accredited employers on its official website.' },
       { question: 'Can I pay for an AEWV job?', answer: 'No. Charging a worker a premium for employment is illegal in New Zealand. Report any such request.' },
       { question: 'Can I apply from India, Pakistan, Bangladesh or Sri Lanka?', answer: 'Yes, you can apply from outside New Zealand once an accredited employer has an approved job check for you.' },
+      { question: 'What is the New Zealand post-study work visa?', answer: 'It is the Post Study Work Visa, which lets eligible graduates work in New Zealand for a set period depending on their qualification. Many graduates then move to the Accredited Employer Work Visa (AEWV) for a longer stay.' },
+      { question: 'Can I convert my student visa to a work visa in New Zealand?', answer: 'You apply for a new visa rather than convert. Eligible graduates apply for the Post Study Work Visa, and from there the AEWV requires a job offer from an accredited employer at or above the required pay rate.' },
+      { question: 'My New Zealand student visa is expiring — what should I do?', answer: 'Apply for the Post Study Work Visa if you are eligible, secure an AEWV job token from an accredited employer, or plan your departure before expiry. Each step has its own processing time, so work backwards from your expiry date rather than forwards from today.' },
     ],
   }),
 
