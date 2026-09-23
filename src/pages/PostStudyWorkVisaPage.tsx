@@ -1,4 +1,5 @@
 import { ImmigrationDisclaimer } from '@/components/seo/ImmigrationDisclaimer'
+import { KeywordTopics } from '@/components/seo/KeywordTopics'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import { ArrowRight, GraduationCap, Globe2, CheckCircle2, Award, Clock, BookOpen, Briefcase, Users, TrendingUp } from 'lucide-react'
@@ -10,14 +11,16 @@ import { FlagIcon } from '@/components/flag-icon'
 
 const SITE_URL = 'https://siddhivinayakoverseas.com'
 
+// The per-country /post-study-work-visa/* URLs are retired (301 in .htaccess,
+// 404 in the SPA), so link straight to the pages that cover each route.
 const COUNTRIES = [
-  { flag: '🇬🇧', name: 'United Kingdom', visa: 'Graduate Route', duration: '2 years (3 for PhD)', eligibility: 'Any UK degree', pr: 'Yes (Skilled Worker)', href: '/post-study-work-visa/uk' },
-  { flag: '🇦🇺', name: 'Australia', visa: 'Subclass 485', duration: '2-4 years', eligibility: "Bachelor's or higher", pr: 'Yes (strong pathway)', href: '/post-study-work-visa/australia' },
-  { flag: '🇨🇦', name: 'Canada', visa: 'PGWP', duration: 'Up to 3 years', eligibility: '8+ month program at DLI', pr: 'Yes (CEC pathway)', href: '/post-study-work-visa/canada' },
-  { flag: '🇳🇿', name: 'New Zealand', visa: 'Post-Study Work Visa', duration: '1-3 years', eligibility: 'Level 7+ qualification', pr: 'Yes (Skilled Migrant)', href: '/post-study-work-visa/new-zealand' },
-  { flag: '🇩🇪', name: 'Germany', visa: 'Job Seeker Visa', duration: '18 months', eligibility: 'German university degree', pr: 'Yes (after 2 years work)', href: '/post-study-work-visa/germany' },
-  { flag: '🇮🇪', name: 'Ireland', visa: 'Third Level Graduate Scheme', duration: '1-2 years', eligibility: 'Irish degree', pr: 'Yes (Critical Skills)', href: '/post-study-work-visa/ireland' },
-  { flag: '🇫🇷', name: 'France', visa: 'APS Visa', duration: '12 months', eligibility: "Master's or equivalent", pr: 'Yes (Talent Passport)', href: '/post-study-work-visa/france' },
+  { flag: '🇬🇧', name: 'United Kingdom', visa: 'Graduate Route', duration: '2 years (3 for PhD)', eligibility: 'Any UK degree', pr: 'Yes (Skilled Worker)', href: '/pathways/uk-graduate-visa-to-skilled-worker-visa' },
+  { flag: '🇦🇺', name: 'Australia', visa: 'Subclass 485', duration: '2-4 years', eligibility: "Bachelor's or higher", pr: 'Yes (strong pathway)', href: '/pathways/australia-485-to-employer-sponsored-visa' },
+  { flag: '🇨🇦', name: 'Canada', visa: 'PGWP', duration: 'Up to 3 years', eligibility: '8+ month program at DLI', pr: 'Yes (CEC pathway)', href: '/pathways/canada-pgwp-to-pr' },
+  { flag: '🇳🇿', name: 'New Zealand', visa: 'Post-Study Work Visa', duration: '1-3 years', eligibility: 'Level 7+ qualification', pr: 'Yes (Skilled Migrant)', href: '/pathways/new-zealand-accredited-employer-work-visa' },
+  { flag: '🇩🇪', name: 'Germany', visa: 'Job Seeker Visa', duration: '18 months', eligibility: 'German university degree', pr: 'Yes (after 2 years work)', href: '/study-in-germany' },
+  { flag: '🇮🇪', name: 'Ireland', visa: 'Third Level Graduate Scheme', duration: '1-2 years', eligibility: 'Irish degree', pr: 'Yes (Critical Skills)', href: '/study-in-ireland' },
+  { flag: '🇫🇷', name: 'France', visa: 'APS Visa', duration: '12 months', eligibility: "Master's or equivalent", pr: 'Yes (Talent Passport)', href: '/study-in-france' },
 ]
 
 export default function PostStudyWorkVisaPage() {
@@ -295,6 +298,7 @@ export default function PostStudyWorkVisaPage() {
             </div>
           </div>
         </section>
+        <KeywordTopics path="/post-study-work-visa" />
         <ImmigrationDisclaimer />
       </main>
       <SiteFooter />

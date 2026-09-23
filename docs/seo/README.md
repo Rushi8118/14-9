@@ -8,6 +8,7 @@
 | [`keyword-strategy.md`](./keyword-strategy.md) | Keyword strategy narrative: top 30, page mapping, FAQ, warning list. |
 | [`keyword-plan.csv`](./keyword-plan.csv) | 7,843 keywords × 12 columns: intent, target country/city, page, priority, competition estimate, title, meta, slug, internal links, content requirements. |
 | [`keyword-strategy.csv`](./keyword-strategy.csv) | Same keywords in the earlier column shape (origin/destination/service oriented). |
+| [`keyword-coverage.md`](./keyword-coverage.md) | Generated: which live page each of the 7,843 keywords is assigned to, and which destinations still have no page. Refresh with `npm run keywords`. |
 
 ## The three things that matter most
 
