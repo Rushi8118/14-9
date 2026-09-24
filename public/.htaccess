@@ -16,6 +16,16 @@ DirectorySlash Off
   # which covers post-study work rights for that country.
   RewriteRule ^post-study-work-visa/(uk|ireland|new-zealand|germany|australia|france|canada)$ /study-in-$1 [R=301,L]
 
+  # Retired /countries/{slug} profiles. They duplicated /study-in-* and /work-visa/* for the same
+  # query, had no inbound internal link, and shipped unpopulated Supabase fields as visible copy
+  # ("No specific work criteria listed."). Each now points at whichever page actually answers the
+  # intent. The /countries hub itself stays: it is a genuine directory into these pages.
+  RewriteRule ^countries/(canada|australia|germany|new-zealand)$ /study-in-$1 [R=301,L]
+  RewriteRule ^countries/japan$ /work-visa/japan [R=301,L]
+  RewriteRule ^countries/united-arab-emirates$ /study-in-dubai [R=301,L]
+  # Anything else under /countries/ (including the orphaned .../programs/... route) goes to the hub.
+  RewriteRule ^countries/.+$ /countries [R=301,L]
+
   # 2. Canonical URLs have no trailing slash (root excepted)
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteRule ^(.+)/$ /$1 [R=301,L]
@@ -39,7 +49,9 @@ DirectorySlash Off
   # 5. Client-rendered routes: database-driven pages and the private app
   # They get app-shell.html: index.html without the homepage canonical/og:url, so an un-prerendered page
   # never tells Google it is a duplicate of the homepage. React sets the real canonical after rendering.
-  RewriteRule ^(blog|countries|urgent-requirements)(/.*)?$ /app-shell.html [L]
+  # `countries` is not listed: /countries is prerendered (rule 3) and everything below it is
+  # 301'd above, so nothing under it needs the shell any more.
+  RewriteRule ^(blog|urgent-requirements)(/.*)?$ /app-shell.html [L]
   # Private and account pages: never indexed
   RewriteRule ^(dashboard|admin|auth|login|register|forgot-password|reset-password|403)(/.*)?$ /app-shell.html [E=NOINDEX:1,L]
 

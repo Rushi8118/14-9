@@ -1,7 +1,8 @@
-import { Navigate, useParams } from 'react-router-dom'
-import { useMemo } from 'react'
+import { useParams } from 'react-router-dom'
+import { Suspense, lazy, useMemo } from 'react'
 import { DestinationPage } from '@/components/seo/DestinationPage'
 import { buildWorkCountryContent } from '@/content/work-countries'
+import { isFallbackRequirement, usePublicUrgentRequirements } from '@/hooks/useUrgentRequirements'
 import {
   workAustralia,
   workCanada,
@@ -10,6 +11,8 @@ import {
   workUK,
 } from '@/content/work-destinations'
 import { useAdminCountries } from '@/hooks/useAdminCountries'
+
+const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
 
 const DETAILED = {
   japan: workJapan,
@@ -22,6 +25,7 @@ const DETAILED = {
 export default function WorkVisaCountryPage() {
   const { slug = '' } = useParams()
   const { countries } = useAdminCountries()
+  const { requirements } = usePublicUrgentRequirements()
   const normalized = slug === 'united-kingdom' ? 'uk' : slug
   const detailed = DETAILED[normalized as keyof typeof DETAILED]
   const baseContent = detailed ?? buildWorkCountryContent(normalized)
@@ -55,9 +59,34 @@ export default function WorkVisaCountryPage() {
     }
   }, [baseContent, countries, slug, normalized])
 
+  // A boilerplate page earns its place in the index once it carries live
+  // vacancies, because those listings are real content unique to this country.
+  // scripts/seo-routes.mjs applies the same rule when building sitemap.xml.
+  // Placeholder rows do not count: a page must not be indexed on the strength
+  // of sample listings served because the database was unreachable.
+  const hasOpenings = useMemo(() => {
+    const target = baseCountry?.trim().toLowerCase()
+    return (
+      Boolean(target) &&
+      requirements.some(
+        (r) => !isFallbackRequirement(r) && r.country?.trim().toLowerCase() === target,
+      )
+    )
+  }, [requirements, baseCountry])
+
+  // An unknown slug must not redirect: a 200 that lands on /work-visa reads as a
+  // soft 404. Render the noindex 404 instead, as PathwayPage does.
   if (!liveContent) {
-    return <Navigate to="/work-visa" replace />
+    return (
+      <Suspense fallback={null}>
+        <NotFoundPage />
+      </Suspense>
+    )
   }
 
-  return <DestinationPage content={liveContent} />
+  return (
+    <DestinationPage
+      content={{ ...liveContent, noindex: liveContent.noindex && !hasOpenings }}
+    />
+  )
 }

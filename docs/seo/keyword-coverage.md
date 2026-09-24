@@ -17,74 +17,78 @@ The CSV proposes ~3,000 separate URLs: one per city, origin country, question an
 | Brand, consultancy and Surat searches | `/` or `/visa-consultants-in-surat` |
 | A country with no page yet | the `/work-visa`, `/study-visa` or `/post-study-work-visa` hub |
 
-Every keyword is printed on its page, in a **Popular searches** section. The first 12 are shown as highlighted chips and the rest sit under **See all N searches**, grouped by topic. Each page loads only its own list (`src/content/keywords/*.json`).
+## These keywords are not printed on the site
 
-The only keywords not printed are the 4 misspellings (for example "stydy visa consultant surat"), which would read as typos on the page.
+They are **research input**, not page content. An earlier version rendered all of them in a "Popular searches" section on 56 pages — 616 phrases on `/work-visa` alone. That is keyword stuffing under Google's spam policies, and it was removed (see `ranking-diagnosis.md` §3.5).
 
-The highlighted 12 leave out brand terms, keywords the notes flag as risky, superlatives and speed claims the warning list in `keyword-strategy.md` cautions against (best, top, trusted, fast, urgent and similar), and cities outside Surat and its neighbouring districts. Those keywords still appear in the full list.
+The lists are read by the admin keyword-suggestion panel (`src/lib/seo/keyword-suggest.ts`) when an editor writes an urgent requirement, so the research stays useful without being dumped on a page. Use them to decide **what to write about**, then write the page in natural language.
+
+4 misspellings (for example "stydy visa consultant surat") are excluded.
+
+Note: `keyword-strategy.csv` has no search-volume column, so this file shows where keywords were *mapped*, not how often they are searched. Validate demand in Search Console or a keyword tool before committing to a page.
 
 ## Keywords per page
 
-| Page | Keywords mapped | High priority | Highlighted |
-|---|---:|---:|---:|
-| `/work-visa` | 616 | 0 | 1 |
-| `/work-visa/new-zealand` | 382 | 96 | 12 |
-| `/work-visa/usa` | 382 | 96 | 12 |
-| `/work-visa/uk` | 380 | 96 | 12 |
-| `/work-visa/australia` | 229 | 48 | 12 |
-| `/work-visa/germany` | 229 | 48 | 12 |
-| `/work-visa/canada` | 227 | 48 | 12 |
-| `/work-visa/japan` | 218 | 48 | 12 |
-| `/work-visa/poland` | 218 | 48 | 12 |
-| `/work-visa/portugal` | 218 | 48 | 12 |
-| `/work-visa/gulf` | 218 | 0 | 12 |
-| `/work-visa/ireland` | 215 | 48 | 12 |
-| `/work-visa/netherlands` | 153 | 0 | 12 |
-| `/work-visa/austria` | 139 | 0 | 12 |
-| `/work-visa/denmark` | 139 | 0 | 12 |
-| `/work-visa/finland` | 139 | 0 | 12 |
-| `/work-visa/france` | 139 | 0 | 12 |
-| `/work-visa/hungary` | 139 | 0 | 12 |
-| `/work-visa/italy` | 139 | 0 | 12 |
-| `/work-visa/norway` | 139 | 0 | 12 |
-| `/work-visa/romania` | 139 | 0 | 12 |
-| `/work-visa/spain` | 139 | 0 | 12 |
-| `/work-visa/sweden` | 139 | 0 | 12 |
-| `/work-visa/switzerland` | 139 | 0 | 12 |
-| `/work-visa/singapore` | 137 | 0 | 12 |
-| `/work-visa/croatia` | 123 | 0 | 12 |
-| `/work-visa/malaysia` | 123 | 0 | 12 |
-| `/work-visa/malta` | 123 | 0 | 12 |
-| `/work-visa/qatar` | 123 | 0 | 12 |
-| `/work-visa/saudi-arabia` | 123 | 0 | 12 |
-| `/work-visa/slovakia` | 123 | 0 | 12 |
-| `/study-in-uk` | 122 | 22 | 10 |
-| `/study-in-usa` | 122 | 22 | 10 |
-| `/work-visa/albania` | 108 | 0 | 12 |
-| `/work-visa/armenia` | 108 | 0 | 12 |
-| `/work-visa/azerbaijan` | 108 | 0 | 12 |
-| `/work-visa/belarus` | 108 | 0 | 12 |
-| `/work-visa/israel` | 108 | 0 | 12 |
-| `/work-visa/kazakhstan` | 108 | 0 | 12 |
-| `/work-visa/maldives` | 108 | 0 | 12 |
-| `/work-visa/moldova` | 108 | 0 | 12 |
-| `/work-visa/russia` | 108 | 0 | 12 |
-| `/study-in-australia` | 61 | 11 | 10 |
-| `/study-in-canada` | 61 | 11 | 10 |
-| `/study-in-germany` | 61 | 11 | 10 |
-| `/study-in-ireland` | 61 | 11 | 10 |
-| `/study-in-new-zealand` | 50 | 6 | 8 |
-| `/post-study-work-visa` | 40 | 40 | 12 |
-| `/visa-consultants-in-surat` | 33 | 15 | 12 |
-| `/` | 31 | 12 | 0 |
-| `/pathways/new-zealand-accredited-employer-work-visa` | 20 | 20 | 10 |
-| `/pathways/uk-graduate-visa-to-skilled-worker-visa` | 20 | 20 | 10 |
-| `/study-in-dubai` | 20 | 3 | 4 |
-| `/study-in-france` | 20 | 3 | 4 |
-| `/study-in-singapore` | 20 | 3 | 4 |
-| `/study-in-spain` | 20 | 3 | 4 |
-| `/pathways/australia-485-to-employer-sponsored-visa` | 10 | 10 | 10 |
-| `/pathways/canada-pgwp-to-pr` | 10 | 10 | 10 |
+| Page | Keywords mapped | High priority |
+|---|---:|---:|
+| `/work-visa` | 616 | 0 |
+| `/work-visa/new-zealand` | 382 | 96 |
+| `/work-visa/usa` | 382 | 96 |
+| `/work-visa/uk` | 380 | 96 |
+| `/work-visa/australia` | 229 | 48 |
+| `/work-visa/germany` | 229 | 48 |
+| `/work-visa/canada` | 227 | 48 |
+| `/work-visa/japan` | 218 | 48 |
+| `/work-visa/poland` | 218 | 48 |
+| `/work-visa/portugal` | 218 | 48 |
+| `/work-visa/gulf` | 218 | 0 |
+| `/work-visa/ireland` | 215 | 48 |
+| `/work-visa/netherlands` | 153 | 0 |
+| `/work-visa/austria` | 139 | 0 |
+| `/work-visa/denmark` | 139 | 0 |
+| `/work-visa/finland` | 139 | 0 |
+| `/work-visa/france` | 139 | 0 |
+| `/work-visa/hungary` | 139 | 0 |
+| `/work-visa/italy` | 139 | 0 |
+| `/work-visa/norway` | 139 | 0 |
+| `/work-visa/romania` | 139 | 0 |
+| `/work-visa/spain` | 139 | 0 |
+| `/work-visa/sweden` | 139 | 0 |
+| `/work-visa/switzerland` | 139 | 0 |
+| `/work-visa/singapore` | 137 | 0 |
+| `/work-visa/croatia` | 123 | 0 |
+| `/work-visa/malaysia` | 123 | 0 |
+| `/work-visa/malta` | 123 | 0 |
+| `/work-visa/qatar` | 123 | 0 |
+| `/work-visa/saudi-arabia` | 123 | 0 |
+| `/work-visa/slovakia` | 123 | 0 |
+| `/study-in-uk` | 122 | 22 |
+| `/study-in-usa` | 122 | 22 |
+| `/work-visa/albania` | 108 | 0 |
+| `/work-visa/armenia` | 108 | 0 |
+| `/work-visa/azerbaijan` | 108 | 0 |
+| `/work-visa/belarus` | 108 | 0 |
+| `/work-visa/israel` | 108 | 0 |
+| `/work-visa/kazakhstan` | 108 | 0 |
+| `/work-visa/maldives` | 108 | 0 |
+| `/work-visa/moldova` | 108 | 0 |
+| `/work-visa/russia` | 108 | 0 |
+| `/study-in-australia` | 61 | 11 |
+| `/study-in-canada` | 61 | 11 |
+| `/study-in-germany` | 61 | 11 |
+| `/study-in-ireland` | 61 | 11 |
+| `/study-in-new-zealand` | 50 | 6 |
+| `/post-study-work-visa` | 40 | 40 |
+| `/visa-consultants-in-surat` | 33 | 15 |
+| `/` | 31 | 12 |
+| `/pathways/new-zealand-accredited-employer-work-visa` | 20 | 20 |
+| `/pathways/uk-graduate-visa-to-skilled-worker-visa` | 20 | 20 |
+| `/study-in-dubai` | 20 | 3 |
+| `/study-in-france` | 20 | 3 |
+| `/study-in-singapore` | 20 | 3 |
+| `/study-in-spain` | 20 | 3 |
+| `/pathways/australia-485-to-employer-sponsored-visa` | 10 | 10 |
+| `/pathways/canada-pgwp-to-pr` | 10 | 10 |
 
 ## Destinations with no page yet
 

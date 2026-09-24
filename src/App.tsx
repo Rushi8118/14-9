@@ -52,8 +52,6 @@ function Page({ children }: { children: ReactNode }) {
 const ServicesPage = lazy(() => import('./pages/ServicesPage'))
 const ContactPage = lazy(() => import('./pages/ContactPage'))
 const CountriesPage = lazy(() => import('./pages/CountriesPage'))
-const CountryPage = lazy(() => import('./pages/CountryPage'))
-const ProgramPage = lazy(() => import('./pages/ProgramPage'))
 const StudyInGermanyPage = lazy(() => import('./pages/StudyInGermanyPage'))
 const StudyInIrelandPage = lazy(() => import('./pages/StudyInIrelandPage'))
 const StudyInNewZealandPage = lazy(() => import('./pages/StudyInNewZealandPage'))
@@ -128,8 +126,6 @@ function AppRoutes() {
       <Route path="/services" element={<Page><ServicesPage /></Page>} />
       <Route path="/contact" element={<Page><ContactPage /></Page>} />
       <Route path="/countries" element={<Page><CountriesPage /></Page>} />
-      <Route path="/countries/:slug" element={<Page><CountryPage /></Page>} />
-      <Route path="/countries/:slug/programs/:programSlug" element={<Page><ProgramPage /></Page>} />
       <Route path="/work-visa" element={<Page><WorkVisaPage /></Page>} />
       <Route path="/study-visa" element={<Page><StudyVisaPage /></Page>} />
       <Route path="/study-in-usa" element={<Page><StudyInUSAPage /></Page>} />

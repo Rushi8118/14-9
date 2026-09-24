@@ -12,7 +12,12 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const escapeXml = (value) =>
   value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-const routes = await getPublicRoutes(root)
+// Routes flagged `noindex` are live pages that are not ready to be submitted
+// (see seo-routes.mjs). The prerenderer still renders them; only the sitemap
+// leaves them out, so the two stay consistent with the page's own robots tag.
+const allRoutes = await getPublicRoutes(root)
+const routes = allRoutes.filter((route) => !route.noindex)
+const withheld = allRoutes.length - routes.length
 const body = routes
   .map(({ path: route, lastmod }) => {
     const loc = route === '/' ? `${SITE_URL}/` : `${SITE_URL}${route}`
@@ -32,4 +37,8 @@ for (const target of targets) {
   await mkdir(path.dirname(target), { recursive: true })
   await writeFile(target, xml, 'utf8')
 }
-console.log(`sitemap.xml: ${routes.length} URLs -> ${targets.map((t) => path.relative(root, t)).join(', ')}`)
+console.log(
+  `sitemap.xml: ${routes.length} URLs` +
+  (withheld ? ` (${withheld} noindexed pages rendered but not listed)` : '') +
+  ` -> ${targets.map((t) => path.relative(root, t)).join(', ')}`,
+)

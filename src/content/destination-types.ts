@@ -28,4 +28,11 @@ export type DestinationContent = {
   related: RelatedLink[]
   serviceType: string
   datePublished?: string
+  /**
+   * Keep the page live and crawlable but out of the index, for pages that do
+   * not yet have enough verified, country-specific content to deserve a
+   * ranking. Set from `contentTier === 'thin'` in work-countries.ts; also
+   * keeps the page out of sitemap.xml (see scripts/seo-routes.mjs).
+   */
+  noindex?: boolean
 }

@@ -28,16 +28,12 @@
   },
   "include": [
     "src/**/*.ts",
-    "src/**/*.tsx",
-    "types/**/*.d.ts"
+    "src/**/*.tsx"
   ],
   "exclude": [
     "node_modules",
+    "dist",
     "src/lib/supabase/server.ts",
-    "src/pages/DashboardPage.tsx",
-    "app/**/*.ts",
-    "app/**/*.tsx",
-    "auth/**/*.ts",
-    "auth/**/*.tsx"
+    "src/pages/DashboardPage.tsx"
   ]
 }

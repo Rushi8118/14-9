@@ -1,5 +1,4 @@
 import { ImmigrationDisclaimer } from '@/components/seo/ImmigrationDisclaimer'
-import { KeywordTopics } from '@/components/seo/KeywordTopics'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import { ArrowRight, GraduationCap, Globe2, CheckCircle2, Award, Clock, BookOpen, Briefcase, Users, TrendingUp } from 'lucide-react'
@@ -298,7 +297,6 @@ export default function PostStudyWorkVisaPage() {
             </div>
           </div>
         </section>
-        <KeywordTopics path="/post-study-work-visa" />
         <ImmigrationDisclaimer />
       </main>
       <SiteFooter />

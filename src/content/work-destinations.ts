@@ -22,7 +22,12 @@ function workPage(
     ...input,
     kind: 'work',
     serviceType: 'Work visa consultancy',
-    processingTime: input.path.endsWith('/uk') ? 'Approximately 8 weeks' : 'Approximately 5–6 months',
+    // `processingTime` is deliberately not set here. It used to be
+    // `path.endsWith('/uk') ? '8 weeks' : '5-6 months'` — one unsourced figure
+    // applied to every other country. Processing times are published per route
+    // by each government and change often. Set it on an individual page only
+    // once it has been checked against the official source, with the source in
+    // a comment next to it.
     related: uniqueLinks,
   }
 }

@@ -1,14 +1,44 @@
 /**
- * Single source of truth for public, indexable URLs.
- * Used by the sitemap generator and the prerender step so the two never drift apart.
+ * Single source of truth for public URLs.
+ *
+ * Both the sitemap generator and the prerender step read this, but they use it
+ * differently, and the difference matters:
+ *
+ *   prerender  – renders EVERY route, so every page stays live. Apache 404s
+ *                anything that was not prerendered (public/.htaccess rule 6),
+ *                so dropping a route here takes the page off the site.
+ *   sitemap    – lists only routes without `noindex`. A page can be live and
+ *                useful to visitors while being too thin to submit to Google.
+ *
+ * So "stop indexing this page" means marking it `noindex`, never removing it.
  */
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { loadEnv } from 'vite'
 
 const execFileAsync = promisify(execFile)
 
 export const SITE_URL = 'https://siddhivinayakoverseas.com'
+
+/**
+ * Work-visa countries and their content tier, read from the content file so
+ * this list cannot drift from the one the site renders. (The same
+ * read-the-TS-file approach is used by scripts/build-keyword-map.mjs.)
+ */
+function workCountries(root) {
+  const source = readFileSync(resolve(root, 'src/content/work-countries.ts'), 'utf8')
+  const found = [...source.matchAll(/\{ slug: "([a-z-]+)".*?contentTier: "(urgent|regular|thin)"/g)]
+    .map(([, slug, tier]) => ({ slug, tier }))
+  if (found.length < 40) {
+    throw new Error(
+      `[seo-routes] Parsed only ${found.length} work countries from work-countries.ts. ` +
+      'Check the WORK_COUNTRIES formatting — a silent miss here would drop pages from the site.',
+    )
+  }
+  return found
+}
 
 export const STATIC_ROUTES = [
   '/',
@@ -30,12 +60,8 @@ export const STATIC_ROUTES = [
   '/study-in-usa',
   '/study-in-ireland',
   '/study-in-new-zealand',
-  ...[
-    'albania', 'armenia', 'austria', 'belarus', 'croatia', 'denmark', 'finland', 'france', 'germany', 'hungary',
-    'ireland', 'italy', 'malta', 'moldova', 'netherlands', 'norway', 'poland', 'portugal', 'romania', 'slovakia',
-    'spain', 'sweden', 'switzerland', 'uk', 'azerbaijan', 'israel', 'japan', 'kazakhstan', 'malaysia', 'maldives',
-    'qatar', 'russia', 'saudi-arabia', 'singapore', 'australia', 'new-zealand', 'canada', 'usa', 'africa', 'gulf',
-  ].map((slug) => `/work-visa/${slug}`),
+  // /work-visa/{country} routes are added by getPublicRoutes() from
+  // src/content/work-countries.ts, which also carries each country's tier.
   '/post-study-work-visa',
   '/guides',
   '/pathways',
@@ -140,29 +166,59 @@ function isoDate(value) {
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString().slice(0, 10)
 }
 
-/** @returns {Promise<Array<{ path: string, lastmod?: string }>>} */
+/** Country name on an urgent requirement row → its /work-visa slug. */
+const WORK_SLUG_ALIAS = {
+  'united-kingdom': 'uk',
+  'united-states': 'usa',
+  usa: 'usa',
+  uae: 'gulf',
+  'united-arab-emirates': 'gulf',
+  dubai: 'gulf',
+  qatar: 'qatar',
+}
+const toWorkSlug = (name) => {
+  const slug = String(name ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  return WORK_SLUG_ALIAS[slug] ?? slug
+}
+
+/**
+ * @returns {Promise<Array<{ path: string, lastmod?: string, noindex?: boolean }>>}
+ * Every public page. `noindex: true` means "render it, but keep it out of
+ * sitemap.xml" — the page is live, it just is not ready to be submitted.
+ */
 export async function getPublicRoutes(root) {
   const env = loadEnv('production', root, '')
-  const [countries, posts, requirements] = await Promise.all([
-    fetchPublicSlugs(env, 'countries', 'is_active=eq.true', ['description']),
+  const [posts, requirements] = await Promise.all([
     fetchPublicSlugs(env, 'blog_posts', 'status=eq.published', ['canonical_url']),
-    fetchPublicSlugs(env, 'urgent_requirements', 'status=eq.active'),
+    fetchPublicSlugs(env, 'urgent_requirements', 'status=eq.active', ['country']),
   ])
+
+  // A thin country page is still worth indexing when it carries live vacancies,
+  // because those listings are real content unique to that country.
+  // WorkVisaCountryPage applies the same rule when it sets the robots tag.
+  const hiring = new Set(requirements.map((row) => toWorkSlug(row.country)))
+  const workRoutes = workCountries(root).map(({ slug, tier }) => ({
+    path: `/work-visa/${slug}`,
+    noindex: tier === 'thin' && !hiring.has(slug),
+  }))
+
   const dynamic = [
-    // Thin country profiles are noindexed by CountryPage, so they stay out of the sitemap too.
-    ...countries
-      .filter((row) => (row.description ?? '').trim().length >= 150)
-      .map((row) => ({ path: `/countries/${row.slug}`, lastmod: isoDate(row.updated_at) })),
+    // /countries/{slug} was retired: those pages duplicated /study-in-* and
+    // /work-visa/* and shipped unpopulated Supabase empty states as content.
+    // public/.htaccess 301s them to the stronger page. The /countries hub stays.
     // Posts that declare a canonical on another URL are not listed as their own page.
     ...posts
       .filter((row) => !row.canonical_url || (row.canonical_url.endsWith('/') ? row.canonical_url.slice(0, -1) : row.canonical_url) === `${SITE_URL}/blog/${row.slug}`)
       .map((row) => ({ path: `/blog/${row.slug}`, lastmod: isoDate(row.updated_at) })),
     ...requirements.map((row) => ({ path: `/urgent-requirements/${row.slug}`, lastmod: isoDate(row.updated_at) })),
   ]
-  const lastmodFor = await staticRouteDates(root, STATIC_ROUTES)
+
+  const staticPaths = [...STATIC_ROUTES, ...workRoutes.map((r) => r.path)]
+  const lastmodFor = await staticRouteDates(root, staticPaths)
   const seen = new Set()
   return [
     ...STATIC_ROUTES.map((path) => ({ path, lastmod: lastmodFor(path) })),
+    ...workRoutes.map((r) => ({ ...r, lastmod: lastmodFor(r.path) })),
     ...dynamic,
   ].filter(({ path }) => {
     if (seen.has(path)) return false
