@@ -1,4 +1,0 @@
-- [Admin module architecture](admin-modules.md) — 6 admin modules each have a hook + page; all degrade gracefully to demo data when Supabase disconnected.
-- [RBAC roles](rbac-roles.md) — 7 roles (user/viewer/editor/consultant/manager/admin/superadmin); static permission matrix in src/lib/rbac/index.ts.
-- [Supabase singleton pattern](supabase-singleton.md) — single shared client via src/lib/supabase/client.ts; throws if env vars missing; main.tsx uses dynamic import to catch and render EnvironmentError.
-- [Mobile menu & globe rules](mobile-menu-globe.md) — mobile menu must use solid hex background not CSS var opacity; globe container must NOT have overflow-hidden.

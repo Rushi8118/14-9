@@ -29,3 +29,23 @@ out/
 
 # Local agent and workspace metadata
 .local/
+# TypeScript incremental build cache
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# Agent / editor workspace scratch
+.agents/
+.canvas/
+.opencode/
+attached_assets/
+
+# Legacy Next.js app-router tree (superseded by Vite + React Router in src/)
+/app/
+/auth/
+/countries/
+/dashboard/
+/components/
+/hooks/
+/lib/
+/styles/
+/types/
