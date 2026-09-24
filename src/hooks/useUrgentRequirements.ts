@@ -109,6 +109,19 @@ export function getRemainingDays(expiresAt: string | null): number | null {
   return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 }
 
+/**
+ * True for the placeholder rows below, which are NOT real openings: they are
+ * sample content shown when Supabase cannot be reached, with invented
+ * employers, salaries and vacancy counts.
+ *
+ * Anywhere a listing could be read as a genuine job offer — a country page, a
+ * count of "current openings", a decision about whether a page has real
+ * content — filter these out first. A visitor must never be shown an invented
+ * vacancy as though we were recruiting for it.
+ */
+export const isFallbackRequirement = (r: Pick<UrgentRequirement, 'id'>) =>
+  typeof r.id === 'string' && r.id.startsWith('fallback-')
+
 const FALLBACK_URGENT_REQUIREMENTS: UrgentRequirement[] = [
   {
     id: 'fallback-1',

@@ -9,6 +9,41 @@ import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { FlagIcon } from '@/components/flag-icon'
 import { useAdminCountries } from '@/hooks/useAdminCountries'
+import { WORK_COUNTRY_BY_SLUG } from '@/content/work-countries'
+
+/** Work slugs that also have a /study-in-{slug} page. */
+const STUDY_PAGES = new Set([
+  'uk', 'france', 'germany', 'spain', 'dubai', 'singapore',
+  'canada', 'australia', 'usa', 'ireland', 'new-zealand',
+])
+const WORK_SLUG_ALIAS: Record<string, string> = {
+  'united-kingdom': 'uk',
+  'united-states': 'usa',
+  'united-arab-emirates': 'gulf',
+  dubai: 'gulf',
+}
+const STUDY_SLUG_ALIAS: Record<string, string> = {
+  'united-kingdom': 'uk',
+  'united-states': 'usa',
+  'united-arab-emirates': 'dubai',
+}
+
+/**
+ * Where a country card should send the reader.
+ *
+ * This hub used to link to `/country/{slug}` — singular, a route that has never
+ * existed — so every card 404'd. The `/countries/{slug}` pages it was meant to
+ * reach have since been retired (they duplicated these destinations and shipped
+ * unpopulated Supabase empty states), so cards now point at the real pages.
+ */
+function destinationsFor(slug: string) {
+  const workSlug = WORK_SLUG_ALIAS[slug] ?? slug
+  const studySlug = STUDY_SLUG_ALIAS[slug] ?? slug
+  return {
+    work: WORK_COUNTRY_BY_SLUG[workSlug] ? `/work-visa/${workSlug}` : null,
+    study: STUDY_PAGES.has(studySlug) ? `/study-in-${studySlug}` : null,
+  }
+}
 
 export default function CountriesPage() {
   const { countries: adminCountries, isLoading } = useAdminCountries()
@@ -157,12 +192,30 @@ export default function CountriesPage() {
                       </div>
                     </div>
 
-                    <Button asChild variant="outline" className="w-full justify-between rounded-xl group-hover:bg-primary group-hover:text-primary-foreground">
-                      <Link to={`/country/${country.slug}`}>
-                        <span>Explore {country.name}</span>
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                    </Button>
+                    {(() => {
+                      const { work, study } = destinationsFor(country.slug)
+                      if (!work && !study) return null
+                      return (
+                        <div className="flex flex-col gap-2">
+                          {work ? (
+                            <Button asChild variant="outline" className="w-full justify-between rounded-xl group-hover:bg-primary group-hover:text-primary-foreground">
+                              <Link to={work}>
+                                <span>{country.name} work visa</span>
+                                <ArrowRight className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                          ) : null}
+                          {study ? (
+                            <Button asChild variant="ghost" className="w-full justify-between rounded-xl">
+                              <Link to={study}>
+                                <span>Study in {country.name}</span>
+                                <ArrowRight className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                          ) : null}
+                        </div>
+                      )
+                    })()}
                   </div>
                 ))}
               </div>

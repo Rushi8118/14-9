@@ -42,6 +42,11 @@ const CORE_ROUTES: Array<{
   { path: '/terms', changefreq: 'yearly', priority: 0.2 },
 ]
 
+/**
+ * Not imported by the app — sitemap.xml is built by scripts/seo-routes.mjs.
+ * Keep it anyway: scripts/build-keyword-map.mjs regex-scans this file for
+ * `path: '...'` to learn which pages exist before mapping keywords onto them.
+ */
 export const PUBLIC_SEO_ROUTES = [
   ...CORE_ROUTES,
   ...getAllWorkVisaPaths().map((path) => ({

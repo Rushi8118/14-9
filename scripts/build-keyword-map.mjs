@@ -3,16 +3,21 @@
  * Maps every keyword in docs/seo/keyword-strategy.csv onto a page that
  * actually exists on the site, then writes:
  *
- *   src/content/keyword-map.generated.ts  – the 12 keywords each page shows
- *                                            first in "Popular searches"
  *   src/content/keywords/*.json           – every keyword for each page, by
- *                                            topic, loaded only on that page
+ *                                            topic
  *   docs/seo/keyword-coverage.md          – where all 7,800+ keywords landed
  *
  * The CSV suggests ~3,000 URLs (one per city / origin / question). The SEO
  * docs warn that building those as separate thin pages gets a site filtered
  * (doorway pages, soft 404s), so this script folds each keyword into the
  * strongest existing page for its destination and service instead.
+ *
+ * These keywords are RESEARCH INPUT, not page content. They are read by the
+ * admin keyword-suggestion panel (src/lib/seo/keyword-suggest.ts) when an
+ * editor writes an urgent requirement. Nothing here is printed on a public
+ * page: an earlier version rendered all 7,819 phrases across 56 pages, which
+ * is keyword stuffing under Google's spam policies. See
+ * docs/seo/ranking-diagnosis.md §3.5. Do not reintroduce that.
  *
  * Run with `npm run keywords` after editing either CSV or adding a page.
  */
@@ -22,9 +27,6 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (p) => readFileSync(resolve(ROOT, p), 'utf8')
-
-/** Shown per page. More than this reads as a keyword dump, not help. */
-const MAX_SHOWN = 12
 
 function parseCsv(text) {
   const rows = []
@@ -106,56 +108,16 @@ function targetFor(row) {
   }
 }
 
-// ── What is fit to show on a page ─────────────────────────────────────────
-// Everything is mapped; only these are hidden from the visible section.
-const HIDDEN_NOTE = /misspell|risky|do not build|don't build|only use if|only publish where|check the route exists|subjective|never self|typo/i
-const HIDDEN_WORD =
-  /\b(cheap|cheapest|guarantee\w*|urgent|fast|fastest|quick|instant|easy|best|top|top-rated|trusted|no\.? ?1|number one|100%|free visa|licensed|registered|certified|approved|success rate)\b/i
-const SHOWN_ORIGINS = new Set([
-  '-', 'India', 'Pakistan', 'Nepal', 'Bangladesh', 'Sri Lanka', 'Abroad (on a student visa)',
-  'Surat', 'Surat / Gujarat', 'Ahmedabad', 'Vadodara', 'Rajkot', 'Navsari',
-])
-const isShowable = (row) =>
-  !['Brand', 'Variation'].includes(row['Keyword category']) &&
-  !HIDDEN_NOTE.test(row.Notes) &&
-  !HIDDEN_WORD.test(row.Keyword) &&
-  SHOWN_ORIGINS.has(row['Origin location'])
-
-const HUBS = new Set(['/work-visa', '/study-visa', '/post-study-work-visa'])
-/** Countries a hub genuinely covers (the /post-study-work-visa comparison table). */
-const HUB_COVERS = { '/post-study-work-visa': new Set(['Germany', 'Ireland']) }
-const PRIORITY = { High: 0, Medium: 1, Low: 2 }
-const CATEGORY = { Service: 0, Question: 1, Comparison: 2, Local: 3, Location: 4 }
-
 // ── Build ─────────────────────────────────────────────────────────────────
 const rows = parseCsv(read('docs/seo/keyword-strategy.csv'))
 const byPage = new Map()
 for (const [index, row] of rows.entries()) {
   const path = targetFor(row)
   if (!byPage.has(path)) byPage.set(path, [])
-  // A keyword for a country the site has no page for lands on a hub. It is
-  // kept out of the hub's top 12 (the hub does not cover that country) but
-  // still listed under "See all".
-  const dest = row['Destination location']
-  const fallback = dest !== '-' && HUBS.has(path) && !HUB_COVERS[path]?.has(dest)
-  byPage.get(path).push({ ...row, index, fallback })
+  byPage.get(path).push({ ...row, index })
 }
 
-// Near-duplicates ("uk …" / "united kingdom …", the same phrase for each
-// nearby city or origin country) collapse to one entry, so a page shows a
-// spread of different searches rather than twelve spellings of one.
-const VARIANT = [
-  [/\bunited kingdom\b/g, 'uk'],
-  [/\bunited states\b/g, 'usa'],
-  [/\bnew zealand\b/g, 'nz'],
-  [/\bunited arab emirates\b/g, 'uae'],
-  [/\b(surat|ahmedabad|vadodara|rajkot|navsari)\b/g, '{city}'],
-  [/\b(india|pakistan|nepal|bangladesh|sri lanka)\b/g, '{origin}'],
-]
-const variantKey = (k) => VARIANT.reduce((s, [re, to]) => s.replace(re, to), k.toLowerCase())
-const ORIGIN_RANK = { Surat: 0, 'Surat / Gujarat': 0, India: 1, '-': 1, 'Abroad (on a student visa)': 1 }
-
-// CSV keywords are lower-case search queries; show them as readable phrases.
+// CSV keywords are lower-case search queries; store them as readable phrases.
 const ACRONYMS = ['uk', 'usa', 'nz', 'uae', 'eu', 'pgwp', 'pr', 'aewv', 'ielts', 'ssw', 'lmia', 'gcc', 'psw']
 const PROPER = [
   ...new Set(
@@ -174,37 +136,6 @@ function display(keyword) {
   out = out.replace(new RegExp(`\\b(${ACRONYMS.join('|')})\\b`, 'g'), (m) => m.toUpperCase())
   out = out.replace(/\bi\b/g, 'I')
   return out.charAt(0).toUpperCase() + out.slice(1)
-}
-
-const shown = {}
-for (const [path, list] of byPage) {
-  const seen = new Set()
-  const buckets = new Map()
-  list
-    .filter((r) => isShowable(r) && !r.fallback)
-    .sort(
-      (a, b) =>
-        PRIORITY[a.Priority] - PRIORITY[b.Priority] ||
-        (ORIGIN_RANK[a['Origin location']] ?? 2) - (ORIGIN_RANK[b['Origin location']] ?? 2) ||
-        a.index - b.index,
-    )
-    .forEach((r) => {
-      const key = variantKey(r.Keyword.trim())
-      if (seen.has(key)) return
-      seen.add(key)
-      const cat = r['Keyword category']
-      if (!buckets.has(cat)) buckets.set(cat, [])
-      buckets.get(cat).push(display(r.Keyword))
-    })
-  // Round-robin across categories: service terms, questions, comparisons, routes.
-  const queues = [...buckets.entries()]
-    .sort((a, b) => (CATEGORY[a[0]] ?? 9) - (CATEGORY[b[0]] ?? 9))
-    .map(([, q]) => q)
-  const picked = []
-  while (picked.length < MAX_SHOWN && queues.some((q) => q.length)) {
-    for (const q of queues) if (q.length && picked.length < MAX_SHOWN) picked.push(q.shift())
-  }
-  if (picked.length) shown[path] = picked
 }
 
 // ── Every keyword, per page ───────────────────────────────────────────────
@@ -244,17 +175,6 @@ for (const [path, list] of byPage) {
   writeFileSync(resolve(KEYWORD_DIR, `${keywordFileId(path)}.json`), `${JSON.stringify(topics, null, 1)}\n`)
 }
 
-const sortedPaths = Object.keys(shown).sort()
-const ts = `// Generated by scripts/build-keyword-map.mjs from docs/seo/keyword-strategy.csv.
-// Do not edit by hand — run \`npm run keywords\`.
-
-/** Searches each page answers, strongest first. Rendered by <KeywordTopics />. */
-export const KEYWORD_MAP: Record<string, readonly string[]> = {
-${sortedPaths.map((p) => `  ${JSON.stringify(p)}: ${JSON.stringify(shown[p])},`).join('\n')}
-}
-`
-writeFileSync(resolve(ROOT, 'src/content/keyword-map.generated.ts'), ts)
-
 // ── Coverage report ───────────────────────────────────────────────────────
 const unbuilt = new Map()
 for (const row of rows) {
@@ -272,7 +192,6 @@ const pageRows = [...byPage.entries()]
     path,
     total: list.length,
     high: list.filter((r) => r.Priority === 'High').length,
-    shown: shown[path]?.length ?? 0,
   }))
   .sort((a, b) => b.total - a.total)
 
@@ -295,17 +214,21 @@ The CSV proposes ~3,000 separate URLs: one per city, origin country, question an
 | Brand, consultancy and Surat searches | \`/\` or \`/visa-consultants-in-surat\` |
 | A country with no page yet | the \`/work-visa\`, \`/study-visa\` or \`/post-study-work-visa\` hub |
 
-Every keyword is printed on its page, in a **Popular searches** section. The first ${MAX_SHOWN} are shown as highlighted chips and the rest sit under **See all N searches**, grouped by topic. Each page loads only its own list (\`src/content/keywords/*.json\`).
+## These keywords are not printed on the site
 
-The only keywords not printed are the ${typoCount} misspellings (for example "stydy visa consultant surat"), which would read as typos on the page.
+They are **research input**, not page content. An earlier version rendered all of them in a "Popular searches" section on 56 pages — 616 phrases on \`/work-visa\` alone. That is keyword stuffing under Google's spam policies, and it was removed (see \`ranking-diagnosis.md\` §3.5).
 
-The highlighted ${MAX_SHOWN} leave out brand terms, keywords the notes flag as risky, superlatives and speed claims the warning list in \`keyword-strategy.md\` cautions against (best, top, trusted, fast, urgent and similar), and cities outside Surat and its neighbouring districts. Those keywords still appear in the full list.
+The lists are read by the admin keyword-suggestion panel (\`src/lib/seo/keyword-suggest.ts\`) when an editor writes an urgent requirement, so the research stays useful without being dumped on a page. Use them to decide **what to write about**, then write the page in natural language.
+
+${typoCount} misspellings (for example "stydy visa consultant surat") are excluded.
+
+Note: \`keyword-strategy.csv\` has no search-volume column, so this file shows where keywords were *mapped*, not how often they are searched. Validate demand in Search Console or a keyword tool before committing to a page.
 
 ## Keywords per page
 
-| Page | Keywords mapped | High priority | Highlighted |
-|---|---:|---:|---:|
-${pageRows.map((r) => `| \`${r.path}\` | ${r.total} | ${r.high} | ${r.shown} |`).join('\n')}
+| Page | Keywords mapped | High priority |
+|---|---:|---:|
+${pageRows.map((r) => `| \`${r.path}\` | ${r.total} | ${r.high} |`).join('\n')}
 
 ## Destinations with no page yet
 

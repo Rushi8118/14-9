@@ -7,7 +7,7 @@ import { SeoHead } from '@/components/seo/SeoHead'
 import { FaqSection } from '@/components/seo/FaqSection'
 import { CtaBand } from '@/components/seo/CtaBand'
 import { RelatedLinks } from '@/components/seo/RelatedLinks'
-import { KeywordTopics } from '@/components/seo/KeywordTopics'
+import { CountryVacancies } from '@/components/seo/CountryVacancies'
 import type { DestinationContent } from '@/content/destination-types'
 import {
   articleSchema,
@@ -65,6 +65,23 @@ export function DestinationPage({ content, showWhatsAppFab = true }: Destination
 
   return (
     <>
+      <SeoHead
+        title={content.title}
+        description={content.description}
+        path={content.path}
+        keywords={content.keywords}
+        type={content.kind === 'guide' ? 'article' : 'website'}
+        noindex={content.noindex}
+        jsonLd={jsonLd}
+      />
+      <SiteHeader />
+      <main id="main-content" className="relative overflow-hidden premium-page">
+        <PageHero
+          eyebrow={content.eyebrow}
+          title={content.h1}
+          description={content.heroDescription}
+          breadcrumbs={content.breadcrumbs}
+        />
 
         {content.processingTime ? (
           <section className="border-b border-border/40 px-4 py-6 md:px-6">
@@ -77,22 +94,6 @@ export function DestinationPage({ content, showWhatsAppFab = true }: Destination
             </div>
           </section>
         ) : null}
-      <SeoHead
-        title={content.title}
-        description={content.description}
-        path={content.path}
-        keywords={content.keywords}
-        type={content.kind === 'guide' ? 'article' : 'website'}
-        jsonLd={jsonLd}
-      />
-      <SiteHeader />
-      <main id="main-content" className="relative overflow-hidden premium-page">
-        <PageHero
-          eyebrow={content.eyebrow}
-          title={content.h1}
-          description={content.heroDescription}
-          breadcrumbs={content.breadcrumbs}
-        />
 
         {content.highlights.length > 0 ? (
           <section className="py-16 md:py-20">
@@ -200,8 +201,11 @@ export function DestinationPage({ content, showWhatsAppFab = true }: Destination
           </section>
         ) : null}
 
+        {content.kind === 'work' && content.country ? (
+          <CountryVacancies country={content.country} />
+        ) : null}
+
         <FaqSection faqs={content.faqs} />
-        <KeywordTopics path={content.path} />
         <ImmigrationDisclaimer country={content.country} jobs={content.kind === 'work'} />
         <RelatedLinks links={content.related} />
         <CtaBand />
