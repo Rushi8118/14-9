@@ -3,6 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Google Analytics 4 — loaded inline so it fires on every deploy, independent of JS bundle version -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MDVF551H1C"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      // send_page_view:false — React Router sends page_view on every SPA navigation instead
+      gtag('config', 'G-MDVF551H1C', { send_page_view: false });
+      // Mark analytics as ready so analytics.ts doesn't inject a duplicate script
+      window.__analyticsReady = true;
+    </script>
     <title>Overseas Education & Visa Consultants in Surat | Siddhivinayak Overseas</title>
     <meta
       name="description" data-rh="true"

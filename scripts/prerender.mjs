@@ -2,7 +2,7 @@
  * Post-build prerender for public SEO routes.
  * Starts vite preview, renders each route with Playwright, writes HTML into dist/.
  */
-import { spawn } from 'node:child_process'
+import { spawn, execSync } from 'node:child_process'
 import { mkdir, writeFile, access, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -18,12 +18,50 @@ const BASE = `http://127.0.0.1:${PORT}`
 // Same list as the sitemap, plus the static 404 page.
 const ROUTES = [...(await getPublicRoutes(root)).map((route) => route.path), '/404']
 
+/**
+ * Routes served by app-shell.html at runtime (see public/.htaccess).
+ * They fetch content from Supabase which is unavailable during a local build,
+ * and vite preview returns HTTP errors for them, so prerendering them is both
+ * impossible and unnecessary. They are intentionally client-rendered.
+ */
+const SKIP_PREFIXES = ['/blog/', '/urgent-requirements/']
+const shouldSkip = (route) => SKIP_PREFIXES.some((prefix) => route.startsWith(prefix))
+
 // Google's tag must not load or be serialized during prerender; see page.route below.
 const ANALYTICS_HOST = /(?:googletagmanager|google-analytics)\.com/
 const ANALYTICS_SCRIPT = /<script[^>]*(?:googletagmanager|google-analytics)\.com[^>]*>\s*<\/script>/gi
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/**
+ * Free PORT before starting the preview server.
+ * A lingering process from a previous build run causes "Port already in use"
+ * which makes the new preview server silently not start, resulting in
+ * ERR_CONNECTION_REFUSED for every route.
+ */
+async function killPort(port) {
+  try {
+    if (process.platform === 'win32') {
+      // netstat lists PID in the last column for LISTENING entries
+      const out = execSync(`netstat -ano | findstr :${port}`, { encoding: 'utf8', stdio: ['pipe','pipe','pipe'] }).trim()
+      for (const line of out.split('\n')) {
+        if (!line.includes('LISTENING')) continue
+        const pid = line.trim().split(/\s+/).at(-1)
+        if (pid && /^\d+$/.test(pid) && pid !== '0') {
+          execSync(`taskkill /PID ${pid} /F`, { stdio: 'ignore' })
+          console.log(`Killed PID ${pid} on port ${port}`)
+        }
+      }
+    } else {
+      execSync(`fuser -k ${port}/tcp 2>/dev/null || true`, { stdio: 'ignore' })
+    }
+    // Give the OS a moment to release the port
+    await sleep(400)
+  } catch {
+    // Port was already free — nothing to do
+  }
 }
 
 async function waitForServer(url, attempts = 40) {
@@ -46,6 +84,9 @@ function outFileForRoute(route) {
 }
 
 async function main() {
+  // Free the port before starting vite preview — a leftover server from a
+  // previous build causes silent startup failure and ERR_CONNECTION_REFUSED.
+  await killPort(PORT)
   await access(distDir)
 
   // Shell for client-rendered routes (see .htaccess): the untouched Vite index.html minus the homepage's
@@ -103,6 +144,13 @@ async function main() {
     })
 
     for (const route of ROUTES) {
+      // Skip dynamic Supabase-fetched routes — these are served by app-shell.html
+      // at runtime via .htaccess and do not need static prerendered snapshots.
+      if (shouldSkip(route)) {
+        console.log(`skipped  ${route} (client-rendered via app-shell.html)`)
+        continue
+      }
+
       const url = `${BASE}${route === '/404' ? '/this-page-does-not-exist-prerender' : route}`
       try {
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
@@ -111,9 +159,8 @@ async function main() {
         await page.waitForLoadState('networkidle', { timeout: 2000 }).catch(() => {})
         // Give helmet/lazy routes a moment to settle
         await sleep(300)
-        // initAnalytics() appends the tag script at runtime. Serializing it would bake it
-        // into the snapshot, where it loads before gtag is configured with
-        // send_page_view:false and can cost a duplicate pageview.
+        // The inline GA4 tag is now in index.html. Remove any runtime-injected duplicate
+        // that analytics.ts might add, to avoid a double pageview on first load.
         const html = (await page.content()).replace(ANALYTICS_SCRIPT, '')
         const target = outFileForRoute(route === '/404' ? '/404' : route)
         await mkdir(path.dirname(target), { recursive: true })
