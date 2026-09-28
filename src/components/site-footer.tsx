@@ -335,7 +335,7 @@ export function SiteFooter() {
                 <Mail className="h-5 w-5 text-primary footer-icon-hover" />
                 <a
                   href="mailto:info@siddhivinayakoverseas.com"
-                  onClick={() => trackEvent(GA_EVENTS.FORM_SUBMIT, 'Engagement', 'Email Click - Footer')}
+                  onClick={() => trackEvent(GA_EVENTS.EMAIL_CLICK, 'Engagement', 'Email Click - Footer')}
                   className="flex items-center gap-2 text-muted-foreground transition-colors duration-200 hover:text-primary"
                 >
                   info@siddhivinayakoverseas.com

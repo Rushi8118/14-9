@@ -135,6 +135,47 @@ export const workGermany: DestinationContent = workPage({
         'Germany faces shortages in engineering, IT, healthcare and skilled trades. Routes include employer-sponsored skilled worker visas, EU Blue Card, and newer job-seeker style opportunities for eligible candidates. Rules and point thresholds change — counselling starts with your degree, experience and language.',
       ],
     },
+    {
+      heading: 'Germany work permit eligibility: what is actually checked',
+      body: [
+        'Eligibility for a German work permit turns on qualification recognition before anything else. Your degree or vocational training must be recognised as equivalent, which is checked against the anabin database; regulated professions such as nursing and medicine need a separate licence step that adds months. A degree that is excellent in India can still be classed as only partially comparable, and that classification decides which route is open to you.',
+        'The second check is the role itself. For an EU Blue Card the job must match your qualification and pay at or above a threshold set annually, with a lower figure for shortage occupations. For the general skilled worker permit the Federal Employment Agency may also assess the employment conditions.',
+      ],
+    },
+    {
+      heading: 'Germany work visa processing time and costs',
+      body: [
+        'Processing time is driven less by the visa decision than by the steps before it. Qualification recognition commonly takes two to four months, and a consulate appointment in India can itself be booked weeks ahead. Once filed, a national visa decision typically takes several weeks, though this varies by consulate and season.',
+        'Plan on the whole sequence rather than the final stage. Anyone quoting a single short turnaround for the entire process is describing the visa decision alone, not recognition and appointment waiting.',
+      ],
+      bullets: [
+        'Qualification recognition: usually the longest single step',
+        'Consulate appointment availability varies by city and time of year',
+        'Regulated professions need licensing before the visa stage',
+        'Fees are itemised in writing before any work begins',
+      ],
+    },
+    {
+      heading: 'Germany work visa documents required',
+      body: [
+        'German consulates are strict about document form, not just content. Degree certificates and transcripts usually need attestation, translations must be by a sworn translator, and the employment contract has to state the role, salary and working hours clearly enough for the authorities to assess it.',
+      ],
+      bullets: [
+        'Passport valid well beyond the intended stay',
+        'Degree certificates, transcripts and anabin recognition evidence',
+        'Employment contract or binding job offer stating salary and duties',
+        'Proof of health insurance valid from your start date',
+        'Language certificates where the occupation requires them',
+        'Certified translations by a sworn translator',
+      ],
+    },
+    {
+      heading: 'Common Germany work visa rejection reasons',
+      body: [
+        'Most refusals we see are avoidable and administrative rather than a judgement on the applicant. The recurring causes are a qualification that was never formally recognised, a salary just under the current threshold, an employment contract too vague for the authorities to assess, and gaps in health insurance cover.',
+        'A refusal is not always final, but reapplying without fixing the underlying cause usually repeats the outcome. We check these points before filing rather than after.',
+      ],
+    },
   ],
   eligibility: [
     'Recognised or recognisable qualification for the target role',
@@ -160,6 +201,36 @@ export const workGermany: DestinationContent = workPage({
       question: 'Is German language mandatory?',
       answer:
         'It depends on the occupation and visa type. Many healthcare and trade roles need German; some IT roles hire in English. We map language needs to your target route.',
+    },
+    {
+      question: 'How long does a Germany work visa take from India?',
+      answer:
+        'Budget for the whole sequence, not just the decision. Qualification recognition commonly takes two to four months, consulate appointments can be booked weeks ahead, and the visa decision itself usually takes several weeks. Regulated professions take longer because of licensing.',
+    },
+    {
+      question: 'What salary is required for a Germany work visa?',
+      answer:
+        'The EU Blue Card has a gross annual salary threshold that is revised each year, with a lower figure for shortage occupations such as IT, engineering and medicine. Check the current amount on the Federal Office for Migration and Refugees website for the date you apply.',
+    },
+    {
+      question: 'What is the difference between a Germany work permit and the EU Blue Card?',
+      answer:
+        'The EU Blue Card is for qualified specialists meeting a salary threshold and can lead to settlement faster. The general skilled worker permit covers a wider range of recognised qualifications, including vocational training, at different conditions.',
+    },
+    {
+      question: 'Can I go to Germany to look for a job without an offer?',
+      answer:
+        'The points-based Opportunity Card allows entry to search for qualified work without a job offer, subject to points, funds and insurance. See our Opportunity Card guide for how the points test works.',
+    },
+    {
+      question: 'Why are Germany work visas rejected?',
+      answer:
+        'Most often because the qualification was never formally recognised, the salary fell below the current threshold, the employment contract was too vague to assess, or health insurance cover had gaps. These are checkable before filing.',
+    },
+    {
+      question: 'Can you guarantee a job or a visa in Germany?',
+      answer:
+        'No. We introduce suitable candidates to employers who are recruiting, and the employer decides who to hire. The German authorities decide the visa. Anyone guaranteeing either is not being straight with you.',
     },
   ],
 })

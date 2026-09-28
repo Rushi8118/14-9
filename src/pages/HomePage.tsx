@@ -11,6 +11,7 @@ import { SiteFooter, WhatsAppFab } from '@/components/site-footer'
 import { CtaBand } from '@/components/seo/CtaBand'
 import { SeoHead } from '@/components/seo/SeoHead'
 import {
+  educationalOrganizationSchema,
   localBusinessSchema,
   organizationSchema,
   webpageSchema,
@@ -29,6 +30,7 @@ export default function HomePage() {
           organizationSchema(),
           websiteSchema(),
           localBusinessSchema(),
+          educationalOrganizationSchema(),
           webpageSchema({
             title: 'Overseas Education & Visa Consultants in Surat',
             description:

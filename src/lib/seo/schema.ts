@@ -11,6 +11,10 @@ function localBusinessId() {
   return `${SITE_URL}/#localbusiness`
 }
 
+function educationalOrganizationId() {
+  return `${SITE_URL}/#educationalorganization`
+}
+
 export function organizationSchema() {
   return {
     '@context': 'https://schema.org',
@@ -59,6 +63,42 @@ export function localBusinessSchema() {
       '@type': 'GeoCoordinates',
       latitude: NAP.geo.latitude,
       longitude: NAP.geo.longitude,
+    },
+    areaServed: [
+      { '@type': 'City', name: 'Surat' },
+      { '@type': 'AdministrativeArea', name: 'Gujarat' },
+      { '@type': 'Country', name: 'India' },
+    ],
+    parentOrganization: { '@id': organizationId() },
+    sameAs: SOCIAL_SAME_AS,
+  }
+}
+
+/**
+ * The study-visa side of the business. Kept separate from organizationSchema()
+ * because a single node cannot honestly be both a generic Organization and an
+ * EducationalOrganization; `parentOrganization` ties them together instead.
+ */
+export function educationalOrganizationSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'EducationalOrganization',
+    '@id': educationalOrganizationId(),
+    name: `${SITE_NAME} — Overseas Education Consultants`,
+    description:
+      'Overseas education consultancy in Surat guiding students through university selection, applications and study visas for Canada, the UK, Australia, the USA, Germany and Japan.',
+    url: SITE_URL,
+    logo: `${SITE_URL}/favicon/android-chrome-512x512.png`,
+    image: DEFAULT_OG_IMAGE,
+    email: NAP.email,
+    telephone: NAP.phoneINDisplay,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: NAP.streetAddress,
+      addressLocality: NAP.addressLocality,
+      addressRegion: NAP.addressRegion,
+      postalCode: NAP.postalCode,
+      addressCountry: NAP.addressCountry,
     },
     areaServed: [
       { '@type': 'City', name: 'Surat' },

@@ -43,6 +43,9 @@ export default defineConfig({
     cssMinify: true,
     sourcemap: false,
     chunkSizeWarningLimit: 1000,
+    // Gzip-size reporting loads every chunk into memory at once and exhausts
+    // the heap on lower-memory machines. The sizes are informational only.
+    reportCompressedSize: false,
     rollupOptions: {
       output: {
         /**
