@@ -3,6 +3,7 @@
  * Provides real-time SEO scoring, smart title/description generator, keyword suggestions,
  * and Schema.org JSON-LD generation.
  */
+import { NAP } from './seo/site'
 
 export type SeoAuditItem = {
   label: string
@@ -196,7 +197,7 @@ export function generateCountrySmartSeo(country: {
       '@type': 'EducationalOrganization',
       name: 'Siddhivinayak Overseas',
       url: 'https://siddhivinayakoverseas.com',
-      telephone: '+91-98795-55555',
+      telephone: NAP.phoneINDisplay,
       address: {
         '@type': 'PostalAddress',
         addressLocality: 'Surat',

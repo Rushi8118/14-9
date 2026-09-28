@@ -1,6 +1,9 @@
 export const GA_EVENTS = {
   PHONE_CLICK: "phone_click",
   WHATSAPP_CLICK: "whatsapp_click",
+  EMAIL_CLICK: "email_click",
+  // Reserved for real lead submissions only — this is the GA4 key event, so
+  // contact-link clicks must not fire it or the conversion count is inflated.
   FORM_SUBMIT: "form_submit",
 } as const
 

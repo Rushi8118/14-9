@@ -11,6 +11,8 @@ import {
 import { getActiveApiKey, getActiveModel } from '@/lib/ai/providers'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
+import { KeywordSuggestPanel, useKeywordSuggestions } from '@/components/admin/KeywordSuggestPanel'
+import { mergeKeywords } from '@/lib/seo/keyword-suggest'
 
 const CATEGORY_OPTIONS: { value: BlogCategory | 'auto'; label: string }[] = [
   { value: 'auto', label: 'Auto-choose' },
@@ -37,6 +39,26 @@ export function AiBlogWriter({ onGenerated, existingPosts, urgentRequirements }:
   const [instructions, setInstructions] = useState('')
   const [category, setCategory] = useState<BlogCategory | 'auto'>('auto')
   const [generating, setGenerating] = useState(false)
+  // The suggestion service is country-driven, so the post's country focus is
+  // asked for explicitly rather than guessed out of the free-text box.
+  const [country, setCountry] = useState('')
+  const [focusKeyword, setFocusKeyword] = useState('')
+
+  // Keywords the editor has typed, as a list, so suggestions can be merged in
+  // without clobbering what is already there.
+  const keywordList = useMemo(
+    () => keywords.split(',').map((k) => k.trim()).filter(Boolean),
+    [keywords],
+  )
+
+  const suggestions = useKeywordSuggestions(
+    { title: focusKeyword || keywordList[0] || '', country, category: category === 'auto' ? undefined : category },
+    mode === 'keywords' && Boolean(country.trim()),
+  )
+
+  const addKeywords = (added: string[]) => {
+    setKeywords(mergeKeywords(keywordList, added).join(', '))
+  }
 
   const hasKey = useMemo(() => Boolean(getActiveApiKey(settings)), [settings])
   const model = useMemo(() => getActiveModel(settings), [settings])
@@ -152,6 +174,31 @@ export function AiBlogWriter({ onGenerated, existingPosts, urgentRequirements }:
             placeholder="e.g. study visa Canada from Surat, IELTS requirement, SOP tips"
             className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
+
+          <div className="mt-3">
+            <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Country focus (loads live keyword suggestions)
+            </label>
+            <input
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              placeholder="e.g. Germany"
+              className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </div>
+
+          {country.trim() && (
+            <div className="mt-3">
+              <KeywordSuggestPanel
+                suggestions={suggestions}
+                country={country}
+                focusKeyword={focusKeyword}
+                selected={keywordList}
+                onAdd={addKeywords}
+                onSetFocus={setFocusKeyword}
+              />
+            </div>
+          )}
         </div>
       )}
 
