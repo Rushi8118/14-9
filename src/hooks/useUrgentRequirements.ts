@@ -843,8 +843,20 @@ export function useAdminUrgentRequirements() {
       const statusText = newStatus === 'active' ? 'Active on website' : 'Hidden / Closed'
       toast.loading(`Updating status to ${statusText}...`, { id: 'toggle-status' })
 
-      // Update in database
-      await saveRequirement({ ...target, status: newStatus })
+      // Reactivating a listing whose expiry has already passed drops the stale
+      // date so saveRequirement derives a fresh one from duration_days.
+      // Carrying it over would satisfy status='active' but fail the RLS
+      // policy's `expires_at > NOW()`, so the listing would stay invisible.
+      const lapsed =
+        newStatus === 'active' &&
+        target.expires_at !== null &&
+        new Date(target.expires_at).getTime() <= Date.now()
+
+      await saveRequirement({
+        ...target,
+        status: newStatus,
+        ...(lapsed ? { expires_at: undefined, duration_days: 14 } : {}),
+      })
       
       // Clear public cache to force fresh data on user-facing pages
       try {
