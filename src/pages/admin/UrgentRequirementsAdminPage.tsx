@@ -131,14 +131,20 @@ function emptyForm(): FormState {
 
 function formFromRequirement(req: UrgentRequirement): FormState {
   const rem = getRemainingDays(req.expires_at)
+  // An expiry already in the past is not carried into the form. Keeping it
+  // would either block the save (validation) or store a date that fails the
+  // RLS policy's `expires_at > NOW()`, leaving the listing active but hidden.
+  // Leaving it blank hands over to durationDays, which saveRequirement turns
+  // into a fresh date, so reopening an expired listing restarts its countdown.
+  const stillRunning = rem !== null && rem > 0
   return {
     title: req.title, slug: req.slug, employer: req.employer || '', country: req.country,
     countryCode: req.country_code, city: req.city || '', visaType: req.visa_type || '',
     category: req.category, vacancies: req.vacancies, salary: req.salary, currency: req.currency || '',
     experienceRequired: req.experience_required || '', education: req.education || '',
     skills: req.skills || [], benefits: req.benefits || [], contractType: req.contract_type || '',
-    workingHours: req.working_hours || '', durationDays: rem && rem > 0 ? rem : 14,
-    expiresAt: req.expires_at ? new Date(req.expires_at).toISOString().split('T')[0] : '',
+    workingHours: req.working_hours || '', durationDays: stillRunning ? rem : 14,
+    expiresAt: stillRunning ? new Date(req.expires_at!).toISOString().split('T')[0] : '',
     deadlineAt: req.deadline_at ? new Date(req.deadline_at).toISOString().split('T')[0] : '',
     imageUrl: req.image_url || '', detailImageUrl: req.detail_image_url || '', imageAlt: req.image_alt || '',
     summary: req.summary || '', content: req.content, applicationInstructions: req.application_instructions || '',
@@ -461,7 +467,9 @@ export default function UrgentRequirementsAdminPage() {
       const selectedDate = new Date(form.expiresAt)
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-      if (selectedDate < today) return 'Expiration date must be in the future'
+      // A past date would satisfy status='active' but fail the RLS policy's
+      // `expires_at > NOW()`, so the listing would save and then be invisible.
+      if (selectedDate < today) return 'Expiration date must be in the future — clear it to restart the countdown, or pick a new date'
     }
     return null
   }
