@@ -10,11 +10,44 @@
 | [`keyword-strategy.csv`](./keyword-strategy.csv) | Same keywords in the earlier column shape (origin/destination/service oriented). |
 | [`keyword-coverage.md`](./keyword-coverage.md) | Generated: which live page each of the 7,843 keywords is assigned to, and which destinations still have no page. Refresh with `npm run keywords`. |
 
-## The three things that matter most
+## Status — verified 28 September 2026
 
-1. **No GA4 tag is installed.** `src/lib/analytics.ts` fires `phone_click`, `whatsapp_click` and `form_submit` events from 8 call sites. Nothing receives them. Every conversion you have ever had is unmeasured. Fix first — see audit C1.
-2. **A 501 KB image loads at highest priority on the homepage**, plus 1.3 MB of 3D globe textures. Almost certainly your LCP element. See audit C2.
-3. **Your best keyword cluster has no landing pages.** `/post-study-work-visa/*` is 301-redirected to the study pages. The content exists at `/pathways/*` under a name nobody searches for. See audit C3.
+The three items previously listed here as "what matters most" have all been
+resolved. They are kept below with their current state so nobody acts on the
+old version.
+
+| Was listed as critical | Current state |
+|---|---|
+| "No GA4 tag is installed." | **Fixed.** `G-MDVF551H1C` loads inline from `index.html` with `send_page_view:false`; React Router sends `page_view` per navigation. Verified live. |
+| "A 501 KB image loads at highest priority on the homepage." | **Fixed.** Hero is a `<picture>` with AVIF/WebP at 768 px; the preloaded AVIF is 57 KB. See `fixes-applied.md` C2. |
+| "`/post-study-work-visa/*` is 301-redirected." | **No longer true.** `/post-study-work-visa` returns 200, is a route in `seo-routes.mjs`, and is in the sitemap. |
+
+## What matters most now
+
+1. **295 near-duplicate page pairs.** 35 of 40 work-visa country pages are one
+   template with the country name swapped. This is the reason the site does not
+   rank, and it suppresses the whole domain rather than just those pages. Run
+   `npm run check:similarity` for the current list. This is the top priority.
+2. **19 thin pages (<350 words).** Every `/guides/*` page plus `/about`,
+   `/services` and `/contact`. These are core commercial pages, not filler.
+3. **`tsc --noEmit` does not run.** It exhausts memory (exit 134) even with a
+   6 GB heap, on a clean tree. The project currently has no working typecheck.
+
+## Tooling
+
+| Command | What it does |
+|---|---|
+| `npm run check:similarity` | Lists near-duplicate page pairs and thin pages. `-- --fail` exits non-zero; not yet in the build because 295 breaches would block it. |
+| `npm run content:gen -- --route=<route>` | Generates page content, scores it against every existing page, regenerates on collision, and **rejects** rather than publishing a near-duplicate. |
+| `npm run keywords:audit` | Shows where each page's target keywords actually appear, and flags over-use. Writes nothing to any page. |
+| `npm run keywords:refresh` | Snapshots Google autocomplete per destination and diffs against the last run. |
+| `npm run keywords` | Rebuilds the keyword→page map from the CSVs. |
+
+**On the keyword CSVs:** the 7,843 phrases are research input, not page content.
+An earlier version printed them across 56 pages, which is keyword stuffing under
+Google's spam policies, and it was reverted in 225c8b1. Do not reintroduce it.
+See the warning list in `keyword-strategy.md` before planning any page built from
+a location × country × service matrix.
 
 ## Read before acting
 
