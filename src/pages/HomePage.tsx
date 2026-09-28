@@ -22,19 +22,19 @@ export default function HomePage() {
   return (
     <>
       <SeoHead
-        title="Overseas Education & Visa Consultants in Surat | Study & Work Abroad"
-        description="Siddhivinayak Overseas — study visa and work visa consultants in Surat for Canada, UK, Australia, USA, Germany and Japan. Free counselling at Pragti IT Park."
+        title="Overseas Education & Work Visa Consultants | All 28 States India & South Asia"
+        description="Siddhivinayak Overseas — study visa, work visa & post-study transition consultants with fixed jobs & salaries. Serving all 28 states & 8 UTs in India, Bangladesh, Nepal, Pakistan & Sri Lanka for UK, Canada, Australia, Germany & Europe."
         path="/"
-        keywords="visa consultants in Surat, best visa consultant in Surat, immigration consultant in Surat, study abroad consultants Surat, overseas education consultants Surat, work visa consultants Surat, Europe work permit for Indians, overseas jobs for Indians, Siddhivinayak Overseas"
+        keywords="visa consultants in Surat, overseas education consultants India, student visa to work visa with job and salary, convert study visa to work visa, renew student visa on work visa, switch countries on study visa, study abroad consultants India 28 states, visa consultancy Bangladesh Nepal Sri Lanka Pakistan, UK skilled worker visa, Canada PGWP to PR, Australia 485 to employer sponsorship, Germany Blue Card, Siddhivinayak Overseas"
         jsonLd={[
           organizationSchema(),
           websiteSchema(),
           localBusinessSchema(),
           educationalOrganizationSchema(),
           webpageSchema({
-            title: 'Overseas Education & Visa Consultants in Surat',
+            title: 'Overseas Education & Visa Consultants in Surat & Pan-India',
             description:
-              'Study and work visa consultancy in Surat for Canada, UK, Australia, USA, Germany and Japan.',
+              'Study and work visa consultancy for Canada, UK, Australia, USA, Germany, Japan and Europe with fixed job and salary pathways.',
             path: '/',
           }),
         ]}

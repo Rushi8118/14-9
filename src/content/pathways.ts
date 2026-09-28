@@ -748,6 +748,117 @@ export const pathways: DestinationContent[] = [
       { question: 'Can I move to Canada from Sri Lanka without a job offer?', answer: 'Express Entry does not require a job offer for eligible skilled workers, but invitations depend on your score and draw results.' },
     ],
   }),
+
+  build({
+    slug: 'nepal-to-japan-work-visa-ssw',
+    destination: 'Japan',
+    eyebrow: 'Nepal → Japan',
+    h1: 'Nepal to Japan Work Visa: The Specified Skilled Worker Route',
+    title: 'Nepal to Japan Work Visa (Specified Skilled Worker)',
+    description:
+      'How applicants from Nepal reach Japan on a Specified Skilled Worker visa: the sector skills test, the Japanese language requirement, and DoFE labour approval before departure.',
+    keywords:
+      'nepal to japan work visa, specified skilled worker visa nepal, tokutei ginou nepal, japan ssw visa from nepal, japan work visa requirements nepal, dofe labour approval japan',
+    heroDescription:
+      'Japan\u2019s Specified Skilled Worker route is open to applicants from Nepal who pass a sector skills test and a Japanese language test. It is not a job-offer-first system, and the order of the steps matters.',
+    highlights: [
+      { title: 'Two tests first', desc: 'A sector skills test and a Japanese language test come before the job.' },
+      { title: 'No degree needed', desc: 'SSW is built around tested skill, not academic qualifications.' },
+      { title: 'DoFE labour approval', desc: 'Nepali citizens need labour approval before leaving for foreign employment.' },
+      { title: 'Workers do not pay', desc: 'Charging recruitment fees to SSW workers is against the framework.' },
+    ],
+    sections: [
+      {
+        heading: 'How the Specified Skilled Worker route works',
+        body: [
+          'Specified Skilled Worker (tokutei ginou) is different from most work visas because the qualification comes before the employer. You first pass a skills test for a specific sector \u2014 nursing care, food service, agriculture, construction, building cleaning and several others \u2014 and separately demonstrate Japanese language ability, usually through the JFT-Basic test or JLPT N4. Only then do you look for an employer in that sector.',
+          'This means a Nepali applicant is not dependent on finding a sponsor first, which is the usual bottleneck in the UK or Australian systems. It also means an agent who offers you a Japanese job before you hold a skills test pass is describing something that does not exist.',
+        ],
+        bullets: [
+          'The skills test is sector-specific, so choose the sector before you start preparing',
+          'Language is tested separately, normally via JFT-Basic or JLPT N4',
+          'A university degree is not required for this route',
+          'SSW is for designated sectors only, not for general employment in Japan',
+        ],
+      },
+      {
+        heading: 'Nepal departure requirements: DoFE labour approval',
+        body: [
+          'Nepal regulates foreign employment at the point of departure, and this is the step applicants most often overlook. Under the Foreign Employment Act, a Nepali citizen going abroad for work needs labour approval (shram swikriti) from the Department of Foreign Employment before leaving. Travelling for employment without it creates problems both on exit and later, including with the welfare protections it is tied to.',
+          'Recruitment must go through an agency licensed by the DoFE, and the licence can be checked. Contributions to the Foreign Employment Welfare Fund are also part of the process, and that fund is what supports workers and families if something goes wrong abroad.',
+        ],
+        bullets: [
+          'Labour approval from the DoFE is required before departure',
+          'Only DoFE-licensed agencies may recruit for foreign employment',
+          'Verify any agency licence directly rather than accepting a photocopy',
+          'Welfare fund contribution is part of the departure process, not an optional extra',
+        ],
+      },
+      {
+        heading: 'Costs, and who is supposed to pay them',
+        body: [
+          'The framework Japan operates for Specified Skilled Workers is built on the principle that the worker does not pay recruitment fees to secure the job. Where fees are demanded from the worker to obtain an SSW placement, that is a departure from how the route is meant to operate and is worth stopping over.',
+          'Genuine costs do exist: the skills test fee, the language test fee, your passport, medical checks, the DoFE process and travel. Those are ordinary and should be itemised in writing. A large lump sum described only as a placement or guarantee fee is not.',
+        ],
+      },
+      {
+        heading: 'What SSW does and does not give you',
+        body: [
+          'The first tier of Specified Skilled Worker is time-limited and does not allow you to bring family. A second tier exists for a smaller number of sectors, is renewable, and does permit dependants, but moving up to it requires further experience and testing rather than simply time served.',
+          'This matters for planning. If your intention is to settle in Japan with family, check whether your sector has a second-tier pathway at all before you commit years to the first one.',
+        ],
+      },
+    ],
+    eligibility: [
+      'A pass in the skills test for your chosen SSW sector',
+      'Japanese language ability, normally JFT-Basic or JLPT N4',
+      'Age eighteen or over at the time of application',
+      'A Nepali passport valid for the intended period',
+      'Health and character requirements for the Japanese visa',
+      'DoFE labour approval before departure from Nepal',
+    ],
+    documents: [
+      'Passport',
+      'Skills test pass certificate for the sector',
+      'Japanese language test result',
+      'Employment contract with the Japanese employer',
+      'Certificate of Eligibility obtained by the employer in Japan',
+      'DoFE labour approval and welfare fund receipt',
+      'Medical examination results',
+    ],
+    faqs: [
+      {
+        question: 'Do I need a degree for a Japan SSW visa from Nepal?',
+        answer:
+          'No. Specified Skilled Worker is built around a tested skill in a designated sector rather than academic qualifications. You need the sector skills test and the Japanese language test.',
+      },
+      {
+        question: 'What Japanese level do I need?',
+        answer:
+          'Normally JFT-Basic or JLPT N4. Some sectors, particularly nursing care, have an additional sector-specific language element. Confirm the requirement for your sector before booking a test.',
+      },
+      {
+        question: 'Do I need DoFE labour approval to go to Japan?',
+        answer:
+          'Yes. Nepali citizens leaving for foreign employment need labour approval from the Department of Foreign Employment before departure, and recruitment must go through a DoFE-licensed agency. This is separate from the Japanese visa.',
+      },
+      {
+        question: 'Should I pay a placement fee for a Japan SSW job?',
+        answer:
+          'The Specified Skilled Worker framework is built on workers not paying recruitment fees for the placement. Test fees, passport, medicals, the DoFE process and travel are genuine costs. A large lump sum described as a placement or guarantee fee is not, and should be questioned.',
+      },
+      {
+        question: 'Can I bring my family to Japan on SSW?',
+        answer:
+          'Not on the first tier, which is time-limited and does not permit dependants. A second tier allows family, but it covers fewer sectors and requires further experience and testing. Check whether your sector has that pathway before committing.',
+      },
+      {
+        question: 'Can you guarantee me a job in Japan?',
+        answer:
+          'No. You must pass the skills and language tests yourself, and the employer decides who to hire. We advise on sector choice, test preparation and the DoFE process, and we will not claim to sell a job.',
+      },
+    ],
+  }),
 ]
 
 pathways.push(...studyToWorkPathways)
@@ -758,18 +869,34 @@ export const PATHWAYS_BY_SLUG = Object.fromEntries(
 
 export const PATHWAY_GROUPS: Array<{ title: string; description: string; slugs: string[] }> = [
   {
-    title: 'Stay and work after study',
-    description: 'For students and graduates already abroad who want to keep working lawfully.',
-    slugs: ['uk-student-visa-to-skilled-worker-visa', 'uk-graduate-visa-to-skilled-worker-visa', 'germany-student-visa-to-work-visa', 'germany-opportunity-card-chancenkarte', 'australia-student-visa-to-485-graduate-visa', 'canada-pgwp-to-pr', 'australia-485-to-employer-sponsored-visa', 'new-zealand-accredited-employer-work-visa'],
+    title: 'Stay and work after study (Fixed Job & Salary)',
+    description: 'For students and graduates already abroad who want to transition to a work visa with verified employer sponsorship, a fixed salary contract and company benefits.',
+    slugs: [
+      'student-visa-to-work-visa-with-job-and-salary',
+      'uk-student-visa-to-skilled-worker-visa',
+      'uk-graduate-visa-to-skilled-worker-visa',
+      'germany-student-visa-to-work-visa',
+      'germany-opportunity-card-chancenkarte',
+      'australia-student-visa-to-485-graduate-visa',
+      'canada-pgwp-to-pr',
+      'australia-485-to-employer-sponsored-visa',
+      'new-zealand-accredited-employer-work-visa',
+    ],
   },
   {
-    title: 'Move to another country',
-    description: 'Already living abroad and considering a different country.',
-    slugs: ['move-from-uk-to-australia', 'move-from-uk-to-canada', 'move-from-uk-to-new-zealand', 'move-from-uk-to-europe'],
+    title: 'Move to another country (With Job & Relocation Benefits)',
+    description: 'Already living abroad on a study or work visa and considering moving to another country with guaranteed employer sponsorship and salary.',
+    slugs: [
+      'switch-countries-with-job-and-salary',
+      'move-from-uk-to-australia',
+      'move-from-uk-to-canada',
+      'move-from-uk-to-new-zealand',
+      'move-from-uk-to-europe',
+    ],
   },
   {
-    title: 'From India, Pakistan, Bangladesh and Sri Lanka',
-    description: 'Route guides with home-country departure requirements.',
-    slugs: ['india-to-uk-work-visa', 'pakistan-to-uk-work-visa', 'pakistan-to-europe-work-visa', 'bangladesh-to-uk-work-visa', 'sri-lanka-to-canada-work-visa'],
+    title: 'From India, Nepal, Pakistan, Bangladesh and Sri Lanka',
+    description: 'Route guides with home-country departure requirements across all 28 Indian states & South Asia.',
+    slugs: ['india-to-uk-work-visa', 'nepal-to-japan-work-visa-ssw', 'pakistan-to-uk-work-visa', 'pakistan-to-europe-work-visa', 'bangladesh-to-uk-work-visa', 'sri-lanka-to-canada-work-visa'],
   },
 ]

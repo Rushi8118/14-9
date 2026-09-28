@@ -38,14 +38,47 @@ export function organizationSchema() {
   }
 }
 
+export const INDIAN_STATES = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
+  'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
+  'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
+  'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
+  'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+] as const
+
+export const INDIAN_UNION_TERRITORIES = [
+  'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry',
+] as const
+
+export const SOUTH_ASIAN_COUNTRIES = [
+  'India', 'Bangladesh', 'Pakistan', 'Nepal', 'Sri Lanka',
+] as const
+
+export const TARGET_DESTINATION_COUNTRIES = [
+  'United Kingdom', 'Canada', 'Australia', 'Germany', 'United States',
+  'New Zealand', 'Ireland', 'Japan', 'France', 'Poland', 'Portugal',
+  'Singapore', 'Italy', 'Spain', 'Austria', 'Switzerland', 'Netherlands',
+  'United Arab Emirates', 'Saudi Arabia', 'Qatar',
+] as const
+
+export const COMPREHENSIVE_AREA_SERVED = [
+  { '@type': 'City', name: 'Surat' },
+  { '@type': 'AdministrativeArea', name: 'Gujarat' },
+  ...INDIAN_STATES.map((state) => ({ '@type': 'AdministrativeArea', name: state })),
+  ...INDIAN_UNION_TERRITORIES.map((ut) => ({ '@type': 'AdministrativeArea', name: ut })),
+  ...SOUTH_ASIAN_COUNTRIES.map((country) => ({ '@type': 'Country', name: country })),
+]
+
 export function localBusinessSchema() {
   return {
     '@context': 'https://schema.org',
     '@type': ['ProfessionalService', 'LocalBusiness'],
     '@id': localBusinessId(),
-    name: `${SITE_NAME} — Visa Consultants in Surat`,
+    name: `${SITE_NAME} — Visa Consultants in Surat & Pan-India`,
     description:
-      'Study visa and work visa consultants in Surat, Gujarat for Canada, UK, Australia, USA, Germany, Japan and more.',
+      'Study visa, work visa & post-study transition consultants serving all 28 states & 8 UTs in India, Bangladesh, Pakistan, Nepal & Sri Lanka for UK, Canada, Australia, USA, Germany, Japan & Europe.',
     url: SITE_URL,
     image: DEFAULT_OG_IMAGE,
     telephone: NAP.phoneIN,
@@ -64,11 +97,7 @@ export function localBusinessSchema() {
       latitude: NAP.geo.latitude,
       longitude: NAP.geo.longitude,
     },
-    areaServed: [
-      { '@type': 'City', name: 'Surat' },
-      { '@type': 'AdministrativeArea', name: 'Gujarat' },
-      { '@type': 'Country', name: 'India' },
-    ],
+    areaServed: COMPREHENSIVE_AREA_SERVED,
     parentOrganization: { '@id': organizationId() },
     sameAs: SOCIAL_SAME_AS,
   }
@@ -86,7 +115,7 @@ export function educationalOrganizationSchema() {
     '@id': educationalOrganizationId(),
     name: `${SITE_NAME} — Overseas Education Consultants`,
     description:
-      'Overseas education consultancy in Surat guiding students through university selection, applications and study visas for Canada, the UK, Australia, the USA, Germany and Japan.',
+      'Overseas education consultancy in Surat guiding students across all Indian states and South Asia through university admissions, student visas, and post-study work visa transitions with guaranteed jobs & salaries.',
     url: SITE_URL,
     logo: `${SITE_URL}/favicon/android-chrome-512x512.png`,
     image: DEFAULT_OG_IMAGE,
@@ -100,11 +129,7 @@ export function educationalOrganizationSchema() {
       postalCode: NAP.postalCode,
       addressCountry: NAP.addressCountry,
     },
-    areaServed: [
-      { '@type': 'City', name: 'Surat' },
-      { '@type': 'AdministrativeArea', name: 'Gujarat' },
-      { '@type': 'Country', name: 'India' },
-    ],
+    areaServed: COMPREHENSIVE_AREA_SERVED,
     parentOrganization: { '@id': organizationId() },
     sameAs: SOCIAL_SAME_AS,
   }
@@ -118,7 +143,15 @@ export function websiteSchema() {
     name: SITE_NAME,
     url: SITE_URL,
     publisher: { '@id': organizationId() },
-    inLanguage: 'en-IN',
+    inLanguage: ['en-IN', 'en'],
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${SITE_URL}/regional-coverage?q={search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
+    },
   }
 }
 

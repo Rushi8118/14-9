@@ -230,4 +230,194 @@ export const studyToWorkPathways: DestinationContent[] = [
       { question: 'Can you guarantee a job or a 485 grant?', answer: 'No. Employers decide who they hire and the Department of Home Affairs decides visas. We help you check eligibility and prepare a complete, accurate application.' },
     ],
   }),
+
+  build({
+    slug: 'student-visa-to-work-visa-with-job-and-salary',
+    destination: 'United Kingdom, Canada, Australia, Germany & New Zealand',
+    eyebrow: 'Study to Work · Fixed Job & Salary',
+    h1: 'Student Visa to Work Visa: Fixed Job, Guaranteed Salary & Sponsor Switch',
+    title: 'Student Visa to Work Visa Transition with Fixed Job & Salary',
+    description:
+      'Approaching graduation in the UK, Canada, Australia, Germany, or the USA? How students from India, Nepal, Bangladesh, Pakistan & Sri Lanka transition from study visa to work visa with a fixed job, compliant salary & company benefits.',
+    keywords:
+      'student visa to work visa with job and salary, convert study visa to work visa, renew student visa on work visa, international student work visa transition, uk student visa to skilled worker with salary, canada pgwp lmia job with salary, australia 485 to employer sponsorship, germany student to blue card fixed job, study abroad graduate job placement',
+    heroDescription:
+      'Is your study visa expiring or nearing completion? Transition lawfully to an employer-sponsored work visa in your study destination with a verified employer, a binding fixed salary contract, and standard company benefits.',
+    highlights: [
+      { title: 'For graduating students', desc: 'Designed specifically for students currently on study visas or post-study work permits abroad.' },
+      { title: 'Verified sponsor employers', desc: 'Introductions to employers on official registers (UK CoS sponsors, Canada LMIA, Australia SID).' },
+      { title: 'Fixed salary contracts', desc: 'Offers structured to meet or exceed official government salary thresholds with full transparency.' },
+      { title: 'Full company benefits', desc: 'Statutory health coverage, pension/superannuation, paid leave, and relocation terms.' },
+    ],
+    sections: [
+      {
+        heading: 'Why international students must plan the work visa switch early',
+        body: [
+          'If you travelled abroad from Gujarat, Punjab, Maharashtra, Delhi, or any of India’s 28 states — or from Nepal, Bangladesh, Sri Lanka, or Pakistan — on a study visa, your study period will soon reach its end. When classes finish, your student visa expiry clock starts ticking.',
+          'Remaining in the country legally requires transitioning onto a lawful work visa before your current permission expires. A standard tourist or visitor visa will not give you full-time working rights, and overstaying damages your future immigration record irreparably. We connect graduating students with genuine employers on approved government sponsorship registers who issue valid employment contracts with fixed salaries and full statutory benefits.',
+        ],
+      },
+      {
+        heading: 'Country-by-country transition rules and salary standards',
+        body: [
+          'Every destination country has distinct rules for switching from a student visa to an employer-sponsored work visa. Here is how the key destinations work:',
+        ],
+        bullets: [
+          'United Kingdom: Switch from a Student Visa or Graduate Visa to a Skilled Worker Visa. The employer must hold a Home Office Sponsor Licence and issue a Certificate of Sponsorship (CoS). Salary must meet the relevant standard or new-entrant threshold (e.g. £38,700 base or discounted new-entrant rates for recent UK graduates).',
+          'Canada: International graduates holding a Post-Graduation Work Permit (PGWP) or completing DLI studies can transition into employer-supported LMIA work permits, Provincial Nominee Programs (PNP), or Express Entry Canadian Experience Class (CEC) with a defined NOC code and prevailing wage.',
+          'Australia: Move from a Subclass 500 Student Visa to a Subclass 485 Temporary Graduate Visa, and subsequently onto a Subclass 482 (Skills in Demand / TSS) employer-sponsored work visa with a fixed annual salary meeting the TSMIT threshold ($73,150+ AUD).',
+          'Germany: University graduates are entitled to an 18-month job-seeker residence permit, switching directly into an EU Blue Card or skilled worker permit once a qualified contract matching annual statutory salary thresholds is secured.',
+          'New Zealand: Transition from a Post-Study Work Visa to an Accredited Employer Work Visa (AEWV) with a contract meeting the official median wage threshold.',
+        ],
+      },
+      {
+        heading: 'Fixed job contract, statutory salary floors and employee benefits',
+        body: [
+          'A genuine employer sponsorship requires a formal employment contract detailing your exact job title, assigned SOC/NOC occupation code, hours per week, fixed annual gross salary, and company benefits. We check that every employer introduction meets the destination\u2019s compliance rules, so your filing is not exposed to the wage-undercutting and sham-role grounds that cause refusals. The decision itself always rests with the authorities.',
+        ],
+        bullets: [
+          'Contractually verified gross annual or monthly salary meeting statutory minimums',
+          'National health insurance / NHS / private employer health cover registration',
+          'Statutory annual leave, paid sick leave, and public holidays',
+          'Company pension or retirement superannuation contributions',
+          'Clear workplace protection under local employment legislation',
+        ],
+      },
+      {
+        heading: 'Support for students originating from all Indian states & South Asia',
+        body: [
+          'Whether you completed your earlier schooling or bachelor’s degree in Gujarat, Punjab, Kerala, Tamil Nadu, Andhra Pradesh, Uttar Pradesh, West Bengal, Maharashtra, or in Dhaka, Lahore, Kathmandu, or Colombo, our counsellors assess your complete academic background, previous visa documentation, and target country timelines.',
+          'All consultations are conducted remotely via WhatsApp, phone, or video call directly with you abroad, or in person with your family at our Surat head office.',
+        ],
+      },
+    ],
+    eligibility: [
+      'Currently holding a valid student visa or post-study work permit with at least 60-90 days validity remaining',
+      'Completed or close to completing an accredited degree or diploma from a recognised institution in the host country',
+      'Academic transcripts, completion letter, or provisional degree certificate ready',
+      'English language proficiency satisfying work visa threshold (often met by your host country qualification)',
+      'Clean immigration and compliance record in the destination country',
+    ],
+    documents: [
+      'Valid passport and current biometric residence permit (BRP / eVisa / study permit / visa grant letter)',
+      'University completion letter and official academic transcripts',
+      'Updated CV / resume tailored to host country format',
+      'Bank statements showing necessary maintenance funds if required by immigration rules',
+      'Police clearance certificates (host country and origin country if applicable)',
+      'National ID / Aadhaar card / Citizenship card from home country',
+    ],
+    faqs: [
+      {
+        question: 'When should I start the transition process before my student visa expires?',
+        answer:
+          'You should start at least 3 to 6 months before your course completion or visa expiry date. Employer interviewing, Certificate of Sponsorship / LMIA assignment, and visa processing typically take 6 to 12 weeks.',
+      },
+      {
+        question: 'Does Siddhivinayak Overseas provide fixed job and salary sponsorship?',
+        answer:
+          'We introduce qualified international students directly to vetted, licensed sponsor employers who have active, verified vacancies. The employer issues an official employment contract with a fixed salary meeting government thresholds and company benefits. We then handle your complete visa switch documentation.',
+      },
+      {
+        question: 'What happens if my student visa expires while my work visa application is processing?',
+        answer:
+          'In countries like the UK (Section 3C Leave), Canada (Maintained Status), and Australia (Bridging Visa A), submitting a valid work visa application before your current visa expires lawfully extends your right to remain while the authority decides your case.',
+      },
+      {
+        question: 'Can I apply if my family is back in India, Nepal, Bangladesh, or Pakistan?',
+        answer:
+          'Yes. We handle remote files daily for students located across London, Toronto, Sydney, Melbourne, Berlin, Dublin, Auckland, etc., and can coordinate with your parents or sponsors back home if required.',
+      },
+      {
+        question: 'Do you charge for job offers or Certificates of Sponsorship?',
+        answer:
+          'No. Selling job offers or certificates of sponsorship is strictly illegal under international immigration laws. Our charges are for profile assessment, employer matching coordination, legal documentation, and visa filing support.',
+      },
+    ],
+  }),
+
+  build({
+    slug: 'switch-countries-with-job-and-salary',
+    destination: 'UK, Australia, Canada, New Zealand & Europe',
+    eyebrow: 'Country Relocation · Job & Salary',
+    h1: 'Switching Countries After Study: Relocation with Fixed Job, Salary & Benefits',
+    title: 'Switch Countries on Study Visa: Relocation with Job & Salary',
+    description:
+      'Currently studying or working in UK, Canada, Australia, Europe or Cyprus and want to move to another country? How to relocate lawfully with verified employer sponsorship, fixed salary & company benefits.',
+    keywords:
+      'switch countries on study visa, move from uk to australia work visa, move from canada to australia with job, move from europe to uk with salary, international student country transfer, relocate to another country after study, work visa in another country with fixed job and salary',
+    heroDescription:
+      'Already living abroad on a student visa or post-study permit and want to move to a different country? Relocate lawfully through employer sponsorship, with a written salary contract and employee company benefits.',
+    highlights: [
+      { title: 'Cross-border mobility', desc: 'Designed for international students currently abroad wishing to relocate to a stronger economic or PR market.' },
+      { title: 'Secured employer sponsorship', desc: 'Connecting you with registered employers in the target country who can sponsor overseas talent.' },
+      { title: 'Fixed salary contracts', desc: 'Guaranteed wage rates compliant with host country skilled worker thresholds.' },
+      { title: 'Relocation benefits', desc: 'Assistance with flight allowances, temporary accommodation, and health insurance transfers.' },
+    ],
+    sections: [
+      {
+        heading: 'Why students and graduates choose to switch countries',
+        body: [
+          'Many students who went abroad to the UK, Canada, Australia, Cyprus, Poland, Malaysia, or Georgia find that local immigration rules shift during their degree, PR pathways become heavily congested, or salaries fail to match expectations.',
+          'Rather than returning home or remaining in a country where long-term residency is uncertain, students with international degrees can leverage their overseas education and English fluency to qualify for work visas in other top economies — such as moving from the UK to Australia, Canada to Australia, or Europe to the UK or Germany.',
+        ],
+      },
+      {
+        heading: 'Top relocation corridors for international graduates',
+        body: [
+          'We specialize in helping international students and professionals cross over between major global markets:',
+        ],
+        bullets: [
+          'United Kingdom to Australia: With UK degree credentials, graduates can qualify for Australia’s Skills in Demand (subclass 482) visa or Working Holiday / Graduate pathways with verified sponsor employers offering $75,000+ AUD salaries.',
+          'United Kingdom to Canada: Leverage UK bachelor’s or master’s qualifications for Canadian LMIA employer-sponsored work permits or high CRS scores in Express Entry.',
+          'Canada to Australia or New Zealand: Canadian graduates facing PGWP expiration or tightened PR draws can transition smoothly into Australian or New Zealand accredited employer routes.',
+          'Europe / Cyprus / Poland to UK or Germany: Transition from initial European study locations to higher-paying economies like Germany (via Opportunity Card or EU Blue Card) or the UK (Skilled Worker route).',
+        ],
+      },
+      {
+        heading: 'What we provide: Job placement, salary security & company benefits',
+        body: [
+          'Moving across borders requires careful synchronization so you never lose legal status. We coordinate both sides of your transition:',
+        ],
+        bullets: [
+          'Credential assessment and equivalence mapping for the new target country',
+          'Introduction to licensed sponsor employers willing to sponsor from overseas',
+          'Legally binding employment contract with a fixed salary exceeding local statutory minimums',
+          'Full employee company benefits: health insurance, statutory annual leave, pension contributions',
+          'End-to-end visa filing and biometrics coordination in your current country of residence',
+        ],
+      },
+    ],
+    eligibility: [
+      'Currently residing legally abroad on a valid student visa, graduate visa, or work permit',
+      'Completed at least 1-2 years of higher education or hold a recognised university degree',
+      'English proficiency meeting target country requirements (IELTS, PTE, or host university MOI)',
+      'Clean immigration and compliance history in your current country of residence',
+    ],
+    documents: [
+      'Current passport with at least 12 months validity',
+      'Current host country visa / BRP / study permit / eVisa',
+      'Academic degrees and official transcripts from home country and current country of study',
+      'Updated international CV highlighting current overseas experience',
+      'Police clearance certificates from both your home country and current country of residence',
+      'Bank statements verifying maintenance funds where required',
+    ],
+    faqs: [
+      {
+        question: 'Do I have to return to India, Nepal, Pakistan, or Bangladesh before moving to the new country?',
+        answer:
+          'In most cases, no! If you hold legal residency status (such as a valid student visa or post-study work permit) in your current country, you can give your biometrics and submit your visa application for the new country at a local visa application centre (VFS / VAC) right where you live.',
+      },
+      {
+        question: 'Will I know my salary and company benefits before I commit?',
+        answer:
+          'Yes, in writing and before you sign or file. You receive the licensed sponsor employer\u2019s written offer setting out your job title, gross salary, working hours and benefits. On sponsored routes that salary also has to meet the destination\u2019s statutory minimum for the occupation, which is a legal floor set by that government rather than a promise from us. What nobody can guarantee is that a particular employer will hire you, or that the visa will be granted \u2014 those decisions belong to the employer and the authorities.',
+      },
+      {
+        question: 'Which country is easiest to move to from the UK right now?',
+        answer:
+          'Australia and New Zealand are popular destinations for UK international graduates due to high mutual recognition of qualifications, strong demand for skilled professionals, and competitive salary packages in healthcare, IT, construction, and engineering.',
+      },
+    ],
+  }),
 ]
+

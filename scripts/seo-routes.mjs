@@ -63,8 +63,11 @@ export const STATIC_ROUTES = [
   // /work-visa/{country} routes are added by getPublicRoutes() from
   // src/content/work-countries.ts, which also carries each country's tier.
   '/post-study-work-visa',
+  '/regional-coverage',
   '/guides',
   '/pathways',
+  '/pathways/student-visa-to-work-visa-with-job-and-salary',
+  '/pathways/switch-countries-with-job-and-salary',
   '/pathways/uk-student-visa-to-skilled-worker-visa',
   '/pathways/uk-graduate-visa-to-skilled-worker-visa',
   '/pathways/germany-student-visa-to-work-visa',
@@ -82,6 +85,7 @@ export const STATIC_ROUTES = [
   '/pathways/pakistan-to-europe-work-visa',
   '/pathways/bangladesh-to-uk-work-visa',
   '/pathways/sri-lanka-to-canada-work-visa',
+  '/pathways/nepal-to-japan-work-visa-ssw',
   '/guides/canada-student-visa-requirements',
   '/guides/canada-study-visa-documents',
   '/guides/uk-student-visa-requirements',
@@ -111,6 +115,7 @@ function sourceFileForRoute(route) {
   if (route.startsWith('/pathways')) return 'src/content/pathways.ts'
   if (route.startsWith('/guides')) return 'src/content/guides.ts'
   if (route === '/visa-consultants-in-surat') return 'src/content/local-surat.ts'
+  if (route === '/regional-coverage') return 'src/content/regional-coverage.ts'
   return null
 }
 

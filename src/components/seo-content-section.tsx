@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, GraduationCap, CheckCircle2, BookOpen, Award, Users, Globe2, Landmark, Sun, TrendingUp } from 'lucide-react'
+import { ArrowRight, GraduationCap, CheckCircle2, BookOpen, Award, Users, Globe2, Landmark, Sun, TrendingUp, Briefcase, Building2 } from 'lucide-react'
 import { FlagIcon } from '@/components/flag-icon'
 
 const STATS = [
@@ -111,6 +111,89 @@ export function SeoContentSection() {
                 </span>
               </Link>
             ))}
+          </div>
+        </div>
+
+        {/* Priority Strategy: Study-to-Work Transition (Fixed Job & Salary) & Country Switch */}
+        <div className="mt-16 rounded-3xl border border-border/80 bg-card/60 p-8 backdrop-blur-md md:p-10">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-2xl">
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                <Briefcase className="h-3.5 w-3.5" />
+                Strategic Overseas Pathways
+              </span>
+              <h2 className="mt-3 font-serif text-2xl font-semibold text-foreground md:text-3xl">
+                Finishing Studies Abroad or Want to Switch Countries?
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                We specialize in helping international students from all 28 states &amp; 8 UTs in India, Bangladesh, Nepal, Pakistan, and Sri Lanka transition to lawful work visas with <strong>a written job contract, a salary that meets the destination’s statutory minimum, and company benefits</strong>.
+              </p>
+            </div>
+            <div className="shrink-0">
+              <Link
+                to="/regional-coverage"
+                className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-5 py-2.5 text-xs font-semibold text-primary transition hover:bg-primary/20"
+              >
+                <Globe2 className="h-4 w-4" />
+                All 28 States &amp; South Asia Directory →
+              </Link>
+            </div>
+          </div>
+
+          <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="rounded-2xl border border-border/60 bg-background/60 p-5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <GraduationCap className="h-5 w-5" />
+              </div>
+              <h3 className="mt-3 font-serif text-base font-semibold text-foreground">
+                Study to Work Visa (Fixed Job &amp; Salary)
+              </h3>
+              <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                Nearing graduation in UK, Canada, Australia or Germany? Transition to an employer-sponsored work visa with a binding salary contract and health benefits.
+              </p>
+              <Link
+                to="/pathways/student-visa-to-work-visa-with-job-and-salary"
+                className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+              >
+                Learn transition process <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            <div className="rounded-2xl border border-border/60 bg-background/60 p-5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Globe2 className="h-5 w-5" />
+              </div>
+              <h3 className="mt-3 font-serif text-base font-semibold text-foreground">
+                Switch Countries on Study Visa
+              </h3>
+              <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                Currently in UK, Canada, Australia or Europe and want to relocate? Move with secured sponsor employer offers, fixed salary, and relocation assistance.
+              </p>
+              <Link
+                to="/pathways/switch-countries-with-job-and-salary"
+                className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+              >
+                Explore relocation guide <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            <div className="rounded-2xl border border-border/60 bg-background/60 p-5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Building2 className="h-5 w-5" />
+              </div>
+              <h3 className="mt-3 font-serif text-base font-semibold text-foreground">
+                Pan-India &amp; South Asia Hubs
+              </h3>
+              <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                Comprehensive document checklists, State Board / University verification, MEA Apostille, and RPO clearance for all 28 states &amp; UTs.
+              </p>
+              <Link
+                to="/regional-coverage"
+                className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+              >
+                Find your state guidelines <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
           </div>
         </div>
 

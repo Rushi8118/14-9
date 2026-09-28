@@ -345,6 +345,41 @@ export function SiteFooter() {
           </div>
         </div>
 
+        {/* Regional & Strategic Coverage Bar */}
+        <div className="mt-10 border-t border-border/60 pt-6">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h4 className="text-xs font-bold uppercase tracking-[0.15em] text-primary">
+                Pan-India & South Asia Visa Directory (All 28 States & UTs)
+              </h4>
+              <Link to="/regional-coverage" className="text-xs font-medium text-primary hover:underline flex items-center gap-1">
+                Explore Full Regional Directory & Keywords →
+              </Link>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Visa consultation &amp; study-to-work pathways across all Indian states and Union Territories:
+              {' '}Gujarat (Surat, Ahmedabad, Vadodara, Rajkot), Punjab (Chandigarh, Ludhiana, Amritsar, Jalandhar), Maharashtra (Mumbai, Pune, Nagpur), Delhi NCR, Karnataka (Bengaluru), Telangana (Hyderabad), Andhra Pradesh (Vijayawada, Visakhapatnam), Tamil Nadu (Chennai, Coimbatore), Kerala (Kochi, Trivandrum), Haryana (Gurugram, Karnal), Rajasthan (Jaipur), Uttar Pradesh (Lucknow, Noida), West Bengal (Kolkata), Madhya Pradesh (Indore, Bhopal), Bihar (Patna), Odisha, Assam &amp; North East, Goa, Himachal Pradesh, Jammu &amp; Kashmir. Neighboring South Asia: Bangladesh (Dhaka, Chittagong, Sylhet), Pakistan (Lahore, Karachi, Islamabad), Nepal (Kathmandu, Pokhara), Sri Lanka (Colombo, Kandy).
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+              <Link to="/pathways/student-visa-to-work-visa-with-job-and-salary" className="rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1 text-primary hover:bg-primary/10">
+                🎓 Study to Work Visa Transition (Fixed Job &amp; Salary)
+              </Link>
+              <Link to="/pathways/switch-countries-with-job-and-salary" className="rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1 text-primary hover:bg-primary/10">
+                ✈️ Switch Countries on Study Visa (With Benefits)
+              </Link>
+              <Link to="/post-study-work-visa" className="rounded-md border border-border/70 px-2.5 py-1 text-muted-foreground hover:text-foreground">
+                Post-Study Work Visa 2026 Guide
+              </Link>
+              <Link to="/regional-coverage" className="rounded-md border border-border/70 px-2.5 py-1 text-muted-foreground hover:text-foreground">
+                All 28 States &amp; UT Directory
+              </Link>
+              <Link to="/pathways" className="rounded-md border border-border/70 px-2.5 py-1 text-muted-foreground hover:text-foreground">
+                All Visa Pathways
+              </Link>
+            </div>
+          </div>
+        </div>
+
         {/* Bottom Bar */}
         <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-border/60 pt-6 md:flex-row">
           <p className="text-xs text-muted-foreground">

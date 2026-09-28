@@ -4,6 +4,29 @@
 User-agent: *
 Allow: /
 
+# Global & Regional Search Engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+# AI & LLM Crawlers
 User-agent: GPTBot
 Allow: /
 

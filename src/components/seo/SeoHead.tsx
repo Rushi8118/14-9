@@ -42,6 +42,7 @@ export function SeoHead({
       <meta name="description" content={description} />
       {/* meta keywords is ignored by every search engine and only advertises targets to
           competitors. The prop stays so content files keep their internal keyword notes. */}
+      <meta name="format-detection" content="telephone=yes, date=no, email=yes, address=yes" />
       <link rel="canonical" href={url} />
       <meta
         name="robots"

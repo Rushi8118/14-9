@@ -76,6 +76,7 @@ const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
 const ImmigrationDisclaimerPage = lazy(() => import('./pages/ImmigrationDisclaimerPage'))
 const PathwaysPage = lazy(() => import('./pages/PathwaysPage'))
 const PathwayPage = lazy(() => import('./pages/PathwayPage'))
+const RegionalDirectoryPage = lazy(() => import('./pages/RegionalDirectoryPage'))
 
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
@@ -141,6 +142,7 @@ function AppRoutes() {
       <Route path="/study-in-new-zealand" element={<Page><StudyInNewZealandPage /></Page>} />
       <Route path="/work-visa/:slug" element={<Page><WorkVisaCountryPage /></Page>} />
       <Route path="/visa-consultants-in-surat" element={<Page><VisaConsultantsSuratPage /></Page>} />
+      <Route path="/regional-coverage" element={<Page><RegionalDirectoryPage /></Page>} />
       <Route path="/guides" element={<Page><GuidesPage /></Page>} />
       <Route path="/pathways" element={<Page><PathwaysPage /></Page>} />
       <Route path="/pathways/:slug" element={<Page><PathwayPage /></Page>} />

@@ -82,7 +82,6 @@ export default function ServicesPage() {
           name="description"
           content="Overseas education services in India for students & fresh graduates. Work visas, study visas, IELTS coaching & more for USA, UK, Canada, Australia."
         />
-        <meta name="keywords" content="overseas education services, study abroad consultants, overseas education consultants, work visa filing, study visa assistance, international education guidance, student visa consultants, SOP writing service, IELTS coaching, scholarship guidance India, study abroad assistance India, education visa services" />
         <link rel="canonical" href="https://siddhivinayakoverseas.com/services" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://siddhivinayakoverseas.com/services" />

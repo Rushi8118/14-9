@@ -95,7 +95,6 @@ export default function StudyVisaPage() {
           name="description"
           content="Study visa consultants in Surat for UK, France, Germany, Spain, Dubai and Singapore. University admissions, documentation and student-visa counselling."
         />
-        <meta name="keywords" content="study visa consultants in Surat, study in UK France Germany Spain Dubai Singapore, overseas education consultants Surat" />
         <link rel="canonical" href={`${SITE_URL}/study-visa`} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`${SITE_URL}/study-visa`} />

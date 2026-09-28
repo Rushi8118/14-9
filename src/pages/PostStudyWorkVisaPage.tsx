@@ -1,7 +1,7 @@
 import { ImmigrationDisclaimer } from '@/components/seo/ImmigrationDisclaimer'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
-import { ArrowRight, GraduationCap, Globe2, CheckCircle2, Award, Clock, BookOpen, Briefcase, Users, TrendingUp } from 'lucide-react'
+import { ArrowRight, GraduationCap, Globe2, CheckCircle2, Award, Clock, BookOpen, Briefcase, Users, TrendingUp, MapPin } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { PageHero } from '@/components/page-hero'
@@ -26,22 +26,21 @@ export default function PostStudyWorkVisaPage() {
   return (
     <>
       <Helmet>
-        <title>Post Study Work Visa: Complete 2026 Guide (10+ Countries Compared) | Siddhivinayak Overseas</title>
-        <meta name="description" content="Complete guide to post-study work visas in UK, Australia, Canada, New Zealand, Germany, Ireland, France & more. Eligibility, process & PR pathways for international students." />
-        <meta name="keywords" content="post study work visa, post study work visa UK, post study work visa Australia, post study work visa Canada, post study work visa New Zealand, graduate route visa, PSW visa, work after study abroad, post study work permit, international students work visa" />
+        <title>Post Study Work Visa 2026: Fixed Job & Salary Transition Guide | Siddhivinayak Overseas</title>
+        <meta name="description" content="Study finishing soon in UK, Canada, Australia, Germany, or USA? Transition to a work visa with a fixed job, compliant salary, and company benefits. Coverage for all 28 Indian states & South Asia." />
         <link rel="canonical" href={`${SITE_URL}/post-study-work-visa`} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`${SITE_URL}/post-study-work-visa`} />
-        <meta property="og:title" content="Post Study Work Visa: Complete 2026 Guide (10+ Countries Compared) | Siddhivinayak Overseas" />
-        <meta property="og:description" content="Complete guide to post-study work visas across 10+ countries. Eligibility, process & PR pathways for international students transitioning from study to work." />
+        <meta property="og:title" content="Post Study Work Visa 2026: Fixed Job & Salary Transition Guide | Siddhivinayak Overseas" />
+        <meta property="og:description" content="Study finishing soon? Transition to a work visa with a verified sponsor employer, fixed salary contract, and company benefits in UK, Canada, Australia, Germany & Europe." />
         <meta property="og:image" content={`${SITE_URL}/consultant-office.jpg`} />
         <meta property="og:image:width" content="1024" />
         <meta property="og:image:height" content="1024" />
         <meta property="og:locale" content="en_IN" />
         <meta property="og:site_name" content="Siddhivinayak Overseas" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Post Study Work Visa: Complete 2026 Guide | Siddhivinayak Overseas" />
-        <meta name="twitter:description" content="Complete guide to post-study work visas in UK, Australia, Canada, New Zealand, Germany, Ireland, France & more." />
+        <meta name="twitter:title" content="Post Study Work Visa: Transition to Work with Fixed Job & Salary" />
+        <meta name="twitter:description" content="Complete guide for international students to transition from study visa to work visa with verified employer sponsorship and fixed salary." />
         <meta name="twitter:image" content={`${SITE_URL}/consultant-office.jpg`} />
         <meta name="robots" content="index, follow" />
         <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large" />
@@ -117,6 +116,86 @@ export default function PostStudyWorkVisaPage() {
                   </Link>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Priority Strategy: Study-to-Work Transition (Fixed Job & Salary) & Country Switch */}
+        <section className="border-t border-border/50 bg-primary/[0.03] py-14 md:py-18">
+          <div className="mx-auto max-w-7xl px-4 md:px-6">
+            <div className="text-center max-w-3xl mx-auto">
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">
+                <Briefcase className="h-3.5 w-3.5" />
+                Core Transition Services for Graduating Students
+              </span>
+              <h2 className="mt-4 font-serif text-2xl font-bold text-foreground md:text-3xl">
+                Study Finished or Ending Soon? Stay Lawfully on a Work Visa
+              </h2>
+              <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+                If you arrived from Gujarat, Punjab, Maharashtra, Delhi, or anywhere across India’s 28 states and South Asia on a study visa, graduation means your visa is expiring. We help you renew or switch into a sponsored work visa with a fixed job, compliant salary, and company benefits.
+              </p>
+            </div>
+
+            <div className="mt-10 grid grid-cols-1 gap-8 md:grid-cols-2">
+              <div className="rounded-3xl border border-primary/40 bg-card/80 p-8 shadow-sm transition hover:border-primary">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+                  <GraduationCap className="h-6 w-6" />
+                </div>
+                <h3 className="mt-5 font-serif text-xl font-bold text-foreground">
+                  Student Visa to Work Visa (Fixed Job & Salary)
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                  Avoid returning home or losing legal status. We connect graduating international students with verified employers on official sponsorship registers who issue valid employment contracts meeting statutory salary thresholds.
+                </p>
+                <ul className="mt-4 space-y-2 text-xs text-foreground/80">
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> UK Student / Graduate to Skilled Worker switch</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Canada PGWP to LMIA Employer Work Permit & PR</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Australia Subclass 485 to Skills in Demand (482)</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Germany university graduate to EU Blue Card</li>
+                </ul>
+                <div className="mt-6">
+                  <Button asChild className="w-full rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-xs">
+                    <Link to="/pathways/student-visa-to-work-visa-with-job-and-salary">
+                      Explore Fixed Job & Salary Pathway <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-border/70 bg-card/80 p-8 shadow-sm transition hover:border-primary/40">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+                  <Globe2 className="h-6 w-6" />
+                </div>
+                <h3 className="mt-5 font-serif text-xl font-bold text-foreground">
+                  Switch Countries on a Study Visa
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                  Currently studying in UK, Canada, Australia, Europe or Cyprus and facing strict PR changes? Relocate lawfully to another country with verified employer sponsorship, contract salary, and relocation assistance.
+                </p>
+                <ul className="mt-4 space-y-2 text-xs text-foreground/80">
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Move from UK to Australia with sponsored job</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Move from UK to Canada with LMIA work permit</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Europe / Poland / Cyprus to Germany or UK</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Lodge new visa from current country without flying back</li>
+                </ul>
+                <div className="mt-6">
+                  <Button asChild variant="outline" className="w-full rounded-full text-xs">
+                    <Link to="/pathways/switch-countries-with-job-and-salary">
+                      Explore Country Relocation Guide <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 text-center">
+              <Link
+                to="/regional-coverage"
+                className="inline-flex items-center gap-2 text-xs font-semibold text-primary hover:underline"
+              >
+                <MapPin className="h-3.5 w-3.5" />
+                Looking for your home state or country guidelines? View All 28 Indian States & South Asia Directory <ArrowRight className="h-3 w-3" />
+              </Link>
             </div>
           </div>
         </section>
