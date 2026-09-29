@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Helmet } from 'react-helmet-async'
+import { SeoHead } from '@/components/seo/SeoHead'
 import { Clock, ShieldCheck } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import ActiveSessionsCard from '@/components/dashboard/ActiveSessionsCard'
@@ -41,10 +41,12 @@ export default function ProfilePage() {
 
   return (
     <>
-      <Helmet>
-        <title>Profile settings | Siddhivinayak Overseas</title>
-        <meta name="robots" content="noindex, nofollow" />
-      </Helmet>
+      <SeoHead
+        title="Profile settings"
+        description="Manage your personal information, security preferences and account controls."
+        path="/dashboard/profile"
+        noindex
+      />
 
       <div className="space-y-6 pb-10">
         <PageHeader

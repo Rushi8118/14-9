@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { Helmet } from "react-helmet-async"
+import { SeoHead } from '@/components/seo/SeoHead'
 import { motion } from "framer-motion"
 import { Mail, Send, ArrowLeft, Loader2, CheckCircle2 } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
@@ -52,14 +52,12 @@ export default function ForgotPasswordPage() {
 
   return (
     <>
-      <Helmet>
-        <title>Forgot Password | Siddhivinayak Overseas</title>
-        <meta
-          name="description"
-          content="Request a secure password reset link for Siddhivinayak Overseas."
-        />
-        <meta name="robots" content="noindex, follow" />
-      </Helmet>
+      <SeoHead
+        title="Forgot Password"
+        description="Request a secure password reset link for your Siddhivinayak Overseas account."
+        path="/forgot-password"
+        noindex
+      />
       <SiteHeader />
       <main className="relative min-h-screen bg-background flex flex-col justify-center py-20 px-4 md:px-6 premium-page">
         <div

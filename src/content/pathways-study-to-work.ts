@@ -235,7 +235,7 @@ export const studyToWorkPathways: DestinationContent[] = [
     slug: 'student-visa-to-work-visa-with-job-and-salary',
     destination: 'United Kingdom, Canada, Australia, Germany & New Zealand',
     eyebrow: 'Study to Work · Fixed Job & Salary',
-    h1: 'Student Visa to Work Visa: Fixed Job, Guaranteed Salary & Sponsor Switch',
+    h1: 'Student Visa to Work Visa: Employer Sponsorship & Sponsor Switch',
     title: 'Student Visa to Work Visa Transition with Fixed Job & Salary',
     description:
       'Approaching graduation in the UK, Canada, Australia, Germany, or the USA? How students from India, Nepal, Bangladesh, Pakistan & Sri Lanka transition from study visa to work visa with a fixed job, compliant salary & company benefits.',
@@ -350,7 +350,7 @@ export const studyToWorkPathways: DestinationContent[] = [
     highlights: [
       { title: 'Cross-border mobility', desc: 'Designed for international students currently abroad wishing to relocate to a stronger economic or PR market.' },
       { title: 'Secured employer sponsorship', desc: 'Connecting you with registered employers in the target country who can sponsor overseas talent.' },
-      { title: 'Fixed salary contracts', desc: 'Guaranteed wage rates compliant with host country skilled worker thresholds.' },
+      { title: 'Salary thresholds explained', desc: 'How host-country skilled worker salary floors work. Employment terms are set by the employer and applicable law.' },
       { title: 'Relocation benefits', desc: 'Assistance with flight allowances, temporary accommodation, and health insurance transfers.' },
     ],
     sections: [

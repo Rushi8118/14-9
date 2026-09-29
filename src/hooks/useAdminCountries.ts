@@ -268,7 +268,7 @@ const STARTER_ROWS: StarterCountry[] = [
     region: 'Middle East',
     language: 'Arabic, English',
     description: 'Golden Visa, 2-Year Employment Visas, and Dubai International Academic City study routes.',
-    why_work: '100% Tax-Free salaries, zero income tax, top demand in IT, Construction & Healthcare.',
+    why_work: 'No personal income tax, with demand reported in IT, construction and healthcare. Confirm current tax rules and terms with the employer.',
     why_study: 'Global university branch campuses in Dubai Knowledge Park.',
     lifestyle: 'Modern luxury infrastructure, safe environment, 3.5 hour flight to Gujarat.',
     has_work_visa: true,

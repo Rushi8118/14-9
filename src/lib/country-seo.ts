@@ -147,29 +147,28 @@ export function generateCountrySmartSeo(country: {
     String(country.monthly_living_cost).trim() !== ''
       ? Number(country.monthly_living_cost)
       : NaN
-  const livingCost =
+  // Only stated when there is a real figure behind it. The previous fallback was
+  // the word "affordable", which is a claim about a country's cost of living that
+  // nothing in the data supports.
+  const livingCostClause =
     !isNaN(numCost) && numCost > 0
-      ? `~₹${numCost.toLocaleString('en-IN')}/mo`
-      : 'affordable'
+      ? ` Living costs from ~₹${numCost.toLocaleString('en-IN')}/mo.`
+      : ''
 
-  const numSuccess =
-    country.success_rate !== undefined &&
-    country.success_rate !== null &&
-    String(country.success_rate).trim() !== ''
-      ? Number(country.success_rate)
-      : NaN
-  const success =
-    !isNaN(numSuccess) && numSuccess > 0
-      ? `${numSuccess}% success rate`
-      : 'high visa success'
+  // Success/approval rates are deliberately not emitted. The previous version
+  // interpolated `${success_rate}% success rate` from an admin-entered field, and
+  // fell back to the invented phrase "high visa success" whenever that field was
+  // empty — an unverifiable outcome claim in a YMYL meta description, on a page
+  // about immigration. Neither form is reinstated: visa decisions rest with the
+  // immigration authority and no rate we publish could be independently checked.
 
   let meta_desc = ''
   if (country.has_work_visa && country.has_study_visa) {
-    meta_desc = `Apply for ${name}${capitalPart} work & study visas with Siddhivinayak Overseas. Complete guidance on eligibility, living costs (${livingCost}), permits & ${success}.`
+    meta_desc = `${name}${capitalPart} work and study visa guidance from Siddhivinayak Overseas, Surat. Eligibility, documents and permit routes explained.${livingCostClause}`
   } else if (country.has_work_visa) {
-    meta_desc = `Explore ${name} work permit & PR pathways with Siddhivinayak Overseas in Surat. Expert job eligibility assessments, documentation, and ${success}.`
+    meta_desc = `${name} work permit and PR routes explained by Siddhivinayak Overseas, Surat. Eligibility assessments and documentation support.${livingCostClause}`
   } else {
-    meta_desc = `Plan your higher education in ${name} with Siddhivinayak Overseas. Guidance on university admission, student visas, scholarships, and living costs (${livingCost}).`
+    meta_desc = `Plan higher education in ${name} with Siddhivinayak Overseas, Surat. Guidance on university admission, student visas and scholarships.${livingCostClause}`
   }
 
   // Trim to 160 chars maximum

@@ -1,5 +1,5 @@
 import { ImmigrationDisclaimer } from '@/components/seo/ImmigrationDisclaimer'
-import { Helmet } from 'react-helmet-async'
+import { SeoHead } from '@/components/seo/SeoHead'
 import { Link } from 'react-router-dom'
 import { ArrowRight, GraduationCap, Globe2, CheckCircle2, Award, Clock, BookOpen, Briefcase, Users, TrendingUp, MapPin } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
@@ -25,26 +25,11 @@ const COUNTRIES = [
 export default function PostStudyWorkVisaPage() {
   return (
     <>
-      <Helmet>
-        <title>Post Study Work Visa 2026: Fixed Job & Salary Transition Guide | Siddhivinayak Overseas</title>
-        <meta name="description" content="Study finishing soon in UK, Canada, Australia, Germany, or USA? Transition to a work visa with a fixed job, compliant salary, and company benefits. Coverage for all 28 Indian states & South Asia." />
-        <link rel="canonical" href={`${SITE_URL}/post-study-work-visa`} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${SITE_URL}/post-study-work-visa`} />
-        <meta property="og:title" content="Post Study Work Visa 2026: Fixed Job & Salary Transition Guide | Siddhivinayak Overseas" />
-        <meta property="og:description" content="Study finishing soon? Transition to a work visa with a verified sponsor employer, fixed salary contract, and company benefits in UK, Canada, Australia, Germany & Europe." />
-        <meta property="og:image" content={`${SITE_URL}/consultant-office.jpg`} />
-        <meta property="og:image:width" content="1024" />
-        <meta property="og:image:height" content="1024" />
-        <meta property="og:locale" content="en_IN" />
-        <meta property="og:site_name" content="Siddhivinayak Overseas" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Post Study Work Visa: Transition to Work with Fixed Job & Salary" />
-        <meta name="twitter:description" content="Complete guide for international students to transition from study visa to work visa with verified employer sponsorship and fixed salary." />
-        <meta name="twitter:image" content={`${SITE_URL}/consultant-office.jpg`} />
-        <meta name="robots" content="index, follow" />
-        <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large" />
-      </Helmet>
+      <SeoHead
+        title="Post Study Work Visa Guide 2026"
+        description="Finishing study in the UK, Canada, Australia, Germany or the USA? How post-study work visa routes work, who is eligible, and which documents each one needs."
+        path="/post-study-work-visa"
+      />
 
       <SiteHeader />
       <main className="relative overflow-hidden premium-page">

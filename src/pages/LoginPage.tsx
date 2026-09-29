@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom"
-import { Helmet } from "react-helmet-async"
+import { SeoHead } from '@/components/seo/SeoHead'
 import { FileCheck2, FolderLock, LogIn, Mail, MessagesSquare } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/use-auth"
@@ -140,14 +140,12 @@ export default function LoginPage() {
 
   return (
     <>
-      <Helmet>
-        <title>Login | Siddhivinayak Overseas</title>
-        <meta
-          name="description"
-          content="Access your immigration applications and consultations portal. Secure login for Siddhivinayak Overseas."
-        />
-        <meta name="robots" content="noindex, follow" />
-      </Helmet>
+      <SeoHead
+        title="Login"
+        description="Access your immigration applications and consultations portal. Secure login for Siddhivinayak Overseas."
+        path="/login"
+        noindex
+      />
 
       <AuthLayout
         variant="login"

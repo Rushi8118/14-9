@@ -1,4 +1,4 @@
-import { Suspense, useEffect, type ReactNode } from 'react'
+import { Suspense, useEffect, useLayoutEffect, type ReactNode } from 'react'
 import { Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom'
 import { useTheme } from 'next-themes'
 import { SiteVisitTracker } from './components/SiteVisitTracker'
@@ -32,7 +32,7 @@ function ScrollToTop() {
 function AnalyticsPageViews() {
   const { pathname, search } = useLocation()
   useEffect(() => {
-    // Let react-helmet-async apply the new document.title before the hit is sent.
+    // Let React commit the new route's <title> before the hit is sent.
     const timer = window.setTimeout(() => trackPageView(pathname + search), 0)
     return () => window.clearTimeout(timer)
   }, [pathname, search])
@@ -227,21 +227,30 @@ function AppRoutes() {
   )
 }
 
-/** Ensures dark mode is strictly applied only to /admin routes and never bleeds into public pages or applicant dashboard */
+/**
+ * Ensures dark mode is strictly applied only to /admin routes and never bleeds into public
+ * pages or the applicant dashboard.
+ *
+ * useLayoutEffect, not useEffect: this has to win the race against paint. Leaving admin in
+ * dark mode renders the next public page while <html> still carries `.dark`, so the browser
+ * paints a light-designed page with dark tokens — dark panels, low-contrast text — for a
+ * frame or more before the class is removed. That flash reads as a broken page rather than a
+ * theme change. A layout effect runs after the DOM update but before paint, so the class is
+ * already correct in the frame the new route first appears in.
+ *
+ * The first paint of a cold load is handled earlier still, by the inline script in
+ * index.html — a layout effect cannot help there because React has not mounted yet.
+ */
 function RouteThemeSync() {
   const { pathname } = useLocation()
   const { setTheme } = useTheme()
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const isAdmin = pathname.startsWith('/admin')
     if (isAdmin) {
       const adminTheme = localStorage.getItem('admin-theme') || 'dark'
       setTheme(adminTheme)
-      if (adminTheme === 'dark') {
-        document.documentElement.classList.add('dark')
-      } else {
-        document.documentElement.classList.remove('dark')
-      }
+      document.documentElement.classList.toggle('dark', adminTheme === 'dark')
     } else {
       // Force light theme on homepage, public routes, and user dashboard
       setTheme('light')

@@ -51,8 +51,21 @@ export function officeChatWhatsAppUrl(text: string): string {
   return `https://wa.me/${NAP.officeChatWhatsApp}?text=${encodeURIComponent(text)}`
 }
 
+/**
+ * Builds the canonical absolute URL for a route.
+ *
+ * Normalisation matters here because the value is emitted as the canonical and
+ * og:url, and must match the sitemap exactly — Google treats
+ * `…/study-visa` and `…/study-visa/` as different URLs. The rules mirror
+ * public/.htaccess: no trailing slash except on the root, and no query string or
+ * fragment (neither ever identifies a distinct canonical page on this site).
+ */
 export function absoluteUrl(path: string): string {
-  if (!path || path === '/') return SITE_URL
-  const normalized = path.startsWith('/') ? path : `/${path}`
-  return `${SITE_URL}${normalized}`
+  if (!path || path === '/') return `${SITE_URL}/`
+
+  let normalized = path.startsWith('/') ? path : `/${path}`
+  normalized = normalized.split('#')[0].split('?')[0]
+  if (normalized.length > 1 && normalized.endsWith('/')) normalized = normalized.slice(0, -1)
+
+  return normalized === '/' ? `${SITE_URL}/` : `${SITE_URL}${normalized}`
 }

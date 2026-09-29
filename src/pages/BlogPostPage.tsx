@@ -1,6 +1,5 @@
 import { Link, useParams } from 'react-router-dom'
-import { Helmet } from 'react-helmet-async'
-import { JsonLd } from '@/components/seo/JsonLd'
+import { SeoHead } from '@/components/seo/SeoHead'
 import { ArrowLeft } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
@@ -74,21 +73,15 @@ export default function BlogPostPage() {
 
   return (
     <>
-      <JsonLd data={schemas} />
-      <Helmet>
-        <title>{`${title} | ${SITE_NAME}`}</title>
-        <meta name="description" content={description} />
-        {keywords && <meta name="keywords" content={keywords} />}
-        <link rel="canonical" href={canonical} />
-        <meta property="og:type" content="article" />
-        <meta property="og:title" content={title} />
-        <meta property="og:description" content={description} />
-        <meta property="og:url" content={canonical} />
-        {post.featured_image && <meta property="og:image" content={post.featured_image} />}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={title} />
-        <meta name="twitter:description" content={description} />
-      </Helmet>
+      <SeoHead
+        title={title}
+        description={description}
+        path={`/blog/${post.slug}`}
+        canonical={canonical}
+        type="article"
+        image={post.featured_image || undefined}
+        jsonLd={schemas}
+      />
       <SiteHeader />
       <main className="min-h-screen bg-background">
         <article className="mx-auto max-w-3xl px-4 py-10 md:px-6 md:py-14">

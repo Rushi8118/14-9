@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Helmet } from "react-helmet-async"
+import { SeoHead } from '@/components/seo/SeoHead'
 import { motion } from "framer-motion"
 import { Lock, Save, Loader2, CheckCircle2, AlertTriangle } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
@@ -22,36 +22,99 @@ export default function ResetPasswordPage() {
   const [submitted, setSubmitted] = useState(false)
   /**
    * Whether this visit carries a usable recovery session.
-   * 'checking' until Supabase has had a chance to exchange the code in the URL,
-   * because detectSessionInUrl does that asynchronously after mount.
+   * 'checking' until the token in the URL has been verified, because that
+   * happens asynchronously after mount.
    */
   const [linkState, setLinkState] = useState<'checking' | 'valid' | 'invalid'>('checking')
+  const [invalidReason, setInvalidReason] = useState(
+    'Password reset links can only be used once, and they expire after a short time. Request a new one and it will arrive in your inbox.',
+  )
   const navigate = useNavigate()
 
   useEffect(() => {
     let cancelled = false
 
-    // PASSWORD_RECOVERY fires once the recovery link's code has been exchanged.
+    const markInvalid = (reason?: string) => {
+      if (cancelled) return
+      if (reason) setInvalidReason(reason)
+      setLinkState('invalid')
+    }
+
+    const EXPIRED =
+      'This link has expired or has already been used. Reset links are valid for one hour and work only once.'
+
+    // PASSWORD_RECOVERY fires once a recovery token has been accepted.
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (cancelled) return
       if (event === 'PASSWORD_RECOVERY' || session) setLinkState('valid')
     })
 
-    // The listener does not fire if the exchange completed before this mounted,
-    // so check directly as well.
-    void supabase.auth.getSession().then(({ data }) => {
+    const url = new URL(window.location.href)
+    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''))
+    const param = (name: string) => url.searchParams.get(name) ?? hashParams.get(name)
+
+    // Take the token out of the address bar once it has been read: a refresh
+    // must not replay a spent token, and the token should not sit in history.
+    // Only the query string is cleared here. That is where the token actually
+    // travels; an error fragment carries no secret, and something further up
+    // re-applies the fragment on load, so clearing it would not stick anyway.
+    const scrubUrl = () => window.history.replaceState({}, '', `${url.origin}${url.pathname}`)
+
+    const run = async () => {
+      // 1. Supabase bounced here with a failure — usually a link that was
+      // already opened (mail scanners do this) or one past its expiry.
+      const errorCode = param('error_code')
+      const errorParam = param('error')
+      if (errorCode || errorParam) {
+        scrubUrl()
+        const text = `${errorCode ?? ''} ${errorParam ?? ''} ${param('error_description') ?? ''}`
+        markInvalid(
+          /expired|otp/i.test(text)
+            ? EXPIRED
+            : 'This link could not be verified. Please request a new one.',
+        )
+        return
+      }
+
+      // 2. Token-hash link, which is what the email template sends. Verifying
+      // it here mints the recovery session on this page, so the flow no longer
+      // depends on Supabase's redirect step — that step falling back to the
+      // Site URL is what used to drop people on the home page.
+      const tokenHash = param('token_hash')
+      const type = param('type')
+      if (tokenHash && (!type || type === 'recovery')) {
+        const { error } = await supabase.auth.verifyOtp({ type: 'recovery', token_hash: tokenHash })
+        scrubUrl()
+        if (cancelled) return
+        if (error) {
+          markInvalid(
+            /expired|invalid|not found/i.test(error.message || '')
+              ? EXPIRED
+              : error.message || 'This link could not be verified. Please request a new one.',
+          )
+        } else {
+          setLinkState('valid')
+        }
+        return
+      }
+
+      // 3. PKCE (?code=) and implicit (#access_token=) links: the client
+      // exchanges those itself on load, so wait for the session they produce.
+      const { data } = await supabase.auth.getSession()
       if (cancelled) return
       if (data.session) {
         setLinkState('valid')
         return
       }
-      // No session yet and no code left to exchange means the link is spent.
-      const url = new URL(window.location.href)
-      const pending = url.searchParams.has('code') || window.location.hash.includes('access_token')
-      if (!pending) setLinkState('invalid')
-    })
+      const pending = url.searchParams.has('code') || hashParams.has('access_token')
+      if (!pending) {
+        markInvalid('Open this page from the reset link in your email to choose a new password.')
+      }
+    }
 
-    // Backstop: if the exchange neither succeeds nor errors, do not leave the
+    void run().catch(() => markInvalid('This link could not be verified. Please request a new one.'))
+
+    // Backstop: if verification neither succeeds nor errors, do not leave the
     // page spinning forever.
     const timer = setTimeout(() => {
       if (!cancelled) setLinkState((s) => (s === 'checking' ? 'invalid' : s))
@@ -139,14 +202,12 @@ export default function ResetPasswordPage() {
 
   return (
     <>
-      <Helmet>
-        <title>New Password | Siddhivinayak Overseas</title>
-        <meta
-          name="description"
-          content="Choose a new secure password for your Siddhivinayak Overseas account."
-        />
-        <meta name="robots" content="noindex, follow" />
-      </Helmet>
+      <SeoHead
+        title="New Password"
+        description="Choose a new secure password for your Siddhivinayak Overseas account."
+        path="/reset-password"
+        noindex
+      />
       <SiteHeader />
       <main className="relative min-h-screen bg-background flex flex-col justify-center py-24 px-4 md:px-6 premium-page">
         <div
@@ -174,12 +235,9 @@ export default function ResetPasswordPage() {
               <div className="text-center py-6">
                 <AlertTriangle className="mx-auto h-14 w-14 text-amber-500" />
                 <h1 className="mt-4 font-serif text-2xl font-semibold text-foreground">
-                  This link has expired
+                  This link is no longer valid
                 </h1>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Password reset links can only be used once, and they expire after a short
-                  time. Request a new one and it will arrive in your inbox.
-                </p>
+                <p className="mt-2 text-sm text-muted-foreground">{invalidReason}</p>
                 <Link
                   to="/forgot-password"
                   className="mt-6 inline-flex items-center justify-center rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"

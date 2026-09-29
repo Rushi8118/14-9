@@ -1,8 +1,7 @@
 import { ImmigrationDisclaimer } from '@/components/seo/ImmigrationDisclaimer'
 import React, { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Helmet } from 'react-helmet-async'
-import { JsonLd } from '@/components/seo/JsonLd'
+import { SeoHead } from '@/components/seo/SeoHead'
 import { motion } from 'framer-motion'
 import {
   Flame, Clock, Users, ArrowLeft, Send, CheckCircle2, MessageCircle,
@@ -203,22 +202,14 @@ export default function UrgentRequirementDetailPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col justify-between">
-      <JsonLd data={schemas} />
-      <Helmet>
-        <title>{`${metaTitle} | ${SITE_NAME}`}</title>
-        <meta name="description" content={metaDescription} />
-        <link rel="canonical" href={canonical} />
-        <meta property="og:type" content="website" />
-        <meta property="og:title" content={metaTitle} />
-        <meta property="og:description" content={metaDescription} />
-        <meta property="og:url" content={canonical} />
-        {(requirement.detail_image_url || requirement.image_url) && (
-          <meta property="og:image" content={requirement.detail_image_url || requirement.image_url} />
-        )}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={metaTitle} />
-        <meta name="twitter:description" content={metaDescription} />
-      </Helmet>
+      <SeoHead
+        title={metaTitle}
+        description={metaDescription}
+        path={path}
+        canonical={canonical}
+        image={requirement.detail_image_url || requirement.image_url || undefined}
+        jsonLd={schemas}
+      />
       <SiteHeader />
 
       <main className="flex-1 pb-20 pt-28 md:pt-36">

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Helmet } from "react-helmet-async"
+import { SeoHead } from '@/components/seo/SeoHead'
 import { Loader2, CheckCircle2, XCircle } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 import { logger } from "@/lib/logger"
@@ -97,10 +97,12 @@ export default function AuthCallback() {
 
   return (
     <>
-      <Helmet>
-        <title>Authenticating | Siddhivinayak Overseas</title>
-        <meta name="robots" content="noindex, nofollow" />
-      </Helmet>
+      <SeoHead
+        title="Authenticating"
+        description="Completing secure sign-in to your Siddhivinayak Overseas account."
+        path="/auth/callback"
+        noindex
+      />
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
         <div role="status" aria-live="polite" className="flex flex-col items-center gap-4 text-center max-w-sm">
           {status === "processing" && (

@@ -1,4 +1,4 @@
-import { Helmet } from 'react-helmet-async'
+import { SeoHead } from '@/components/seo/SeoHead'
 import { Link } from 'react-router-dom'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
@@ -6,14 +6,11 @@ import { SiteFooter } from '@/components/site-footer'
 export default function PrivacyPage() {
   return (
     <>
-      <Helmet>
-        <title>Privacy Policy | Siddhivinayak Overseas</title>
-        <meta
-          name="description"
-          content="Privacy policy for Siddhivinayak Overseas. Learn how we protect your personal information."
-        />
-        <link rel="canonical" href="https://siddhivinayakoverseas.com/privacy" />
-      </Helmet>
+      <SeoHead
+        title="Privacy Policy"
+        description="Privacy policy for Siddhivinayak Overseas. How we collect, use, store and protect the personal information you share with us."
+        path="/privacy"
+      />
       <SiteHeader />
       <main className="premium-page min-h-screen bg-background">
         {/* Header */}

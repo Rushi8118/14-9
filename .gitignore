@@ -49,3 +49,16 @@ attached_assets/
 /lib/
 /styles/
 /types/
+
+# Auth/SMTP credentials for scripts/setup-auth-email.mjs
+scripts/.env.auth.local
+
+# SEO audit scratch output. The reports, findings/ and onpage.json (the crawl
+# baseline the before/after comparison is measured against) are committed; the
+# raw HTML dumps, per-page JSON-LD dumps, screenshots and stderr files are
+# ~10 MB of intermediate data and are not.
+siddhivinayakoverseas.com-audit/*
+!siddhivinayakoverseas.com-audit/*.md
+!siddhivinayakoverseas.com-audit/onpage.json
+!siddhivinayakoverseas.com-audit/audit-data.json
+!siddhivinayakoverseas.com-audit/findings/

@@ -1,5 +1,18 @@
 import type { DestinationContent } from './destination-types'
 
+/**
+ * The date this guides collection first shipped, taken from the first commit that
+ * added this file (`git log --diff-filter=A -- src/content/guides.ts`). It is the
+ * fallback only. The previous value was `2026-08-25`, six days before the file
+ * existed, and it was applied *after* the spread — so it overwrote any date a
+ * guide set for itself and every guide claimed the same invented publication
+ * date in its Article schema.
+ *
+ * Give a guide its own `datePublished` (and `dateModified`) when it is written or
+ * substantially revised; do not backdate one.
+ */
+const GUIDES_FIRST_PUBLISHED = '2026-08-31'
+
 function guide(
   input: Omit<DestinationContent, 'kind' | 'serviceType' | 'highlights' | 'processSteps'> & {
     highlights?: DestinationContent['highlights']
@@ -8,10 +21,10 @@ function guide(
   return {
     highlights: input.highlights ?? [],
     processSteps: undefined,
+    datePublished: GUIDES_FIRST_PUBLISHED,
     ...input,
     kind: 'guide',
     serviceType: 'Visa guidance',
-    datePublished: '2026-08-25',
   }
 }
 

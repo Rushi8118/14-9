@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Helmet } from 'react-helmet-async'
+import { SeoHead } from '@/components/seo/SeoHead'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
 import { CalendarPlus, LogOut, RefreshCw, ShieldCheck } from 'lucide-react'
@@ -106,10 +106,12 @@ export default function DashboardPage() {
 
   return (
     <>
-      <Helmet>
-        <title>Applicant Dashboard | Siddhivinayak Overseas</title>
-        <meta name="robots" content="noindex, nofollow" />
-      </Helmet>
+      <SeoHead
+        title="Applicant Dashboard"
+        description="Track your visa applications, documents and appointments in one place."
+        path="/dashboard"
+        noindex
+      />
 
       <div className="space-y-6 pb-10 lg:space-y-8">
         <PageHeader
