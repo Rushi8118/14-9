@@ -235,6 +235,17 @@ pages rendered, the number of sitemap URLs, and any page that is live for
 visitors but absent from the sitemap. Then upload the **entire contents of
 `dist/`** to the web root. The site is not updated until that upload completes.
 
+If the SEO validation reports errors you have read and judged non-blocking:
+
+```bash
+npm run publish -- --allow-errors
+```
+
+That prints the errors in full and continues to the upload summary. It is for
+the case where shipping is better than not shipping — an outstanding duplicate
+title is a smaller problem than leaving a stale site up — and it never hides
+anything: the errors are printed before the summary and repeated after it.
+
 `npm run publish` deliberately does **not** upload anything. No FTP, SFTP, SSH,
 rsync or hosting-API code exists in this repository because the hosting provider
 and access method have not been supplied. `scripts/publish.mjs` documents the

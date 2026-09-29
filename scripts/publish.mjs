@@ -7,6 +7,12 @@
  *
  *     vite build  ->  prerender  ->  sitemap  ->  validate-seo  ->  report
  *
+ * `--allow-errors` runs the SEO validation in report mode: the errors are printed
+ * in full and the build continues to the upload summary. Use it only when you
+ * have read them and judged that shipping is still better than not shipping —
+ * which it often is, since an outstanding duplicate title is a smaller problem
+ * than leaving a stale site up. It is a deliberate flag, never the default.
+ *
  * It does NOT upload anything. The hosting provider and access method have not
  * been supplied, so no FTP, SFTP, SSH, rsync or hosting-API code exists in this
  * repository — see `deploy()` at the bottom for the seam where it would go.
@@ -29,22 +35,36 @@ const distDir = path.join(root, 'dist')
 function run(label, command, args) {
   return new Promise((resolve, reject) => {
     console.log(`\n=== ${label} ===`)
-    const child = spawn(command, args, { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' })
+    // No `shell: true`. Every command here is process.execPath, which on
+    // Windows is "C:\Program Files\nodejs\node.exe" — through a shell that
+    // path is concatenated unquoted and the space splits it, so the build died
+    // with «'C:\Program' is not recognized as an internal or external command».
+    // Spawning the executable directly needs no shell and no quoting.
+    const child = spawn(command, args, { cwd: root, stdio: 'inherit' })
     child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`${label} failed (exit ${code})`))))
     child.on('error', reject)
   })
 }
 
 const node = process.execPath
+const ALLOW_ERRORS = process.argv.includes('--allow-errors')
 
 try {
   await run('Build', node, [path.join(root, 'node_modules', 'vite', 'bin', 'vite.js'), 'build'])
   await run('Prerender', node, ['--no-deprecation', path.join(root, 'scripts', 'prerender.mjs')])
   await run('Sitemap', node, [path.join(root, 'scripts', 'generate-sitemap.mjs')])
-  await run('SEO validation', node, [path.join(root, 'scripts', 'validate-seo.mjs')])
+  await run(
+    ALLOW_ERRORS ? 'SEO validation (report only)' : 'SEO validation',
+    node,
+    [path.join(root, 'scripts', 'validate-seo.mjs'), ...(ALLOW_ERRORS ? ['--report'] : [])],
+  )
 } catch (err) {
   console.error(`\n${err.message}`)
   console.error('Nothing was uploaded. Fix the reported problems and run `npm run publish` again.')
+  if (err.message.startsWith('SEO validation')) {
+    console.error('If you have read the errors and still judge that shipping is better than not,')
+    console.error('run `npm run publish -- --allow-errors`.')
+  }
   process.exit(1)
 }
 

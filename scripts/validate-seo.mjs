@@ -300,13 +300,18 @@ for (const [field, label] of [['title', 'title'], ['description', 'meta descript
   for (const [value, routes] of byValue) {
     if (routes.length > 1) {
       // Naming the remedy matters: the usual cause is the same vacancy published
-      // both as a blog post and as an urgent requirement. Setting `canonical_url`
-      // on the blog row (admin panel) points it at the other URL, which keeps the
-      // page live and drops it from the sitemap automatically.
+      // both as a blog post and as an urgent requirement.
+      //
+      // Editing the blog post's Meta title in the admin panel is the fix that
+      // works today. Pointing the post's canonical at the other URL would also
+      // work — seo-routes.mjs keeps such a post rendering while dropping it from
+      // the sitemap — but there is no UI for it: the blog editor hardcodes
+      // canonical_path to `/blog/${slug}` on every save, so a canonical set by
+      // hand in SQL is overwritten the next time the post is edited.
       error(
         routes.join(', '),
-        `share the same ${label}: "${value.slice(0, 70)}…". Give one a distinct ${label}, ` +
-        'or set canonical_url on the blog row to point at the page that should rank.',
+        `share the same ${label}: "${value.slice(0, 70)}…". ` +
+        `Give one a distinct ${label} — for a blog post, the Meta title field in the admin panel.`,
       )
     }
   }
