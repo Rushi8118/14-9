@@ -1,4 +1,11 @@
 import { SeoHead } from '@/components/seo/SeoHead'
+import {
+  breadcrumbSchema,
+  localBusinessSchema,
+  organizationSchema,
+  webpageSchema,
+  websiteSchema,
+} from '@/lib/seo/schema'
 import { Link } from 'react-router-dom'
 import { useState, useMemo } from 'react'
 import { Globe2, ArrowRight, TrendingUp, Search, Filter, ShieldCheck, Clock } from 'lucide-react'
@@ -80,6 +87,21 @@ export default function CountriesPage() {
         title="Global Visa Destinations | Work & Study Visas"
         description="Explore study and work visa pathways for 40+ countries including Germany, UK, Japan, Croatia, Canada, USA and GCC destinations, with free counselling in Surat."
         path="/countries"
+        jsonLd={[
+          organizationSchema(),
+          websiteSchema(),
+          localBusinessSchema(),
+          webpageSchema({
+            title: 'Global Visa Destinations | Work & Study Visas',
+            description:
+              'Study and work visa pathways by destination country, with free counselling in Surat.',
+            path: '/countries',
+          }),
+          breadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'Destinations', path: '/countries' },
+          ]),
+        ]}
       />
       <SiteHeader />
       <main className="min-h-screen bg-background premium-page">

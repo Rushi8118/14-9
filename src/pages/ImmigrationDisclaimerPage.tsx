@@ -1,5 +1,11 @@
 import { Link } from 'react-router-dom'
 import { SeoHead } from '@/components/seo/SeoHead'
+import {
+  breadcrumbSchema,
+  organizationSchema,
+  webpageSchema,
+  websiteSchema,
+} from '@/lib/seo/schema'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { NAP } from '@/lib/seo/site'
@@ -29,6 +35,20 @@ export default function ImmigrationDisclaimerPage() {
         title="Immigration Disclaimer"
         description="What Siddhivinayak Overseas does and does not do: no visa or job guarantees, decisions by governments and employers, fees, and official sources."
         path="/immigration-disclaimer"
+        jsonLd={[
+          organizationSchema(),
+          websiteSchema(),
+          webpageSchema({
+            title: 'Immigration Disclaimer',
+            description:
+              'What Siddhivinayak Overseas does and does not do, and who actually decides visas and jobs.',
+            path: '/immigration-disclaimer',
+          }),
+          breadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'Immigration Disclaimer', path: '/immigration-disclaimer' },
+          ]),
+        ]}
       />
       <SiteHeader />
       <main className="min-h-screen bg-background px-4 pb-16 pt-28 md:px-6 md:pt-36">

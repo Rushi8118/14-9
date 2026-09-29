@@ -756,7 +756,7 @@ export const pathways: DestinationContent[] = [
     h1: 'Nepal to Japan Work Visa: The Specified Skilled Worker Route',
     title: 'Nepal to Japan Work Visa (Specified Skilled Worker)',
     description:
-      'How applicants from Nepal reach Japan on a Specified Skilled Worker visa: the sector skills test, the Japanese language requirement, and DoFE labour approval before departure.',
+      'How applicants from Nepal reach Japan on a Specified Skilled Worker visa: the skills test, the language requirement and DoFE approval.',
     keywords:
       'nepal to japan work visa, specified skilled worker visa nepal, tokutei ginou nepal, japan ssw visa from nepal, japan work visa requirements nepal, dofe labour approval japan',
     heroDescription:

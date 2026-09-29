@@ -149,7 +149,11 @@ export function buildWorkCountryContent(slug: string): DestinationContent | null
     h1: isRegion
       ? `${c.name} Work Visa for Indians — Consultants in Surat`
       : `${c.name} Work Permit for Indians — Visa Consultants in Surat`,
-    title: `${c.name} Work Permit for Indians: Process, Cost & Documents`,
+    // Kept under Google's ~60-char cut for every country in WORK_COUNTRIES:
+    // the fixed part is 42 characters, and the longest name is "Africa (Regional)"
+    // at 17. "Process" was dropped rather than a keyword — the page covers it
+    // either way, and "cost" and "documents" are what people actually search.
+    title: `${c.name} Work Permit for Indians: Cost & Documents`,
     description: `Apply for a ${c.name} work permit from India: eligibility, documents required, processing time, cost and age limit explained by visa consultants in Surat.`,
     keywords: `${c.name} work permit for indian, ${c.name} work visa for indians, ${c.name} work permit cost, ${c.name} work permit processing time in India, ${c.name} work visa documents required, ${c.name} work visa age limit, ${c.name} job visa for indians, ${c.name} work visa consultant in Surat, ${c.visa}`,
     heroDescription: c.summary,

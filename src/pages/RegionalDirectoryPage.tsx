@@ -29,8 +29,8 @@ import {
   webpageSchema,
 } from '@/lib/seo/schema'
 
-const PAGE_TITLE = 'Visa Consultants for All 28 States & UTs in India, Bangladesh, Nepal & Sri Lanka'
-const PAGE_DESC = 'Official regional visa directory & SEO keyword map covering all 28 Indian states, 8 union territories, Bangladesh, Pakistan, Nepal and Sri Lanka for UK, Canada, Australia, Germany, USA and European work & study visas.'
+const PAGE_TITLE = 'Visa Consultants for All 28 States of India & South Asia'
+const PAGE_DESC = 'Regional visa directory covering all 28 Indian states and 8 union territories, plus Bangladesh, Pakistan, Nepal and Sri Lanka.'
 const PAGE_PATH = '/regional-coverage'
 
 const REGIONAL_FAQS = [

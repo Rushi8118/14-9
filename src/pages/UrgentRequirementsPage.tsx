@@ -56,7 +56,7 @@ export default function UrgentRequirementsPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col justify-between">
       <SeoHead
-        title="Urgent Overseas Job & Work Visa Requirements for Indian Applicants"
+        title="Urgent Overseas Job & Work Visa Openings | Apply from India"
         description="Current overseas job openings and work visa requirements handled by Siddhivinayak Overseas, Surat. Check eligibility, deadlines and how to apply."
         path="/urgent-requirements"
         jsonLd={breadcrumbSchema([
