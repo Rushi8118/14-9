@@ -122,6 +122,26 @@ export function useAdminBlogPosts() {
 
       const sanitizedContent = sanitizeRichText(input.draft.content)
 
+      /**
+       * The canonical the post will declare.
+       *
+       * Falls back to the post's own URL whenever the field is blank. Without
+       * this, clearing the Canonical path box in the editor sends an empty
+       * string to `absoluteUrl('')`, which returns the site root — silently
+       * canonicalising the blog post to the homepage and dropping it from the
+       * sitemap. A blank field means "no override", not "point at the home page".
+       *
+       * A value is also normalised to a path before it is made absolute, so
+       * pasting a full URL in the box behaves the same as typing the path.
+       */
+      const canonicalPath = (() => {
+        const raw = (input.draft.canonical_path ?? '').trim()
+        if (!raw) return `/blog/${input.draft.slug}`
+        const path = raw.replace(/^https?:\/\/[^/]+/, '')
+        return path.startsWith('/') ? path : `/${path}`
+      })()
+      const canonicalUrl = absoluteUrl(canonicalPath)
+
       const rpcPayload = {
         id: input.id || null,
         title: input.draft.title,
@@ -133,7 +153,7 @@ export function useAdminBlogPosts() {
         meta_title: input.draft.meta_title,
         meta_desc: input.draft.meta_desc,
         keywords: input.draft.keywords,
-        canonical_url: absoluteUrl(input.draft.canonical_path),
+        canonical_url: canonicalUrl,
         status: input.status,
         focus_keyword: input.draft.focus_keyword,
         related_keywords: input.draft.related_keywords,
@@ -147,7 +167,9 @@ export function useAdminBlogPosts() {
         reading_time_minutes: input.draft.reading_time_minutes,
         last_reviewed_at: new Date().toISOString(),
         disclaimer: input.draft.disclaimer,
-        ai_generated: true,
+        // Carries the post's own flag. This was hardcoded `true`, so editing a
+        // hand-written post silently relabelled it as AI-generated.
+        ai_generated: input.draft.ai_generated ?? true,
       }
 
       // Prefer SECURITY DEFINER RPC (works even when table RLS is misconfigured,
@@ -166,6 +188,14 @@ export function useAdminBlogPosts() {
 
       // Fallback: direct table write (only reached if the RPC itself is
       // missing from the schema cache, e.g. migration not yet applied).
+      //
+      // This writes every field the RPC does. It previously wrote only 13 of
+      // them, so whenever the RPC was missing a save appeared to succeed while
+      // discarding the FAQ, keywords, images and disclaimer — the editor closed
+      // cleanly and the content was gone on reopen. A visible error is better
+      // than a silent partial write, so if a column is missing this now fails
+      // loudly and the message says to run supabase/FIX_BLOG_SAVE.sql, which
+      // creates them.
       const now = new Date().toISOString()
       const row = {
         author_id: user.id,
@@ -178,8 +208,21 @@ export function useAdminBlogPosts() {
         meta_title: input.draft.meta_title,
         meta_desc: input.draft.meta_desc,
         keywords: input.draft.keywords,
-        canonical_url: absoluteUrl(input.draft.canonical_path),
+        canonical_url: canonicalUrl,
         status: input.status,
+        focus_keyword: input.draft.focus_keyword,
+        related_keywords: input.draft.related_keywords,
+        long_tail_keywords: input.draft.long_tail_keywords,
+        search_intent: input.draft.search_intent,
+        faq: input.draft.faq,
+        internal_links: input.draft.internal_links,
+        related_urgent_requirements: input.draft.related_urgent_requirements,
+        image_alt: input.draft.image_alt,
+        image_caption: input.draft.image_caption,
+        reading_time_minutes: input.draft.reading_time_minutes,
+        last_reviewed_at: now,
+        disclaimer: input.draft.disclaimer,
+        ai_generated: input.draft.ai_generated ?? true,
         published_at: input.status === 'published' ? now : null,
         updated_at: now,
       }
@@ -196,7 +239,8 @@ export function useAdminBlogPosts() {
             `${rpc.error?.message || ''} ${error.message}`,
           )) {
             throw new Error(
-              'Database blocked the save. Run supabase/FIX_BLOG_SAVE.sql in Supabase SQL Editor, then try again.',
+              'Database blocked the save. Run supabase/FIX_BLOG_SAVE.sql in the Supabase ' +
+              `SQL Editor, then try again. Database said: ${error.message}`,
             )
           }
           throw error
@@ -210,7 +254,8 @@ export function useAdminBlogPosts() {
           `${rpc.error?.message || ''} ${error.message}`,
         )) {
           throw new Error(
-            'Database blocked the save. Run supabase/FIX_BLOG_SAVE.sql in Supabase SQL Editor, then try again.',
+            'Database blocked the save. Run supabase/FIX_BLOG_SAVE.sql in the Supabase ' +
+            `SQL Editor, then try again. Database said: ${error.message}`,
           )
         }
         throw error

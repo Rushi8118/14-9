@@ -1,4 +1,27 @@
 -- ============================================================
+-- ⚠  ORDERING HAZARD — READ BEFORE RUNNING
+--
+-- This file's save_urgent_requirement() predates
+-- migrations/20260914000002_ai_content_system.sql, which redefines the SAME
+-- function with 14 additional fields: canonical_url, disclaimer, excerpt,
+-- image_caption, internal_links, keywords, last_reviewed_at, meta_desc,
+-- meta_title, reading_time_minutes, related_urgent_requirements, search_intent
+-- and structured_data.
+--
+-- Both use CREATE OR REPLACE FUNCTION with the same name and signature, so
+-- whichever runs LAST wins. Running this file after that migration silently
+-- downgrades the function, and every later save discards those 14 fields —
+-- the save appears to succeed and the content is gone on reopen.
+--
+-- If you run this file on an existing project, re-run
+-- migrations/20260914000002_ai_content_system.sql afterwards.
+--
+-- The same hazard existed for save_blog_post between this directory's
+-- FIX_BLOG_SAVE.sql and that migration; FIX_BLOG_SAVE.sql now carries the
+-- complete function so it can no longer downgrade anything.
+-- ============================================================
+
+-- ============================================================
 -- URGENT REQUIREMENTS - COMPLETE DATABASE STRUCTURE SCHEMA
 -- File: supabase/urgent_requirements_schema.sql
 -- Description: Complete table schema, indexes, RLS policies,
