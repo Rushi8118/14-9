@@ -35,7 +35,11 @@ export function percentChange(current: number, previous: number): number | null 
 export function useDashboardAnalytics(rangeDays: number) {
   return useQuery<DashboardAnalytics>({
     queryKey: ['admin-dashboard-analytics', rangeDays],
-    refetchInterval: 60_000,
+    // Server-side aggregation (get_dashboard_analytics), so this one is cheap.
+    // It still should not poll while the tab is hidden.
+    refetchInterval: 2 * 60_000,
+    refetchIntervalInBackground: false,
+    staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_dashboard_analytics', { p_days: rangeDays })
       if (error) throw error

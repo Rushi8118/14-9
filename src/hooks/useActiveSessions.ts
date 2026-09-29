@@ -79,10 +79,25 @@ export function useActiveSessions() {
 
   useEffect(() => {
     void fetchSessions()
+
+    // A bare setInterval keeps firing while the tab is hidden, so an admin with
+    // the panel open in a background tab kept polling every 30 seconds all day.
+    // Skip the tick when hidden, and refresh once on return so the view is not
+    // stale when it becomes visible again.
     const interval = setInterval(() => {
+      if (document.hidden) return
       void fetchSessions()
-    }, 30000)
-    return () => clearInterval(interval)
+    }, 60_000)
+
+    const onVisible = () => {
+      if (!document.hidden) void fetchSessions()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [fetchSessions])
 
   const activeSessions = sessions.filter(s => s.is_active)
