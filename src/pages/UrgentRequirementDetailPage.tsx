@@ -150,11 +150,26 @@ export default function UrgentRequirementDetailPage() {
   )}`
 
   const path = `/urgent-requirements/${requirement.slug}`
-  const metaTitle = publicText(requirement.seo_title, requirement.title)
-  const metaDescription = publicText(
+  const rawTitle = publicText(requirement.seo_title, requirement.title)
+  let metaTitle = rawTitle
+  if (metaTitle.length > 60) {
+    if (requirement.title && requirement.title.length <= 60 && !isAdminInputRequired(requirement.title)) {
+      metaTitle = requirement.title
+    } else if (metaTitle.includes(' | ')) {
+      const firstPart = metaTitle.split(' | ')[0].trim()
+      if (firstPart.length >= 20 && firstPart.length <= 60) {
+        metaTitle = firstPart
+      }
+    }
+  }
+
+  const rawDesc = publicText(
     requirement.meta_description,
     requirement.summary || `${requirement.title} — urgent visa/job opening in ${requirement.country}. Apply through Siddhivinayak Overseas, Surat.`,
-  ).slice(0, 160)
+  )
+  const metaDescription = rawDesc.length > 155
+    ? rawDesc.slice(0, 155).replace(/\s+\S*$/, '').trim().replace(/[,;:\s]+$/, '') + '.'
+    : rawDesc
   const canonical = absoluteUrl(path)
   const displaySalary = publicText(requirement.salary, 'Contact us for salary details')
   const displayExperience = publicText(requirement.experience_required, 'Relevant experience — contact us for details')
