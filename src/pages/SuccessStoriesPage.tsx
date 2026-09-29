@@ -19,7 +19,7 @@ export default function SuccessStoriesPage() {
   return (
     <>
       <SeoHead
-        title="Success Stories & Client Feedback | Siddhivinayak Overseas Surat"
+        title="Client Success Stories | Siddhivinayak Overseas"
         description="Read client feedback for Siddhivinayak Overseas in Surat — work visa and study visa journeys shared by applicants we supported."
         path="/success-stories"
         keywords="Siddhivinayak Overseas success stories, Surat visa consultants reviews, study visa success India"

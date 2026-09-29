@@ -2,7 +2,7 @@
   "name": "siddhivinayak-overseas",
   "version": "0.1.0",
   "private": true,
-  "description": "Siddhivinayak Overseas — Work Visa & Study Visa consultants",
+  "description": "Siddhivinayak Overseas \u2014 Work Visa & Study Visa consultants",
   "author": "Siddhivinayak Overseas",
   "license": "MIT",
   "type": "module",
@@ -26,7 +26,8 @@
     "build:only": "vite build",
     "prerender": "node scripts/prerender.mjs",
     "preview": "vite preview",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "check:content": "node scripts/check-content-quality.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

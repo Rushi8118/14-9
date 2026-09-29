@@ -1,4 +1,10 @@
 import { SeoHead } from '@/components/seo/SeoHead'
+import {
+  breadcrumbSchema,
+  organizationSchema,
+  webpageSchema,
+  websiteSchema,
+} from '@/lib/seo/schema'
 import { Link } from 'react-router-dom'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
@@ -10,6 +16,19 @@ export default function TermsPage() {
         title="Terms & Conditions"
         description="Terms and conditions for using Siddhivinayak Overseas study visa, work visa and consultation services."
         path="/terms"
+        jsonLd={[
+          organizationSchema(),
+          websiteSchema(),
+          webpageSchema({
+            title: 'Terms & Conditions',
+            description: 'Terms and conditions for using Siddhivinayak Overseas visa and consultation services.',
+            path: '/terms',
+          }),
+          breadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'Terms & Conditions', path: '/terms' },
+          ]),
+        ]}
       />
       <SiteHeader />
       <main className="premium-page min-h-screen bg-background">
