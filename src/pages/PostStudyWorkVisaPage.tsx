@@ -1,5 +1,12 @@
 import { ImmigrationDisclaimer } from '@/components/seo/ImmigrationDisclaimer'
 import { SeoHead } from '@/components/seo/SeoHead'
+import {
+  breadcrumbSchema,
+  organizationSchema,
+  serviceSchema,
+  webpageSchema,
+  websiteSchema,
+} from '@/lib/seo/schema'
 import { Link } from 'react-router-dom'
 import { ArrowRight, GraduationCap, Globe2, CheckCircle2, Award, Clock, BookOpen, Briefcase, Users, TrendingUp, MapPin } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
@@ -29,6 +36,25 @@ export default function PostStudyWorkVisaPage() {
         title="Post Study Work Visa Guide 2026"
         description="Finishing study in the UK, Canada, Australia, Germany or the USA? How post-study work visa routes work, who is eligible, and which documents each one needs."
         path="/post-study-work-visa"
+        jsonLd={[
+          organizationSchema(),
+          websiteSchema(),
+          webpageSchema({
+            title: 'Post Study Work Visa Guide 2026',
+            description: 'How post-study work visa routes work, who is eligible, and which documents each one needs.',
+            path: '/post-study-work-visa',
+          }),
+          serviceSchema({
+            name: 'Post Study Work Visa Guide 2026',
+            description: 'How post-study work visa routes work, who is eligible, and which documents each one needs.',
+            path: '/post-study-work-visa',
+            serviceType: 'Visa and overseas education consultancy',
+          }),
+          breadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'Post-Study Work Visa', path: '/post-study-work-visa' },
+          ]),
+        ]}
       />
 
       <SiteHeader />

@@ -1,4 +1,11 @@
 import { SeoHead } from '@/components/seo/SeoHead'
+import {
+  breadcrumbSchema,
+  organizationSchema,
+  serviceSchema,
+  webpageSchema,
+  websiteSchema,
+} from '@/lib/seo/schema'
 import { Link } from 'react-router-dom'
 import {
   Briefcase,
@@ -80,6 +87,25 @@ export default function ServicesPage() {
         title="Overseas Education & Visa Services"
         description="Overseas education services in India for students and fresh graduates. Work visas, study visas, IELTS coaching and more for the USA, UK, Canada and Australia."
         path="/services"
+        jsonLd={[
+          organizationSchema(),
+          websiteSchema(),
+          webpageSchema({
+            title: 'Overseas Education & Visa Services',
+            description: 'Overseas education services in India: work visas, study visas and IELTS coaching.',
+            path: '/services',
+          }),
+          serviceSchema({
+            name: 'Overseas Education & Visa Services',
+            description: 'Overseas education services in India: work visas, study visas and IELTS coaching.',
+            path: '/services',
+            serviceType: 'Visa and overseas education consultancy',
+          }),
+          breadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'Services', path: '/services' },
+          ]),
+        ]}
       />
       <SiteHeader />
       <main className="relative overflow-hidden premium-page">

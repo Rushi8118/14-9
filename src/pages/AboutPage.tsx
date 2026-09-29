@@ -48,7 +48,7 @@ export default function AboutPage() {
     <>
       <SeoHead
         title="About Siddhivinayak Overseas | Visa Consultants in Surat"
-        description="Learn about Siddhivinayak Overseas — study and work visa consultants in Surat, Gujarat with 6+ years of guidance for Canada, UK, Australia, USA, Germany and Japan."
+        description="Siddhivinayak Overseas: study and work visa consultants in Surat, Gujarat, with 6+ years of guidance for Canada, the UK, Australia and more."
         path="/about"
         keywords="about Siddhivinayak Overseas, visa consultants Surat, immigration consultants Surat"
         jsonLd={[

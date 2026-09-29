@@ -1,4 +1,10 @@
 import { SeoHead } from '@/components/seo/SeoHead'
+import {
+  breadcrumbSchema,
+  organizationSchema,
+  webpageSchema,
+  websiteSchema,
+} from '@/lib/seo/schema'
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Star, Quote, Search, Filter, Globe2 } from 'lucide-react'
@@ -45,6 +51,19 @@ export default function ReviewsPage() {
         title="Customer Reviews"
         description="Read feedback from Siddhivinayak Overseas clients about their work visa and study visa journeys. Individual experiences and outcomes vary."
         path="/reviews"
+        jsonLd={[
+          organizationSchema(),
+          websiteSchema(),
+          webpageSchema({
+            title: 'Customer Reviews',
+            description: 'Feedback from Siddhivinayak Overseas clients about their work visa and study visa journeys.',
+            path: '/reviews',
+          }),
+          breadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'Reviews', path: '/reviews' },
+          ]),
+        ]}
       />
       <SiteHeader />
       <main className="premium-page min-h-screen bg-background pt-24 pb-20">

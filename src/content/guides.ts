@@ -31,7 +31,7 @@ function guide(
 export const guidesIndexMeta = {
   title: 'Visa Guides for Indian Students & Professionals',
   description:
-    'Practical visa guides from Siddhivinayak Overseas, Surat — Canada/UK/Australia requirements, Japan SSW, IELTS, rejection reasons and post-study work comparisons.',
+    'Practical visa guides from Surat: Canada, UK and Australia requirements, Japan SSW, IELTS and post-study work comparisons.',
 }
 
 export const guideArticles: DestinationContent[] = [
@@ -185,7 +185,7 @@ export const guideArticles: DestinationContent[] = [
     path: '/guides/australia-student-visa-requirements',
     eyebrow: 'Australia guide',
     h1: 'Australia Student Visa Requirements (Subclass 500)',
-    title: 'Australia Student Visa Requirements from India | Subclass 500',
+    title: 'Australia Student Visa Requirements (Subclass 500)',
     description:
       'Australia Subclass 500 requirements for Indian students: CoE, OSHC, Genuine Student evidence, funds and English.',
     keywords: 'Australia student visa requirements, Subclass 500 requirements, Genuine Student Australia',
@@ -335,10 +335,23 @@ export const guideArticles: DestinationContent[] = [
     h1: 'Post-Study Work Visa Comparison (Canada, UK, Australia, USA)',
     title: 'Post-Study Work Visa Comparison for Indian Students',
     description:
-      'Compare post-study work options after studying in Canada, UK, Australia and the USA — high-level differences for planning.',
+      'Compare post-study work routes in Canada, the UK, Australia and the USA: how long each lasts, what it depends on, and where to verify before you enrol.',
     keywords:
       'post study work visa comparison, PGWP vs Graduate Route, post study work Australia USA',
-    heroDescription: 'A planning overview — not legal advice. Policies change; confirm before you enrol.',
+    heroDescription:
+      'How the main post-study work routes differ, with the official source for each. Immigration rules change; every figure below links to the government page that states it.',
+    datePublished: '2026-08-31',
+    dateModified: '2026-09-29',
+    attribution: {
+      lastReviewed: '2026-09-29',
+      sources: [
+        { label: 'GOV.UK / Graduate visa', url: 'https://www.gov.uk/graduate-visa' },
+        { label: 'IRCC / About the post-graduation work permit', url: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/work/after-graduation/about.html' },
+        { label: 'IRCC / PGWP field of study requirement', url: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/work/after-graduation/eligibility/field-of-study.html' },
+        { label: 'Australian Department of Home Affairs / Temporary Graduate visa (subclass 485)', url: 'https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/temporary-graduate-485' },
+        { label: 'USCIS / Optional Practical Training for F-1 students', url: 'https://www.uscis.gov/working-in-the-united-states/students-and-exchange-visitors/optional-practical-training-opt-for-f-1-students' },
+      ],
+    },
     breadcrumbs: [
       { label: 'Home', to: '/' },
       { label: 'Guides', to: '/guides' },
@@ -346,9 +359,68 @@ export const guideArticles: DestinationContent[] = [
     ],
     sections: [
       {
-        heading: 'Quick comparison lens',
+        heading: 'The four routes at a glance',
         body: [
-          'Canada’s PGWP, the UK Graduate Route, Australia’s Temporary Graduate settings, and US OPT/CPT rules each have different eligibility, duration and employer requirements. Choose a study destination for education quality first, then validate post-study options for your intake year.',
+          'Each destination handles post-study work differently. Two of them tie the length of your permission directly to what and where you studied, which means the decision that determines your post-study options is the one you make before you enrol, not after you graduate.',
+          'The table below states only what the official source says, with the date it was checked. Where a figure could not be confirmed from the government page at the time of review, the cell says so rather than guessing.',
+        ],
+        table: {
+          caption: 'Post-study work routes, checked against official sources on 29 September 2026.',
+          columns: ['Route', 'How long', 'What it depends on', 'Official source'],
+          rows: [
+            [
+              'Canada: Post-Graduation Work Permit (PGWP)',
+              '8 months to 3 years',
+              'The length of your program. A program of at least 2 years, or a master’ degree shorter than 2 years, can attract a 3-year permit. The program itself must have been at least 8 months (900 hours in Quebec).',
+              'IRCC',
+            ],
+            [
+              'UK: Graduate route',
+              '2 years, falling to 18 months',
+              'The reduction applies to applications made on or after 1 January 2027. Apply on or before 31 December 2026 and the 2-year length still applies. PhD graduates continue to get 3 years.',
+              'GOV.UK',
+            ],
+            [
+              'Australia: Temporary Graduate visa (subclass 485)',
+              'Confirm on the official site',
+              'Length and age limits vary by stream and qualification, and have changed more than once. The Department of Home Affairs page is the only reliable statement of the current settings.',
+              'Home Affairs',
+            ],
+            [
+              'USA: Optional Practical Training (OPT)',
+              'Confirm on the official site',
+              'OPT is authorised employment tied to F-1 status rather than a separate visa, and STEM fields are treated differently. Check current USCIS guidance for your field.',
+              'USCIS',
+            ],
+          ],
+        },
+      },
+      {
+        heading: 'Canada: your program decides your permit',
+        body: [
+          'The PGWP is unusual in that its length is a function of your study program rather than a fixed term. IRCC states a permit may be valid from 8 months up to 3 years. A program of at least two years at a PGWP-eligible designated learning institution can attract a three-year permit, and so can a master’ degree shorter than two years. To qualify at all, the program must have been at least eight months long, or 900 hours in Quebec.',
+          'There is also a field-of-study condition, and it does not apply to everyone. IRCC states there is no field-of-study requirement for graduates of bachelor’, master’ or doctoral degrees. Students in non-degree programs do face one: the program must be in an eligible field linked to long-term shortages, and that rule applies to students who applied for a study permit on or after 1 November 2024.',
+          'The practical consequence is that the institution and program you choose can change your post-study permission by years. Confirm both the PGWP eligibility of the institution and the field-of-study position for your specific program before you accept an offer, using the government list rather than the institution’ own prospectus.',
+        ],
+      },
+      {
+        heading: 'UK: the January 2027 date matters if you are planning ahead',
+        body: [
+          'The Graduate route currently allows two years in the UK after you successfully complete your course. GOV.UK states this is being reduced to 18 months for applications made on or after 1 January 2027. If you apply on or before 31 December 2026, the two-year length still applies. PhD graduates are unaffected and continue to receive three years.',
+          'If you are choosing an intake now, map that date against your expected completion date. A course finishing in late 2026 and one finishing in early 2027 can attract different lengths of post-study permission for otherwise identical study.',
+        ],
+      },
+      {
+        heading: 'What to check before you enrol',
+        body: [
+          'Post-study work rules change often, and they change more often than university marketing material is updated. These checks stay useful regardless of which way the rules move.',
+        ],
+        bullets: [
+          'Confirm the institution and the specific program are eligible for the post-study route you are counting on, using the government list rather than the institution’ prospectus.',
+          'Check the rule as it will stand on the date you will apply, not the date you enrol. Several routes have announced changes with future commencement dates.',
+          'Check whether your qualification level changes the answer. Degree and non-degree programs, and doctoral versus taught degrees, are frequently treated differently.',
+          'Treat post-study work permission as temporary permission to work, not as a pathway to residence. Whether it leads further depends on separate criteria such as occupation, salary and language.',
+          'Verify anything you are told verbally against the official page, and keep a dated copy. A rule that changed after you were advised is still the rule that will be applied to you.',
         ],
       },
     ],
@@ -356,12 +428,34 @@ export const guideArticles: DestinationContent[] = [
       {
         question: 'Which country is best for PR after study?',
         answer:
-          'There is no universal answer. Canada is often discussed for PR pathways, but your age, language, occupation and budget matter more than forum opinions.',
+          'There is no universal answer, and anyone who gives you one without looking at your profile is guessing. Post-study work permission is not the same as a residence pathway. Your age, qualification, occupation, language scores and finances usually matter more than the destination itself.',
+      },
+      {
+        question: 'Is the UK Graduate route being shortened?',
+        answer:
+          'Yes. GOV.UK states the Graduate route reduces from 2 years to 18 months for applications made on or after 1 January 2027. Applications made on or before 31 December 2026 keep the 2-year length, and PhD graduates continue to receive 3 years.',
+      },
+      {
+        question: 'How long a PGWP will I get in Canada?',
+        answer:
+          'It depends on your program rather than on a fixed term. IRCC states a PGWP may be valid from 8 months up to 3 years, that graduates of programs of at least 2 years can be eligible for a 3-year permit, and that graduates of master’ programs shorter than 2 years can also be eligible for 3 years. The program must have been at least 8 months long, or 900 hours in Quebec.',
+      },
+      {
+        question: 'Does my field of study affect my Canadian PGWP?',
+        answer:
+          'Only for some applicants. IRCC states there is no field-of-study requirement for graduates of bachelor’, master’ or doctoral degrees. Students in non-degree programs must have studied in an eligible field, and that condition applies to those who applied for a study permit on or after 1 November 2024.',
+      },
+      {
+        question: 'Why does this page not give exact figures for Australia and the USA?',
+        answer:
+          'Because those figures could not be confirmed from the official government pages when this page was last reviewed, and publishing an unverified number about your immigration options is worse than publishing none. The official links are listed above so you can check the current position directly.',
       },
     ],
     related: [
       { label: 'Post-study work page', to: '/post-study-work-visa' },
       { label: 'Study destinations', to: '/study-visa' },
+      { label: 'Canada PGWP to PR pathway', to: '/pathways/canada-pgwp-to-pr' },
+      { label: 'UK Graduate visa to Skilled Worker', to: '/pathways/uk-graduate-visa-to-skilled-worker-visa' },
     ],
   }),
 ]

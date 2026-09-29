@@ -1,5 +1,11 @@
 import { Link } from 'react-router-dom'
 import { SeoHead } from '@/components/seo/SeoHead'
+import {
+  breadcrumbSchema,
+  organizationSchema,
+  webpageSchema,
+  websiteSchema,
+} from '@/lib/seo/schema'
 import { ArrowRight, BookOpen } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
@@ -15,6 +21,20 @@ export default function BlogIndexPage() {
         title="Visa & Study Abroad Blog"
         description="Expert guides on study visas, work visas, documents and country pathways for Indian applicants from Siddhivinayak Overseas, Surat."
         path="/blog"
+        jsonLd={[
+          organizationSchema(),
+          websiteSchema(),
+          webpageSchema({
+            title: 'Visa & Study Abroad Blog',
+            description:
+              'Guides on study visas, work visas, documents and country pathways for Indian applicants.',
+            path: '/blog',
+          }),
+          breadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'Blog', path: '/blog' },
+          ]),
+        ]}
       />
       <SiteHeader />
       <main className="min-h-screen bg-background">

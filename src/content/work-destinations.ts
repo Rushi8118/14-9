@@ -39,7 +39,7 @@ export const workJapan: DestinationContent = workPage({
   h1: 'Japan Work Visa Consultants in Surat (SSW & Engineer)',
   title: 'Japan Work Visa Consultant in Surat | SSW Visa from India',
   description:
-    'Japan SSW and Engineer work visa consultants in Surat. Language pathway guidance, employer coordination support and documentation counselling for Indian candidates.',
+    'Japan SSW and Engineer work visa consultants in Surat: language pathway guidance, employer coordination and documentation support.',
   keywords:
     'Japan work visa consultant in Surat, Japan SSW visa from India, Specified Skilled Worker Surat, Japan Engineer visa consultants',
   heroDescription:
@@ -366,7 +366,7 @@ export const workUK: DestinationContent = workPage({
   country: 'United Kingdom',
   eyebrow: 'UK work visa · Surat',
   h1: 'UK Work Visa Consultants in Surat',
-  title: 'UK Work Visa Consultant in Surat | Skilled Worker Visa Guidance',
+  title: 'UK Work Visa from India | Skilled Worker Route',
   description:
     'UK Skilled Worker and Health & Care visa consultants in Surat. COS-linked pathway counselling and document preparation for Indian professionals.',
   keywords:

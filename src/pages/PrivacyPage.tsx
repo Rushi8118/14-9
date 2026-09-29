@@ -1,4 +1,10 @@
 import { SeoHead } from '@/components/seo/SeoHead'
+import {
+  breadcrumbSchema,
+  organizationSchema,
+  webpageSchema,
+  websiteSchema,
+} from '@/lib/seo/schema'
 import { Link } from 'react-router-dom'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
@@ -10,6 +16,19 @@ export default function PrivacyPage() {
         title="Privacy Policy"
         description="Privacy policy for Siddhivinayak Overseas. How we collect, use, store and protect the personal information you share with us."
         path="/privacy"
+        jsonLd={[
+          organizationSchema(),
+          websiteSchema(),
+          webpageSchema({
+            title: 'Privacy Policy',
+            description: 'How Siddhivinayak Overseas collects, uses, stores and protects your personal information.',
+            path: '/privacy',
+          }),
+          breadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'Privacy Policy', path: '/privacy' },
+          ]),
+        ]}
       />
       <SiteHeader />
       <main className="premium-page min-h-screen bg-background">

@@ -2,6 +2,9 @@ import { Link } from 'react-router-dom'
 import { Briefcase, MessageCircle, Phone, ShieldAlert } from 'lucide-react'
 import { NAP } from '@/lib/seo/site'
 
+/** Bump when the static country/visa content is revised. */
+export const CONTENT_LAST_UPDATED = '2026-09-17'
+
 type ImmigrationDisclaimerProps = {
   /** Kept for call-site compatibility; the short notice is the same for every country. */
   country?: string
@@ -54,15 +57,47 @@ export function ImmigrationDisclaimer(_props: ImmigrationDisclaimerProps) {
             <ShieldAlert className="h-5 w-5 text-amber-600" aria-hidden="true" />
             Important information
           </h2>
+          {/*
+            This block is the disclaimer that appears on every study, work and
+            immigration page, and until now it did not actually disclaim
+            anything: it described the service and stopped. It said nothing about
+            rules changing, nothing about who decides, and carried no date, so 88
+            pages presented volatile immigration guidance with no caveat at all.
+
+            The wording below is taken from /immigration-disclaimer, which already
+            states it correctly, so nothing new is claimed here. Keep the two in
+            agreement — if that page's position changes, change this with it.
+          */}
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             Siddhivinayak Overseas provides information, counselling and application-preparation support for applicants
             exploring lawful study, work and migration pathways.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            Immigration rules, fees, eligibility requirements and processing times change often. The information on this
+            page is general guidance only and may not reflect the latest official rules. Always check the official
+            government source before you apply or pay any fee.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            Visa decisions rest with the relevant immigration authority, and hiring decisions rest with the employer.
+            Eligibility, processing times, fees and outcomes vary from case to case.
+          </p>
+          <p className="mt-4 text-xs text-muted-foreground">
+            Last reviewed:{' '}
+            <time dateTime={CONTENT_LAST_UPDATED}>
+              {new Date(`${CONTENT_LAST_UPDATED}T00:00:00Z`).toLocaleDateString('en-IN', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                timeZone: 'UTC',
+              })}
+            </time>
+            {' · '}
+            <Link to="/immigration-disclaimer" className="text-primary hover:underline">
+              Read the full disclaimer
+            </Link>
           </p>
         </div>
       </div>
     </section>
   )
 }
-
-/** Bump when the static country/visa content is revised. */
-export const CONTENT_LAST_UPDATED = '2026-09-17'

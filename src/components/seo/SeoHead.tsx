@@ -47,8 +47,13 @@ const BRAND_SUFFIX = ` | ${SITE_NAME}`
  * what pushes a title over, drop it — og:site_name still carries the brand — but
  * never truncate mid-phrase, which would cut the page topic in half.
  */
+const TITLE_LIMIT = 60
+
 function shortenTitle(fullTitle: string) {
-  return fullTitle.length > 65 && fullTitle.endsWith(BRAND_SUFFIX)
+  // The threshold was 65 while this comment said 60, so titles of 61-65
+  // characters kept a brand suffix that Google then truncated anyway — the one
+  // case the function exists to prevent. 60 matches the stated rule.
+  return fullTitle.length > TITLE_LIMIT && fullTitle.endsWith(BRAND_SUFFIX)
     ? fullTitle.slice(0, -BRAND_SUFFIX.length)
     : fullTitle
 }

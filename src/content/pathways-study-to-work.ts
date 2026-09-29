@@ -168,7 +168,7 @@ export const studyToWorkPathways: DestinationContent[] = [
     h1: 'Australia Student Visa to 485 Temporary Graduate Visa',
     title: 'Australia Student Visa to Subclass 485 Graduate Visa',
     description:
-      'Moving from a Subclass 500 student visa to the Subclass 485 Temporary Graduate visa: age limit, the Australian study requirement, English and application timing.',
+      'Moving from a Subclass 500 student visa to the Subclass 485 Temporary Graduate visa: eligibility, study requirement and application timing.',
     keywords:
       'subclass 485 temporary graduate visa, australia student visa to 485, 485 visa requirements, post study work visa australia, australian study requirement',
     heroDescription:

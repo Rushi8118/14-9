@@ -10,7 +10,7 @@ import { PATHWAY_GROUPS, PATHWAYS_BY_SLUG } from '@/content/pathways'
 import { breadcrumbSchema, organizationSchema, webpageSchema, websiteSchema } from '@/lib/seo/schema'
 
 const TITLE = 'Study to Work & Country Move Visa Pathways'
-const DESCRIPTION = 'Lawful routes to stay and work after study, move from the UK to Australia, Canada, New Zealand or Europe, or move from India, Pakistan, Bangladesh and Sri Lanka.'
+const DESCRIPTION = 'Lawful routes to stay and work after study, to move between countries, or to move from India, Pakistan, Bangladesh and Sri Lanka.'
 
 export default function PathwaysPage() {
   return (
