@@ -20,7 +20,7 @@ export const studyToWorkPathways: DestinationContent[] = [
     h1: 'Germany Student Visa to Work Visa: Staying On After Your Degree',
     title: 'Germany Student Visa to Work Visa After Study',
     description:
-      'How graduates of German universities can stay to look for work and move onto an EU Blue Card or skilled worker residence permit, and what the Ausländerbehörde checks.',
+      'How graduates of German universities can stay to look for work and move onto an EU Blue Card or skilled worker residence permit.',
     keywords:
       'germany student visa to work visa, job seeker residence permit germany after study, eu blue card germany requirements, stay in germany after graduation, germany job seeking permit',
     heroDescription:
@@ -96,7 +96,7 @@ export const studyToWorkPathways: DestinationContent[] = [
     h1: 'Germany Opportunity Card (Chancenkarte): Points-Based Job Search',
     title: 'Germany Opportunity Card (Chancenkarte) Explained',
     description:
-      'The Chancenkarte lets qualified people enter Germany to look for work without a job offer first. How the points system works, funding proof, and what the card does not allow.',
+      'The Chancenkarte lets qualified people enter Germany to look for work without a job offer. How the points system and funding proof work.',
     keywords:
       'germany opportunity card, chancenkarte germany, germany opportunity card points, germany job seeker visa without job offer, chancenkarte requirements',
     heroDescription:
@@ -238,7 +238,7 @@ export const studyToWorkPathways: DestinationContent[] = [
     h1: 'Student Visa to Work Visa: Employer Sponsorship & Sponsor Switch',
     title: 'Student Visa to Work Visa Transition with Fixed Job & Salary',
     description:
-      'Approaching graduation in the UK, Canada, Australia, Germany, or the USA? How students from India, Nepal, Bangladesh, Pakistan & Sri Lanka transition from study visa to work visa with a fixed job, compliant salary & company benefits.',
+      'How students in the UK, Canada, Australia, Germany and the USA move from a study visa to a work visa once they have a qualifying job offer.',
     keywords:
       'student visa to work visa with job and salary, convert study visa to work visa, renew student visa on work visa, international student work visa transition, uk student visa to skilled worker with salary, canada pgwp lmia job with salary, australia 485 to employer sponsorship, germany student to blue card fixed job, study abroad graduate job placement',
     heroDescription:
@@ -342,7 +342,7 @@ export const studyToWorkPathways: DestinationContent[] = [
     h1: 'Switching Countries After Study: Relocation with Fixed Job, Salary & Benefits',
     title: 'Switch Countries on Study Visa: Relocation with Job & Salary',
     description:
-      'Currently studying or working in UK, Canada, Australia, Europe or Cyprus and want to move to another country? How to relocate lawfully with verified employer sponsorship, fixed salary & company benefits.',
+      'How to move lawfully from the UK, Canada, Australia, Europe or Cyprus to another country with verified employer sponsorship.',
     keywords:
       'switch countries on study visa, move from uk to australia work visa, move from canada to australia with job, move from europe to uk with salary, international student country transfer, relocate to another country after study, work visa in another country with fixed job and salary',
     heroDescription:

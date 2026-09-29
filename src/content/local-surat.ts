@@ -9,7 +9,7 @@ export const suratLocalPage: DestinationContent = {
   h1: 'Visa Consultants in Surat — Study & Work Abroad',
   title: 'Best Visa Consultants in Surat | Study, Work & Immigration',
   description:
-    'Trusted visa consultants in Surat for study visas and work visas to Canada, UK, Australia, USA, Germany and Japan. Visit our Pragti IT Park office or book a free consultation.',
+    'Visa consultants in Surat for study and work visas to Canada, the UK, Australia, USA, Germany and Japan. Book a free consultation.',
   keywords:
     'visa consultants in Surat, best visa consultant in Surat, visa agents in Surat, immigration consultant in Surat, study visa consultant in Surat, student visa consultant in Surat, work visa consultant in Surat, Europe visa consultant in Surat, study abroad consultants Surat, overseas education consultants Surat, Siddhivinayak Overseas Surat',
   heroDescription:

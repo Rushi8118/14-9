@@ -23,9 +23,9 @@ export const studyCanada: DestinationContent = studyPage({
   country: 'Canada',
   eyebrow: 'Canada study visa · Surat',
   h1: 'Canada Study Visa Consultants in Surat',
-  title: 'Canada Study Visa Consultant in Surat | Study in Canada from India',
+  title: 'Study in Canada from India | Surat Visa Consultants',
   description:
-    'Canada study visa consultants in Surat for SDS/non-SDS applications, university admissions, GIC, scholarships and PGWP guidance. Free counselling at Siddhivinayak Overseas.',
+    'Canada study visa consultants in Surat for SDS and non-SDS applications: university admissions, GIC, scholarships and PGWP guidance.',
   keywords:
     'Canada study visa consultant in Surat, study in Canada from India, Canada student visa Surat, SDS visa consultants, Canada education consultants Surat, PGWP Canada',
   heroDescription:
@@ -130,7 +130,7 @@ export const studyUK: DestinationContent = studyPage({
   country: 'United Kingdom',
   eyebrow: 'UK study visa · Surat',
   h1: 'UK Study Visa Consultants in Surat',
-  title: 'UK Study Visa Consultant in Surat | Study in UK from India',
+  title: 'Study in UK from India | Surat Student Visa Consultants',
   description:
     'UK study visa consultants in Surat for university admissions, Student Route visas, CAS support, scholarships and Graduate Route guidance.',
   keywords:
@@ -211,7 +211,7 @@ export const studyAustralia: DestinationContent = studyPage({
   country: 'Australia',
   eyebrow: 'Australia study visa · Surat',
   h1: 'Australia Study Visa Consultants in Surat',
-  title: 'Australia Study Visa Consultant in Surat | Study in Australia from India',
+  title: 'Study in Australia from India | Surat Visa Consultants',
   description:
     'Australia study visa consultants in Surat for GTE/GS guidance, university admissions, Subclass 500 visas and post-study work planning.',
   keywords:
@@ -286,7 +286,7 @@ export const studyUSA: DestinationContent = studyPage({
   country: 'United States',
   eyebrow: 'USA study visa · Surat',
   h1: 'USA Study Visa Consultants in Surat',
-  title: 'USA Study Visa Consultant in Surat | Study in USA from India',
+  title: 'Study in USA from India | Surat Student Visa Consultants',
   description:
     'USA study visa consultants in Surat for university applications, I-20 support, SEVIS fee guidance and F-1 visa interview preparation.',
   keywords:
@@ -356,7 +356,7 @@ export const studyGermany: DestinationContent = studyPage({
   country: 'Germany',
   eyebrow: 'Germany study visa · Surat',
   h1: 'Germany Study Visa Consultants in Surat',
-  title: 'Germany Study Visa Consultant in Surat | Study in Germany from India',
+  title: 'Study in Germany from India | Surat Visa Consultants',
   description:
     'Germany study visa consultants in Surat for public university applications, blocked account guidance, APS support and student residence permit prep.',
   keywords:
@@ -428,7 +428,7 @@ export const studyIreland: DestinationContent = studyPage({
   country: 'Ireland',
   eyebrow: 'Ireland study visa · Surat',
   h1: 'Ireland Study Visa Consultants in Surat',
-  title: 'Ireland Study Visa Consultant in Surat | Study in Ireland from India',
+  title: 'Study in Ireland from India | Surat Visa Consultants',
   description:
     'Ireland study visa consultants in Surat for university admissions, study visa documentation and post-study stay back orientation.',
   keywords:
@@ -487,7 +487,7 @@ export const studyNewZealand: DestinationContent = studyPage({
   country: 'New Zealand',
   eyebrow: 'New Zealand study visa · Surat',
   h1: 'New Zealand Study Visa Consultants in Surat',
-  title: 'New Zealand Study Visa Consultant in Surat | Study in NZ from India',
+  title: 'Study in New Zealand from India | Surat Consultants',
   description:
     'New Zealand study visa consultants in Surat for university and institute admissions, Fee Paying Student visas and pathway planning.',
   keywords:
@@ -546,7 +546,7 @@ export const studyFrance: DestinationContent = studyPage({
   country: 'France',
   eyebrow: 'France study visa · Surat',
   h1: 'France Study Visa Consultants in Surat',
-  title: 'France Study Visa Consultant in Surat | Study in France from India',
+  title: 'Study in France from India | Surat Visa Consultants',
   description:
     'France study visa consultants in Surat for university/campus France applications, Campus France steps, and long-stay student visa counselling.',
   keywords:
@@ -605,7 +605,7 @@ export const studySpain: DestinationContent = studyPage({
   country: 'Spain',
   eyebrow: 'Spain study visa · Surat',
   h1: 'Spain Study Visa Consultants in Surat',
-  title: 'Spain Study Visa Consultant in Surat | Study in Spain from India',
+  title: 'Study in Spain from India | Surat Visa Consultants',
   description:
     'Spain study visa consultants in Surat for university admissions, student residence authorisation and documentation counselling.',
   keywords:
@@ -664,7 +664,7 @@ export const studyDubai: DestinationContent = studyPage({
   country: 'Dubai (UAE)',
   eyebrow: 'Dubai study visa · Surat',
   h1: 'Dubai Study Visa Consultants in Surat',
-  title: 'Dubai Study Visa Consultant in Surat | Study in Dubai / UAE from India',
+  title: 'Study in Dubai & UAE from India | Surat Consultants',
   description:
     'Dubai study visa consultants in Surat for UAE university admissions, student residence and documentation guidance.',
   keywords:
@@ -723,7 +723,7 @@ export const studySingapore: DestinationContent = studyPage({
   country: 'Singapore',
   eyebrow: 'Singapore study visa · Surat',
   h1: 'Singapore Study Visa Consultants in Surat',
-  title: 'Singapore Study Visa Consultant in Surat | Study in Singapore from India',
+  title: 'Study in Singapore from India | Surat Consultants',
   description:
     'Singapore study visa consultants in Surat for university/polytechnic admissions, Student Pass guidance and documentation counselling.',
   keywords:

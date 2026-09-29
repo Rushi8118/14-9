@@ -1,4 +1,12 @@
 import { SeoHead } from '@/components/seo/SeoHead'
+import {
+  breadcrumbSchema,
+  localBusinessSchema,
+  organizationSchema,
+  serviceSchema,
+  webpageSchema,
+  websiteSchema,
+} from '@/lib/seo/schema'
 
 const SITE_URL = 'https://siddhivinayakoverseas.com'
 import { Link } from 'react-router-dom'
@@ -93,6 +101,28 @@ export default function StudyVisaPage() {
         title="Study Visa Consultants in Surat"
         description="Study visa consultants in Surat for the UK, France, Germany, Spain, Dubai and Singapore. University admissions, documentation and student-visa counselling."
         path="/study-visa"
+        jsonLd={[
+          organizationSchema(),
+          websiteSchema(),
+          localBusinessSchema(),
+          webpageSchema({
+            title: 'Study Visa Consultants in Surat',
+            description:
+              'Study visa consultants in Surat for the UK, France, Germany, Spain, Dubai and Singapore.',
+            path: '/study-visa',
+          }),
+          serviceSchema({
+            name: 'Student visa counselling and application support',
+            description:
+              'University admissions, documentation and student-visa counselling for applicants from India.',
+            path: '/study-visa',
+            serviceType: 'Study visa consultancy',
+          }),
+          breadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'Study Visa', path: '/study-visa' },
+          ]),
+        ]}
       />
       <SiteHeader />
       <main className="premium-page min-h-screen bg-background pt-24 pb-20">

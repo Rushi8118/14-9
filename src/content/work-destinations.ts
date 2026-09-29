@@ -110,7 +110,7 @@ export const workGermany: DestinationContent = workPage({
   country: 'Germany',
   eyebrow: 'Germany work visa · Surat',
   h1: 'Germany Work Visa Consultants in Surat',
-  title: 'Germany Work Visa Consultant in Surat | EU Blue Card & Opportunity Card',
+  title: 'Germany Work Visa from India | EU Blue Card & Chancenkarte',
   description:
     'Germany work visa consultants in Surat for EU Blue Card, skilled worker routes and Opportunity Card orientation for eligible Indian professionals.',
   keywords:
@@ -240,7 +240,7 @@ export const workCanada: DestinationContent = workPage({
   country: 'Canada',
   eyebrow: 'Canada work visa · Surat',
   h1: 'Canada Work Visa Consultants in Surat',
-  title: 'Canada Work Visa Consultant in Surat | LMIA & Express Entry Guidance',
+  title: 'Canada Work Visa from India | LMIA & Express Entry',
   description:
     'Canada work visa consultants in Surat for employer-driven work permits, LMIA orientation and Express Entry / PR pathway counselling.',
   keywords:
@@ -491,7 +491,7 @@ export const workAustralia: DestinationContent = workPage({
   country: 'Australia',
   eyebrow: 'Australia work visa · Surat',
   h1: 'Australia Work Visa Consultants in Surat',
-  title: 'Australia Work Visa Consultant in Surat | 482 / Skilled Pathway Guidance',
+  title: 'Australia Work Visa from India | 482 & Skilled Routes',
   description:
     'Australia work visa consultants in Surat for employer-sponsored and skilled migration orientation, including TSS 482-style pathways where eligible.',
   keywords:

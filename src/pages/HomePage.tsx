@@ -22,8 +22,8 @@ export default function HomePage() {
   return (
     <>
       <SeoHead
-        title="Overseas Education & Work Visa Consultants | All 28 States India & South Asia"
-        description="Study visa, work visa and post-study transition consultants in Surat, serving India, Nepal, Bangladesh, Pakistan and Sri Lanka for the UK, Canada, Australia, Germany and Europe."
+        title="Study & Work Visa Consultants in Surat | India & South Asia"
+        description="Study visa, work visa and post-study transition consultants in Surat, serving India, Nepal, Bangladesh, Pakistan and Sri Lanka."
         path="/"
         keywords="visa consultants in Surat, overseas education consultants India, student visa to work visa with job and salary, convert study visa to work visa, renew student visa on work visa, switch countries on study visa, study abroad consultants India 28 states, visa consultancy Bangladesh Nepal Sri Lanka Pakistan, UK skilled worker visa, Canada PGWP to PR, Australia 485 to employer sponsorship, Germany Blue Card, Siddhivinayak Overseas"
         jsonLd={[

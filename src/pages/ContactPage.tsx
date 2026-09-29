@@ -17,7 +17,7 @@ export default function ContactPage() {
     <>
       <SeoHead
         title="Contact Visa Consultants in Surat | Siddhivinayak Overseas"
-        description={`Contact Siddhivinayak Overseas in Surat for free study/work visa counselling. Call ${NAP.phoneINDisplay}, WhatsApp, or visit ${NAP.streetAddress}.`}
+        description={`Contact Siddhivinayak Overseas in Surat for free study and work visa counselling. Call ${NAP.phoneINDisplay} or WhatsApp us.`}
         path="/contact"
         keywords="contact visa consultants Surat, Siddhivinayak Overseas phone, study visa counselling Surat"
         jsonLd={[

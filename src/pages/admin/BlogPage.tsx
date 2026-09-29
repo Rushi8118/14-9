@@ -270,6 +270,25 @@ export default function AdminBlogPage() {
                 <Field label="Meta title (SEO)">
                   <Input value={editor.meta_title} onChange={(e) => updateEditor({ meta_title: e.target.value.slice(0, 60) })} />
                 </Field>
+                <Field label="Canonical path">
+                  {/* Was hardcoded to `/blog/${slug}` on every save, so a post could
+                      never point its canonical anywhere else and a value set by hand
+                      in SQL was silently overwritten on the next edit. That matters
+                      when the same vacancy is also published as an urgent
+                      requirement: without this, the two URLs compete instead of one
+                      consolidating into the other. */}
+                  <Input
+                    value={editor.canonical_path}
+                    onChange={(e) => updateEditor({ canonical_path: e.target.value })}
+                    placeholder={`/blog/${editor.slug}`}
+                    className="font-mono"
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Leave as <code>/blog/{editor.slug}</code> unless this post duplicates another
+                    page. Point it at that page's path to consolidate them — the post stays live
+                    but drops out of sitemap.xml.
+                  </p>
+                </Field>
                 <Field label="Search intent">
                   <select
                     value={editor.search_intent}
@@ -599,7 +618,9 @@ export default function AdminBlogPage() {
                               meta_title: post.meta_title || post.title,
                               meta_desc: post.meta_desc || '',
                               keywords: post.keywords || [],
-                              canonical_path: `/blog/${post.slug}`,
+                              canonical_path: post.canonical_url
+                                ? post.canonical_url.replace(/^https?:\/\/[^/]+/, '')
+                                : `/blog/${post.slug}`,
                               focus_keyword: post.focus_keyword || '',
                               related_keywords: post.related_keywords,
                               long_tail_keywords: post.long_tail_keywords,
