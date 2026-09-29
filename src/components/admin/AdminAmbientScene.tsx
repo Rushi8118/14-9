@@ -13,6 +13,23 @@ type Variant = 'header' | 'empty' | 'pulse'
 
 const PARTICLE_COUNT: Record<'header' | 'empty', number> = { header: 90, empty: 160 }
 
+/**
+ * How many of these may run WebGL at once, across the whole admin panel.
+ *
+ * Each instance creates its own WebGLRenderer, its own canvas and its own
+ * requestAnimationFrame loop. AdminDashboard renders a header scene, a pulse
+ * badge and one EmptyPanel per empty section, and AdminApplicationsWorkspace
+ * renders two more, so the count is not fixed -- it grows with how empty the
+ * dashboard is. Browsers also cap concurrent WebGL contexts (Chrome around 16)
+ * and silently drop the oldest when that is exceeded.
+ *
+ * Past the budget the component renders its CSS gradient instead, which is the
+ * same fallback used for reduced-motion and no-WebGL. It is decoration; nothing
+ * about the admin panel depends on it.
+ */
+const MAX_LIVE_SCENES = 2
+let liveScenes = 0
+
 function supportsWebGL(): boolean {
   try {
     const canvas = document.createElement('canvas')
@@ -31,11 +48,15 @@ export function AdminAmbientScene({ variant = 'header', className }: { variant?:
 
   useEffect(() => {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduceMotion || !supportsWebGL()) {
+    if (reduceMotion || !supportsWebGL() || liveScenes >= MAX_LIVE_SCENES) {
       setMode('fallback')
       return
     }
+    liveScenes += 1
     setMode('3d')
+    return () => {
+      liveScenes -= 1
+    }
   }, [])
 
   useEffect(() => {
@@ -56,7 +77,7 @@ export function AdminAmbientScene({ variant = 'header', className }: { variant?:
 
         let renderer: InstanceType<typeof THREE.WebGLRenderer>
         try {
-          renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' })
+          renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'low-power' })
         } catch {
           setMode('fallback')
           return
@@ -117,6 +138,7 @@ export function AdminAmbientScene({ variant = 'header', className }: { variant?:
 
         let frameId = 0
         let isIntersecting = true
+        let lastFrameAt = 0
         const clock = new THREE.Clock()
 
         const animate = () => {
@@ -126,6 +148,13 @@ export function AdminAmbientScene({ variant = 'header', className }: { variant?:
           }
           frameId = requestAnimationFrame(animate)
           const t = clock.getElapsedTime()
+          // The pulse badge is a decorative spinner. It does not need 60fps, and
+          // at 60fps it was the most expensive thing on the dashboard relative
+          // to what it conveys. 30fps is indistinguishable here.
+          if (variant === 'pulse') {
+            if (t - lastFrameAt < 1 / 30) return
+            lastFrameAt = t
+          }
           if (variant === 'pulse' && mesh) {
             mesh.rotation.y = t * 0.4
             mesh.rotation.x = t * 0.25

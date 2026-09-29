@@ -28,6 +28,22 @@ export interface RealtimeEvent {
 export interface RoleCount { role: string; count: number }
 export interface TimePoint { label: string; value: number }
 
+/**
+ * Roles counted for the dashboard breakdown. Bounded on purpose: each entry is
+ * one `head: true` count that transfers no rows, so the cost is fixed no matter
+ * how large user_profiles grows. Mirrors ROLE_HIERARCHY in src/lib/rbac.
+ */
+const COUNTED_ROLES = [
+  'super_admin',
+  'admin',
+  'marketing',
+  'accountant',
+  'counselor',
+  'visa_officer',
+  'hr',
+  'customer',
+] as const
+
 export function useRealtimeMetrics(refreshIntervalMs = 30000) {
   const [metrics, setMetrics] = useState<RealtimeMetrics>({
     activeUsers: 0,
@@ -48,10 +64,20 @@ export function useRealtimeMetrics(refreshIntervalMs = 30000) {
 
   const fetchMetrics = useCallback(async () => {
     try {
-      const [usersRes, appsRes, sessionsRes] = await Promise.all([
-        supabase.from('user_profiles').select('user_role', { count: 'exact' }),
-        supabase.from('applications').select('status', { count: 'exact' }),
+      // Counts come back as counts. This previously selected `user_role` from
+      // every row of user_profiles and `status` from every row of applications,
+      // downloaded both, and counted them in JavaScript on the main thread --
+      // on a timer. `head: true` asks Postgres for the number and transfers no
+      // rows at all, and the per-role breakdown is a bounded set of small counts
+      // rather than the whole table.
+      const [usersRes, appsRes, pendingRes, sessionsRes, ...roleRes] = await Promise.all([
+        supabase.from('user_profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('applications').select('id', { count: 'exact', head: true }),
+        supabase.from('applications').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('admin_sessions').select('id', { count: 'exact', head: true }).eq('is_active', true),
+        ...COUNTED_ROLES.map((role) =>
+          supabase.from('user_profiles').select('id', { count: 'exact', head: true }).eq('user_role', role),
+        ),
       ])
 
       if (usersRes.error) throw usersRes.error
@@ -61,21 +87,20 @@ export function useRealtimeMetrics(refreshIntervalMs = 30000) {
       const totalApplications = appsRes.count ?? 0
       const activeSessions = sessionsRes.error ? 0 : (sessionsRes.count ?? 0)
 
-      const roleCounts: Record<string, number> = {}
-      if (usersRes.data) {
-        for (const row of usersRes.data) {
-          if (row.user_role) roleCounts[row.user_role] = (roleCounts[row.user_role] ?? 0) + 1
-        }
-      }
-      const usersByRole = Object.entries(roleCounts).map(([role, count]) => ({ role, count }))
+      const usersByRole = COUNTED_ROLES.map((role, i) => ({
+        role,
+        count: roleRes[i]?.error ? 0 : (roleRes[i]?.count ?? 0),
+      })).filter((r) => r.count > 0)
 
-      const pending = appsRes.data
-        ? appsRes.data.filter((a: { status: string }) => a.status === 'pending').length
-        : 0
+      const pending = pendingRes.error ? 0 : (pendingRes.count ?? 0)
 
       setMetrics((prev) => ({
         ...prev,
-        activeUsers: activeSessions > 0 ? Math.max(1, Math.floor(activeSessions * 0.6)) : 0,
+        // Was `Math.max(1, Math.floor(activeSessions * 0.6))` -- a made-up
+        // number presented as a metric. There is no data behind the 0.6, and it
+        // could never return 0 once any session existed. One active session is
+        // one active session until something actually measures users.
+        activeUsers: activeSessions,
         activeSessions,
         totalApplications,
         pendingApplications: pending,

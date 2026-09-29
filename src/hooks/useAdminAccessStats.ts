@@ -77,7 +77,19 @@ function isPublicPath(path: string | null): boolean {
 export function useAdminAccessStats() {
   return useQuery({
     queryKey: ['admin-access-stats'],
-    refetchInterval: 60_000,
+    // This query pulls up to 15,000 `interactions` rows (5,000 today + 10,000
+    // for the week) and aggregates them in the browser: two filters, two Set
+    // builds and a group-by, all on the main thread. At a 60s interval that ran
+    // forever, including while the tab was in the background, which is the
+    // stutter you feel while working in the admin panel.
+    //
+    // Five minutes, foreground only, with a stale window so remounting a page
+    // does not re-run it. The real fix is to aggregate in Postgres -- see
+    // supabase/ADMIN_DASHBOARD_PERF.sql, which needs to be run by hand.
+    refetchInterval: 5 * 60_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
+    staleTime: 2 * 60_000,
     queryFn: async (): Promise<AdminAccessStats> => {
       const todayIso = startOfDayIso(0)
       const weekIso = startOfDayIso(6)
