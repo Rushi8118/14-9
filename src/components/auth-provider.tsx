@@ -3,6 +3,7 @@ import { supabase, getSupabaseConfigStatus } from "@/lib/supabase/client"
 import type { User } from "@supabase/supabase-js"
 import { toast } from "sonner"
 import { logger } from "@/lib/logger"
+import { markUserLogin, markFailedLogin, markUserLogout } from "@/lib/site-visit-tracker"
 import {
   normalizeRoleSlug,
   isSuperAdmin as checkSuperAdmin,
@@ -282,9 +283,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (event === "SIGNED_IN" && session?.user?.id) {
         window.setTimeout(() => {
-          void import("@/lib/site-visit-tracker").then(({ markUserLogin }) => {
-            void markUserLogin(session.user!.id)
-          })
+          void markUserLogin(session.user!.id)
         }, 0)
       }
     })
@@ -315,9 +314,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false)
         logger.error("signIn failed:", error)
         // Record failed login attempts for the admin access log (best-effort).
-        void import("@/lib/site-visit-tracker").then(({ markFailedLogin }) => {
-          void markFailedLogin(email)
-        })
+        void markFailedLogin(email)
         const msg = error.message || "Sign-in failed"
         if (/failed to fetch|network|resolve/i.test(msg)) {
           return {
@@ -348,9 +345,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(data.user)
         // Await profile/roles so LoginPage redirects with correct admin access.
         await loadUserContext(data.user)
-        void import("@/lib/site-visit-tracker").then(({ markUserLogin }) => {
-          void markUserLogin(data.user!.id)
-        })
+        void markUserLogin(data.user.id)
       }
       setIsLoading(false)
       return { data, error: null }
@@ -424,7 +419,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const loggingOutUserId = user?.id
     try {
       if (loggingOutUserId) {
-        const { markUserLogout } = await import("@/lib/site-visit-tracker")
         await markUserLogout(loggingOutUserId)
       }
 

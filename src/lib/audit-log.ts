@@ -6,6 +6,8 @@
 import { supabase } from './supabase/client'
 import { logger } from './logger'
 import { getVisitSessionId, detectDeviceType, detectBrowser } from './site-visit-tracker'
+import { logDataChange } from './activity-logger'
+import { computeDetailedChanges } from './diff-utils'
 
 type AuditAction =
   | 'user.created'
@@ -85,7 +87,6 @@ export async function writeAuditLog(params: AuditLogParams): Promise<string | nu
   try {
     // 1. Dual-log to activity_logs with detailed change history so "Activity Logs" records exactly what changed
     try {
-      const { logDataChange } = await import('./activity-logger')
       const actionType = params.actionType || (
         params.action.includes('created') ? 'Created' :
         params.action.includes('deleted') ? 'Deleted' : 'Updated'
@@ -93,7 +94,6 @@ export async function writeAuditLog(params: AuditLogParams): Promise<string | nu
 
       let changeItems = Array.isArray(params.changes) ? params.changes : null
       if (!changeItems && (params.oldValue !== undefined || params.newValue !== undefined)) {
-        const { computeDetailedChanges } = await import('./diff-utils')
         const diffRes = computeDetailedChanges(params.oldValue, params.newValue, actionType, {
           tableName: params.resource,
           recordId: params.resourceId,

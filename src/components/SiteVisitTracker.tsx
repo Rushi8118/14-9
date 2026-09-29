@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
+import { logNavigation } from '@/lib/activity-logger'
+import { trackSiteEvent } from '@/lib/site-visit-tracker'
 
 /**
  * Logs page views for the admin access dashboard. Administrator activity is stored in a
@@ -11,15 +13,13 @@ export function SiteVisitTracker() {
   const { user, isAdmin } = useAuth()
 
   useEffect(() => {
-    void import('@/lib/activity-logger').then(({ logNavigation }) => logNavigation(`${location.pathname}${location.search}`, document.title))
-    void import('@/lib/site-visit-tracker').then(({ trackSiteEvent }) => {
-      void trackSiteEvent({
-        eventType: 'page_view',
-        path: `${location.pathname}${location.search}`,
-        title: document.title,
-        userId: user?.id ?? null,
-        admin: isAdmin,
-      })
+    logNavigation(`${location.pathname}${location.search}`, document.title)
+    void trackSiteEvent({
+      eventType: 'page_view',
+      path: `${location.pathname}${location.search}`,
+      title: document.title,
+      userId: user?.id ?? null,
+      admin: isAdmin,
     })
   }, [location.pathname, location.search, user?.id, isAdmin])
 

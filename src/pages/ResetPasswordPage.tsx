@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useEffect, useState } from "react"
+import { Link, useNavigate } from "react-router-dom"
 import { Helmet } from "react-helmet-async"
 import { motion } from "framer-motion"
-import { Lock, Save, Loader2, CheckCircle2 } from "lucide-react"
+import { Lock, Save, Loader2, CheckCircle2, AlertTriangle } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,7 +20,49 @@ export default function ResetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  /**
+   * Whether this visit carries a usable recovery session.
+   * 'checking' until Supabase has had a chance to exchange the code in the URL,
+   * because detectSessionInUrl does that asynchronously after mount.
+   */
+  const [linkState, setLinkState] = useState<'checking' | 'valid' | 'invalid'>('checking')
   const navigate = useNavigate()
+
+  useEffect(() => {
+    let cancelled = false
+
+    // PASSWORD_RECOVERY fires once the recovery link's code has been exchanged.
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (cancelled) return
+      if (event === 'PASSWORD_RECOVERY' || session) setLinkState('valid')
+    })
+
+    // The listener does not fire if the exchange completed before this mounted,
+    // so check directly as well.
+    void supabase.auth.getSession().then(({ data }) => {
+      if (cancelled) return
+      if (data.session) {
+        setLinkState('valid')
+        return
+      }
+      // No session yet and no code left to exchange means the link is spent.
+      const url = new URL(window.location.href)
+      const pending = url.searchParams.has('code') || window.location.hash.includes('access_token')
+      if (!pending) setLinkState('invalid')
+    })
+
+    // Backstop: if the exchange neither succeeds nor errors, do not leave the
+    // page spinning forever.
+    const timer = setTimeout(() => {
+      if (!cancelled) setLinkState((s) => (s === 'checking' ? 'invalid' : s))
+    }, 8000)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+      sub.subscription.unsubscribe()
+    }
+  }, [])
 
   const passwordStrength = getPasswordStrength(password)
 
@@ -57,6 +99,11 @@ export default function ResetPasswordPage() {
       return
     }
 
+    if (linkState !== 'valid') {
+      toast.error("This reset link is no longer valid. Please request a new one.")
+      return
+    }
+
     setLoading(true)
     try {
       const { error } = await supabase.auth.updateUser({
@@ -64,7 +111,15 @@ export default function ResetPasswordPage() {
       })
 
       if (error) {
-        toast.error(error.message || "Failed to update your password.")
+        // Without a recovery session Supabase reports a missing session rather
+        // than anything the user can act on, so say what actually went wrong.
+        const missingSession = /session|jwt|token/i.test(error.message || '')
+        toast.error(
+          missingSession
+            ? "This reset link has expired. Please request a new one."
+            : error.message || "Failed to update your password.",
+        )
+        if (missingSession) setLinkState('invalid')
       } else {
         setSubmitted(true)
         toast.success("Password updated successfully!", {
@@ -110,7 +165,32 @@ export default function ResetPasswordPage() {
             transition={{ duration: 0.5 }}
             className="rounded-3xl border border-border/60 bg-card/65 p-8 shadow-2xl backdrop-blur-xl"
           >
-            {submitted ? (
+            {linkState === 'checking' ? (
+              <div className="text-center py-10">
+                <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+                <p className="mt-4 text-sm text-muted-foreground">Verifying your reset link...</p>
+              </div>
+            ) : linkState === 'invalid' ? (
+              <div className="text-center py-6">
+                <AlertTriangle className="mx-auto h-14 w-14 text-amber-500" />
+                <h1 className="mt-4 font-serif text-2xl font-semibold text-foreground">
+                  This link has expired
+                </h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Password reset links can only be used once, and they expire after a short
+                  time. Request a new one and it will arrive in your inbox.
+                </p>
+                <Link
+                  to="/forgot-password"
+                  className="mt-6 inline-flex items-center justify-center rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+                >
+                  Request a new link
+                </Link>
+                <p className="mt-4 text-xs text-muted-foreground">
+                  Remembered it? <Link to="/login" className="text-primary hover:underline">Back to login</Link>
+                </p>
+              </div>
+            ) : submitted ? (
               <div className="text-center py-6">
                 <CheckCircle2 className="mx-auto h-14 w-14 text-emerald-500 animate-bounce" />
                 <h1 className="mt-4 font-serif text-2xl font-semibold text-foreground">

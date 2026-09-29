@@ -27,8 +27,11 @@ export default function ForgotPasswordPage() {
 
     setLoading(true)
     try {
+      // No "/#/" here: the app uses BrowserRouter, and the client runs the PKCE
+      // flow, so Supabase appends "?code=..." to this URL. A hash would bury the
+      // query inside the fragment, where detectSessionInUrl cannot read it.
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/#/auth/reset-password`,
+        redirectTo: `${window.location.origin}/auth/reset-password`,
       })
 
       if (error) {

@@ -1,3 +1,5 @@
+import { logActivity } from './activity-logger'
+
 /**
  * Simple logger utility for development and production
  */
@@ -9,10 +11,13 @@ const isDevelopment = import.meta.env.DEV
 const createLogger = () => {
   const log = (level: LogLevel, ...args: any[]) => {
     if (level === 'error' || level === 'warn') {
-      // Application errors/warnings are also stored in activity_logs (imported lazily to avoid a cycle).
-      const message = args.map((a) => (a instanceof Error ? a.message : typeof a === 'string' ? a : '')).filter(Boolean).join(' ').slice(0, 200)
-      const stack = args.find((a) => a instanceof Error)?.stack?.slice(0, 2000)
-      void import('./activity-logger').then(({ logActivity }) => logActivity(level === 'error' ? 'api_error' : 'app', message || `Application ${level}`, null, { level, stack })).catch(() => undefined)
+      try {
+        const message = args.map((a) => (a instanceof Error ? a.message : typeof a === 'string' ? a : '')).filter(Boolean).join(' ').slice(0, 200)
+        const stack = args.find((a) => a instanceof Error)?.stack?.slice(0, 2000)
+        logActivity(level === 'error' ? 'api_error' : 'app', message || `Application ${level}`, null, { level, stack })
+      } catch {
+        // never fail logging
+      }
     }
     const timestamp = new Date().toISOString()
     const prefix = `[${timestamp}] [${level.toUpperCase()}]`
