@@ -111,10 +111,16 @@ SELECT
 
 UNION ALL
 
+-- NOTE: this deliberately does NOT test auth.uid(). The Supabase SQL Editor runs
+-- as postgres, so auth.uid() is NULL there and an auth.uid() check always
+-- reports a false negative no matter what role you actually hold. An earlier
+-- version of this file did exactly that and reported "YOUR user_role CANNOT" to
+-- an account that was in fact an admin.
 SELECT
-  'your role can read access stats',
-  CASE WHEN EXISTS (
-    SELECT 1 FROM public.user_profiles
-    WHERE id = auth.uid()
-      AND user_role IN ('super_admin','superadmin','admin','marketing')
-  ) THEN 'OK' ELSE 'YOUR user_role CANNOT -- see user_profiles.user_role' END;
+  'who can read access stats',
+  COALESCE(
+    (SELECT string_agg(email, ', ' ORDER BY email)
+     FROM public.user_profiles
+     WHERE user_role IN ('super_admin','superadmin','admin','marketing')),
+    'NOBODY -- no user_profiles row has an admin role'
+  );
