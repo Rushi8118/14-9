@@ -2,6 +2,32 @@
 <html lang="en-IN">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      Anti-flash theme guard. Must stay here, first in <head>, and stay inline —
+      it has to run before the first paint and before any stylesheet applies.
+
+      The app's rule is: /admin may be dark (per the admin's own `admin-theme`
+      preference), every other route is always light. React cannot enforce that on a
+      cold load because it has not mounted yet, and next-themes' own anti-flash script
+      is deliberately inert in this app (see src/components/theme-provider.tsx — it is
+      served as application/json to silence a React 19 script-tag warning). Without
+      this block, loading a public URL while `.dark` applies paints a light-designed
+      page with dark tokens for a frame, which looks like a rendering fault.
+
+      SPA navigation between routes is handled by RouteThemeSync in src/App.tsx.
+    -->
+    <script>
+      (function () {
+        try {
+          var isAdmin = window.location.pathname.indexOf('/admin') === 0
+          var dark = isAdmin && (localStorage.getItem('admin-theme') || 'dark') === 'dark'
+          document.documentElement.classList.toggle('dark', dark)
+        } catch (e) {
+          /* private mode or blocked storage: fall back to light, which is the public default */
+          document.documentElement.classList.remove('dark')
+        }
+      })()
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
     <meta http-equiv="content-language" content="en-IN, en" />
     <meta name="format-detection" content="telephone=yes, date=no, email=yes, address=yes" />
@@ -21,30 +47,20 @@
       // Mark analytics as ready so analytics.ts doesn't inject a duplicate script
       window.__analyticsReady = true;
     </script>
-    <title>Overseas Education & Visa Consultants in Surat | Siddhivinayak Overseas</title>
-    <meta
-      name="description" data-rh="true"
-      content="Siddhivinayak Overseas — study visa and work visa consultants in Surat for Canada, UK, Australia, USA, Germany and Japan. Free counselling at Pragti IT Park."
-    />
-    <link rel="canonical" data-rh="true" href="https://siddhivinayakoverseas.com/" />
-    <meta property="og:type" data-rh="true" content="website" />
-    <meta property="og:url" data-rh="true" content="https://siddhivinayakoverseas.com/" />
-    <meta property="og:title" data-rh="true" content="Overseas Education & Visa Consultants in Surat | Siddhivinayak Overseas" />
-    <meta
-      property="og:description" data-rh="true"
-      content="Study and work visa consultancy in Surat for Canada, UK, Australia, USA, Germany and Japan."
-    />
-    <meta property="og:image" data-rh="true" content="https://siddhivinayakoverseas.com/consultant-office.jpg" />
-    <meta property="og:locale" data-rh="true" content="en_IN" />
-    <meta property="og:site_name" data-rh="true" content="Siddhivinayak Overseas" />
-    <meta name="twitter:card" data-rh="true" content="summary_large_image" />
-    <meta name="twitter:title" data-rh="true" content="Visa Consultants in Surat | Siddhivinayak Overseas" />
-    <meta
-      name="twitter:description" data-rh="true"
-      content="Study and work visa counselling from Siddhivinayak Overseas, Surat."
-    />
-    <meta name="twitter:image" data-rh="true" content="https://siddhivinayakoverseas.com/consultant-office.jpg" />
-    <meta name="robots" data-rh="true" content="index, follow, max-image-preview:large, max-snippet:-1" />
+    <!--
+      Page metadata (title, description, canonical, Open Graph, Twitter, robots) is
+      owned entirely by src/components/seo/SeoHead.tsx and hoisted into <head> by
+      React 19. It deliberately does NOT live here: React appends its tags rather
+      than replacing matching static ones, so a static canonical here would give
+      every page two canonicals — and the prerenderer would bake both into the HTML.
+
+      The title element below is only the pre-hydration fallback shown for the
+      instant before React commits, and for the app-shell fallback on a route that
+      has not been prerendered yet. React replaces it (titles are deduplicated,
+      unlike meta). Do not write markup-looking text into comments in this file —
+      it ends up in every prerendered page and confuses anything parsing the HTML.
+    -->
+    <title>Siddhivinayak Overseas</title>
     <meta name="theme-color" content="#ece2cf" />
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

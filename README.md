@@ -174,21 +174,84 @@ Do not use a service-role key in a `VITE_*` variable. Vite exposes `VITE_*` valu
 | Command | Description |
 | --- | --- |
 | `npm run dev` | Starts the Vite development server. |
-| `npm run build` | Builds the application, generates the sitemap, and prerenders configured pages. |
+| `npm run build` | Vite build → prerender → sitemap → SEO validation, in that order. Fails on any SEO error. |
+| `npm run publish` | The same chain plus a summary of what must be uploaded. See [Publishing](#publishing-content-and-deploying). |
 | `npm run build:only` | Runs only the Vite production build. |
 | `npm run preview` | Serves the production build locally for verification. |
 | `npm run lint` | Runs ESLint across the repository. |
-| `npm run sitemap` | Generates the sitemap without building the application. |
-| `npm run prerender` | Runs the prerendering script. |
+| `npm run sitemap` | Regenerates `sitemap.xml` from an existing prerender manifest. |
+| `npm run prerender` | Runs the prerendering script against an existing `dist/`. |
+| `npm run validate:seo` | Checks the generated HTML in `dist/`. Exits non-zero on errors. |
+| `npm run seo:report` | The same checks, but prints everything and never fails. |
+| `npm run check:similarity` | Flags near-duplicate content across generated pages. |
 | `npm run seo:ping` | Sends the configured SEO/indexing ping. |
 
 A typical verification flow is:
 
 ```bash
-npm run lint
+npx tsc --noEmit
 npm run build
 npm run preview
 ```
+
+### Why the build order matters
+
+`vite build` → `prerender` → `generate-sitemap` → `validate-seo` is not
+interchangeable:
+
+- The prerenderer renders `/` **last**, because `dist/index.html` is the SPA
+  fallback that `vite preview` serves for every route it has not yet written.
+  Rendering the homepage first would leave stale homepage content in the DOM for
+  every subsequent route, and the readiness check would pass against it.
+- `generate-sitemap.mjs` reads `dist/prerender-manifest.json` and nothing else.
+  A URL reaches `sitemap.xml` only if it was published, prerendered, verified,
+  self-canonical and not `noindex`. This is why the sitemap is generated *after*
+  prerendering, not before: generating it from the intended route list cannot
+  tell a real page from one that failed to render.
+- `validate-seo.mjs` reads the generated files, not a browser DOM, and cross-checks
+  sitemap ⟷ manifest ⟷ generated HTML.
+
+## Publishing content and deploying
+
+**Publishing a blog post or urgent requirement in the admin panel does not update
+the search-engine-visible site.** Two things happen, and only one of them is
+immediate:
+
+| | Immediately on publish | Only after the next build + upload |
+| --- | --- | --- |
+| Visitors can open the URL | Yes (React fetches it from Supabase via `app-shell.html`) | — |
+| Server-rendered title, description, canonical, Open Graph | No | Yes |
+| Listed in `sitemap.xml` | No | Yes |
+| Reliably discoverable by Google | No | Yes |
+
+So the workflow after publishing content is:
+
+```bash
+npm run publish
+```
+
+That runs the full chain, stops at the first failure, and prints the number of
+pages rendered, the number of sitemap URLs, and any page that is live for
+visitors but absent from the sitemap. Then upload the **entire contents of
+`dist/`** to the web root. The site is not updated until that upload completes.
+
+`npm run publish` deliberately does **not** upload anything. No FTP, SFTP, SSH,
+rsync or hosting-API code exists in this repository because the hosting provider
+and access method have not been supplied. `scripts/publish.mjs` documents the
+seam where that would go.
+
+### When a page is not prerendered
+
+The prerenderer refuses to write a page that did not genuinely render — a
+loading skeleton, a page whose title never moved off the shell default, a page
+with the wrong canonical or with no `<h1>`. Such a page:
+
+- is **excluded from the sitemap**, with the reason printed;
+- still **works for visitors**, served by `app-shell.html`;
+- is reported as a warning by `validate-seo.mjs`, not an error.
+
+The one case that fails the build is a *static* route failing to prerender,
+because `.htaccess` has no fallback for those.
 
 ## Supabase setup
 
@@ -226,15 +289,32 @@ For Apache-based hosting, the repository includes `.htaccess`; verify the rewrit
 
 ## SEO
 
-The project includes SEO-related scripts and files for:
+All page metadata comes from one component, `src/components/seo/SeoHead.tsx`. No
+page emits `<title>`, `<meta>` or `<link rel="canonical">` on its own; React 19
+hoists what `SeoHead` renders into `<head>`. `index.html` deliberately carries no
+canonical, description or Open Graph tags — React *appends* its hoisted tags
+rather than replacing matching static ones, so anything left there would give
+every page two of it.
 
-- Sitemap generation.
-- Robots configuration.
-- Prerendering selected routes.
-- Canonical site URL configuration.
-- Search-engine indexing notifications.
+`scripts/validate-seo.mjs` enforces this against the built HTML. It fails the
+build on:
 
-After changing public routes or content, run a production build and inspect the generated output before deployment.
+- a missing, duplicated, relative or non-self-referencing canonical;
+- a missing description, robots directive, Open Graph set, Twitter card or `<html lang>`;
+- a `<h1>` count other than 1;
+- two indexable pages sharing a title or a meta description;
+- JSON-LD that does not parse, or a repeated `@id` within one page;
+- a `FAQPage` question or answer that exists in structured data but is not visible
+  on the page — Google's structured-data policy requires the markup to describe
+  visible content;
+- guaranteed-outcome wording, using the same patterns
+  (`UNSAFE_CLAIM_PATTERNS` in `src/lib/ai/guardrails.ts`) that screen
+  AI-generated content, so hand-written copy is held to the same rule;
+- a sitemap URL with no manifest entry, no generated file, or a `noindex` tag.
+
+After changing public routes or content, run `npm run build` and inspect the
+generated files in `dist/` — not the browser DevTools, which show the live DOM
+rather than what a crawler is served.
 
 ## Code quality and testing
 

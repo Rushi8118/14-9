@@ -23,7 +23,7 @@ export default function HomePage() {
     <>
       <SeoHead
         title="Overseas Education & Work Visa Consultants | All 28 States India & South Asia"
-        description="Siddhivinayak Overseas — study visa, work visa & post-study transition consultants with fixed jobs & salaries. Serving all 28 states & 8 UTs in India, Bangladesh, Nepal, Pakistan & Sri Lanka for UK, Canada, Australia, Germany & Europe."
+        description="Study visa, work visa and post-study transition consultants in Surat, serving India, Nepal, Bangladesh, Pakistan and Sri Lanka for the UK, Canada, Australia, Germany and Europe."
         path="/"
         keywords="visa consultants in Surat, overseas education consultants India, student visa to work visa with job and salary, convert study visa to work visa, renew student visa on work visa, switch countries on study visa, study abroad consultants India 28 states, visa consultancy Bangladesh Nepal Sri Lanka Pakistan, UK skilled worker visa, Canada PGWP to PR, Australia 485 to employer sponsorship, Germany Blue Card, Siddhivinayak Overseas"
         jsonLd={[
@@ -34,7 +34,7 @@ export default function HomePage() {
           webpageSchema({
             title: 'Overseas Education & Visa Consultants in Surat & Pan-India',
             description:
-              'Study and work visa consultancy for Canada, UK, Australia, USA, Germany, Japan and Europe with fixed job and salary pathways.',
+              'Study and work visa consultancy for Canada, the UK, Australia, the USA, Germany, Japan and Europe.',
             path: '/',
           }),
         ]}

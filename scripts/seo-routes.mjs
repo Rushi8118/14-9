@@ -190,9 +190,10 @@ const toWorkSlug = (name) => {
 }
 
 /**
- * @returns {Promise<Array<{ path: string, lastmod?: string, noindex?: boolean }>>}
+ * @returns {Promise<Array<{ path: string, lastmod?: string, noindex?: boolean, canonical?: string }>>}
  * Every public page. `noindex: true` means "render it, but keep it out of
  * sitemap.xml" — the page is live, it just is not ready to be submitted.
+ * `canonical` is set only when the page deliberately points somewhere else.
  */
 export async function getPublicRoutes(root) {
   const env = loadEnv('production', root, '')
@@ -214,10 +215,22 @@ export async function getPublicRoutes(root) {
     // /countries/{slug} was retired: those pages duplicated /study-in-* and
     // /work-visa/* and shipped unpopulated Supabase empty states as content.
     // public/.htaccess 301s them to the stronger page. The /countries hub stays.
-    // Posts that declare a canonical on another URL are not listed as their own page.
-    ...posts
-      .filter((row) => !row.canonical_url || (row.canonical_url.endsWith('/') ? row.canonical_url.slice(0, -1) : row.canonical_url) === `${SITE_URL}/blog/${row.slug}`)
-      .map((row) => ({ path: `/blog/${row.slug}`, lastmod: isoDate(row.updated_at) })),
+    // A post that declares a canonical on another URL is still a real, live page
+    // and is still prerendered — it just must not be submitted as its own URL.
+    // Carrying the declared canonical here lets the prerenderer verify the page
+    // against the canonical it actually intends to emit, and lets the sitemap
+    // generator drop it for not being self-canonical. Dropping the route outright
+    // (what this used to do) instead left the page served by the app shell.
+    ...posts.map((row) => {
+      const declared = row.canonical_url
+        ? (row.canonical_url.endsWith('/') ? row.canonical_url.slice(0, -1) : row.canonical_url)
+        : undefined
+      return {
+        path: `/blog/${row.slug}`,
+        lastmod: isoDate(row.updated_at),
+        ...(declared && declared !== `${SITE_URL}/blog/${row.slug}` ? { canonical: declared } : {}),
+      }
+    }),
     ...requirements.map((row) => ({ path: `/urgent-requirements/${row.slug}`, lastmod: isoDate(row.updated_at) })),
   ]
 

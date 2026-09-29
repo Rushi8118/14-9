@@ -115,7 +115,7 @@ export function educationalOrganizationSchema() {
     '@id': educationalOrganizationId(),
     name: `${SITE_NAME} — Overseas Education Consultants`,
     description:
-      'Overseas education consultancy in Surat guiding students across all Indian states and South Asia through university admissions, student visas, and post-study work visa transitions with guaranteed jobs & salaries.',
+      'Overseas education consultancy in Surat supporting students across India and South Asia with university admissions, student visa applications and post-study work visa routes. Visa decisions are made by the relevant immigration authority.',
     url: SITE_URL,
     logo: `${SITE_URL}/favicon/android-chrome-512x512.png`,
     image: DEFAULT_OG_IMAGE,
@@ -211,8 +211,18 @@ export function articleSchema(input: {
   datePublished?: string
   dateModified?: string
   image?: string
+  /**
+   * A named person who reviewed the page, when one is displayed on the page.
+   * Omitted otherwise, in which case the organisation is the author — which is
+   * accurate, unlike the alternative of inventing a byline.
+   */
+  author?: string
 }) {
-  const published = input.datePublished ?? '2026-08-25'
+  // No invented publication date. This previously fell back to a hardcoded
+  // '2026-08-25' for any page without one, which asserted a specific publication
+  // date for content that had none. Omitting the property is honest; a wrong
+  // date is a factual error Google can and does check against.
+  const published = input.datePublished
   return {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -220,9 +230,13 @@ export function articleSchema(input: {
     description: input.description,
     url: absoluteUrl(input.path),
     image: input.image || DEFAULT_OG_IMAGE,
-    datePublished: published,
-    dateModified: input.dateModified ?? published,
-    author: { '@id': organizationId() },
+    ...(published ? { datePublished: published } : {}),
+    ...(input.dateModified || published
+      ? { dateModified: input.dateModified ?? published }
+      : {}),
+    author: input.author
+      ? { '@type': 'Person', name: input.author }
+      : { '@id': organizationId() },
     publisher: {
       '@type': 'Organization',
       name: SITE_NAME,

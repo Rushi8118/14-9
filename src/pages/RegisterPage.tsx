@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import { Link, Navigate, useNavigate } from "react-router-dom"
-import { Helmet } from "react-helmet-async"
+import { SeoHead } from '@/components/seo/SeoHead'
 import { Compass, GraduationCap, LineChart, Mail, MailCheck, User, UserPlus } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/use-auth"
@@ -193,14 +193,12 @@ export default function RegisterPage() {
 
   return (
     <>
-      <Helmet>
-        <title>Register | Siddhivinayak Overseas</title>
-        <meta
-          name="description"
-          content="Create an account with Siddhivinayak Overseas. Apply for work visa or study visa and track progress in real-time."
-        />
-        <meta name="robots" content="noindex, follow" />
-      </Helmet>
+      <SeoHead
+        title="Register"
+        description="Create an account with Siddhivinayak Overseas. Apply for a work visa or study visa and track progress in real time."
+        path="/register"
+        noindex
+      />
 
       <AuthLayout
         variant="register"

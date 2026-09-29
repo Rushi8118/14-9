@@ -885,7 +885,7 @@ export const PATHWAY_GROUPS: Array<{ title: string; description: string; slugs: 
   },
   {
     title: 'Move to another country (With Job & Relocation Benefits)',
-    description: 'Already living abroad on a study or work visa and considering moving to another country with guaranteed employer sponsorship and salary.',
+    description: 'Already living abroad on a study or work visa and considering a move to another country through employer sponsorship.',
     slugs: [
       'switch-countries-with-job-and-salary',
       'move-from-uk-to-australia',

@@ -1,4 +1,4 @@
-import { Helmet } from 'react-helmet-async'
+import { SeoHead } from '@/components/seo/SeoHead'
 import { Link } from 'react-router-dom'
 import {
   Briefcase,
@@ -76,27 +76,11 @@ const SERVICES = [
 export default function ServicesPage() {
   return (
     <>
-      <Helmet>
-        <title>Overseas Education Services — Work Visa, Study Visa & More | Siddhivinayak Overseas</title>
-        <meta
-          name="description"
-          content="Overseas education services in India for students & fresh graduates. Work visas, study visas, IELTS coaching & more for USA, UK, Canada, Australia."
-        />
-        <link rel="canonical" href="https://siddhivinayakoverseas.com/services" />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://siddhivinayakoverseas.com/services" />
-        <meta property="og:title" content="Overseas Education Services — Work Visa, Study Visa & More | Siddhivinayak Overseas" />
-        <meta property="og:description" content="Overseas education services in India for students & fresh graduates. Work visas, study visas, IELTS coaching & more for USA, UK, Canada, Australia" />
-        <meta property="og:image" content="https://siddhivinayakoverseas.com/consultant-office.jpg" />
-        <meta property="og:image:width" content="1024" />
-        <meta property="og:image:height" content="1024" />
-        <meta property="og:locale" content="en_IN" />
-        <meta property="og:site_name" content="Siddhivinayak Overseas" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Overseas Education Services | Siddhivinayak Overseas" />
-        <meta name="twitter:description" content="Overseas education services in India for students & fresh graduates. Work visas, study visas, IELTS coaching & more for USA, UK, Canada, Australia" />
-        <meta name="twitter:image" content="https://siddhivinayakoverseas.com/consultant-office.jpg" />
-      </Helmet>
+      <SeoHead
+        title="Overseas Education & Visa Services"
+        description="Overseas education services in India for students and fresh graduates. Work visas, study visas, IELTS coaching and more for the USA, UK, Canada and Australia."
+        path="/services"
+      />
       <SiteHeader />
       <main className="relative overflow-hidden premium-page">
         <PageHero

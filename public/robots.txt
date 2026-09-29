@@ -26,7 +26,9 @@ Allow: /
 User-agent: Applebot
 Allow: /
 
-# AI & LLM Crawlers
+# AI training crawlers. These govern whether content may be used for model
+# training; they have no effect on whether an assistant can cite this site when
+# answering a question about studying or working abroad.
 User-agent: GPTBot
 Allow: /
 
@@ -40,6 +42,25 @@ User-agent: Bytespider
 Allow: /
 
 User-agent: CCBot
+Allow: /
+
+# AI search crawlers. These are the ones that fetch a page at answer time and
+# decide whether it can be cited, so they are what actually determine visibility
+# in ChatGPT search, Claude's web search and Perplexity. They are separate user
+# agents from the training crawlers above and are not covered by them.
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: ClaudeBot-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
 Allow: /
 
 Sitemap: https://siddhivinayakoverseas.com/sitemap.xml

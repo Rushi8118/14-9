@@ -1,4 +1,4 @@
-import { Helmet } from 'react-helmet-async'
+import { SeoHead } from '@/components/seo/SeoHead'
 import { Link } from 'react-router-dom'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
@@ -6,14 +6,11 @@ import { SiteFooter } from '@/components/site-footer'
 export default function TermsPage() {
   return (
     <>
-      <Helmet>
-        <title>Terms & Conditions | Siddhivinayak Overseas</title>
-        <meta
-          name="description"
-          content="Terms and conditions for using Siddhivinayak Overseas services."
-        />
-        <link rel="canonical" href="https://siddhivinayakoverseas.com/terms" />
-      </Helmet>
+      <SeoHead
+        title="Terms & Conditions"
+        description="Terms and conditions for using Siddhivinayak Overseas study visa, work visa and consultation services."
+        path="/terms"
+      />
       <SiteHeader />
       <main className="premium-page min-h-screen bg-background">
         {/* Header */}

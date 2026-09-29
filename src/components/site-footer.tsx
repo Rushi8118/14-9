@@ -205,6 +205,17 @@ export function SiteFooter() {
                   Japan Work Visa
                 </Link>
               </li>
+              <li>
+                {/* The /countries hub was reachable only from the 404 page's own
+                    header, which made it an orphan: no crawl path from any
+                    indexable page, so its internal link equity was zero. */}
+                <Link
+                  to="/countries"
+                  className="font-medium text-muted-foreground transition-colors duration-200 hover:text-primary"
+                >
+                  All destinations
+                </Link>
+              </li>
             </ul>
           </div>
 

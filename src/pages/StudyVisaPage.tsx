@@ -1,4 +1,4 @@
-import { Helmet } from 'react-helmet-async'
+import { SeoHead } from '@/components/seo/SeoHead'
 
 const SITE_URL = 'https://siddhivinayakoverseas.com'
 import { Link } from 'react-router-dom'
@@ -89,25 +89,11 @@ const PARTNER_UNIVERSITIES = [
 export default function StudyVisaPage() {
   return (
     <>
-      <Helmet>
-        <title>Study Visa Consultants in Surat | UK, France, Germany, Spain, Dubai, Singapore</title>
-        <meta
-          name="description"
-          content="Study visa consultants in Surat for UK, France, Germany, Spain, Dubai and Singapore. University admissions, documentation and student-visa counselling."
-        />
-        <link rel="canonical" href={`${SITE_URL}/study-visa`} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${SITE_URL}/study-visa`} />
-        <meta property="og:title" content="Study Visa Consultants in Surat | UK, France, Germany, Spain, Dubai, Singapore" />
-        <meta property="og:description" content="Study abroad counselling in Surat for UK, France, Germany, Spain, Dubai and Singapore." />
-        <meta property="og:image" content={`${SITE_URL}/consultant-office.jpg`} />
-        <meta property="og:locale" content="en_IN" />
-        <meta property="og:site_name" content="Siddhivinayak Overseas" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Study Visa Consultants in Surat | Siddhivinayak Overseas" />
-        <meta name="twitter:description" content="Study abroad counselling in Surat for Canada, UK, Australia, USA and Europe." />
-        <meta name="twitter:image" content={`${SITE_URL}/consultant-office.jpg`} />
-      </Helmet>
+      <SeoHead
+        title="Study Visa Consultants in Surat"
+        description="Study visa consultants in Surat for the UK, France, Germany, Spain, Dubai and Singapore. University admissions, documentation and student-visa counselling."
+        path="/study-visa"
+      />
       <SiteHeader />
       <main className="premium-page min-h-screen bg-background pt-24 pb-20">
         {/* Hero Section */}

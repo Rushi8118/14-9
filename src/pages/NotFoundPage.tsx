@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
-import { Helmet } from 'react-helmet-async'
+import { SeoHead } from '@/components/seo/SeoHead'
 import { gsap } from 'gsap'
 import { FileCheck2, Globe2, GraduationCap, Landmark } from 'lucide-react'
 import { Header } from '@/components/not-found/Header'
@@ -90,21 +90,21 @@ export default function NotFoundPage() {
 
   return (
     <div ref={rootRef} className="lbb">
-      <Helmet>
-        <title>Page Not Found | Siddhivinayak Overseas</title>
-        <meta name="description" content="This page does not exist. Explore study visas, work visas or contact Siddhivinayak Overseas in Surat." />
-        <meta name="robots" content="noindex, follow" />
-        <meta
-          name="description"
-          content="The page you're looking for has moved or no longer exists. Find your way back to Siddhivinayak Overseas immigration and visa services."
-        />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-        />
-      </Helmet>
+      <SeoHead
+        title="Page Not Found"
+        description="The page you're looking for has moved or no longer exists. Find your way back to Siddhivinayak Overseas study visa, work visa and consultation services."
+        path="/404"
+        noindex
+      />
+      {/* This page uses a different display face from the rest of the site. React 19
+          hoists these into <head>; they stay here rather than in index.html so the
+          font is fetched only when someone actually lands on a 404. */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      />
 
       <a href="#lbb-main" className="lbb-skip">
         Skip to main content

@@ -1,0 +1,337 @@
+{
+  "summary": {
+    "health_score": 57,
+    "business_type": "Local service + informational publisher (hybrid): overseas education / study visa / work visa consultancy, single physical office in Surat, Gujarat, targeting India + Nepal + Bangladesh",
+    "site": "https://siddhivinayakoverseas.com",
+    "audit_date": "2026-09-29",
+    "pages_crawled": 92,
+    "top_findings": [
+      "25 of 92 sitemap URLs (/blog/*, /urgent-requirements/*) serve a 10-word shell sharing one identical title and no canonical",
+      "react-helmet-async 2.0.5 is inert under React 19 - it emits no title, canonical or og tags on the client at all",
+      "147 of 159 FAQ answers (92%) exist only in JSON-LD and never render on the page - a Google structured-data policy violation across 51 pages",
+      "Homepage promises 'fixed jobs, guaranteed statutory salaries' with no named author, credential or registration number anywhere on the site (YMYL)",
+      "The /guides/ section averages 201 words of main content while targeting queries whose SERPs are led by government sites"
+    ],
+    "quick_wins": [
+      "Shorten 50 titles that exceed 60 characters by dropping the 24-character brand suffix",
+      "Add the Google Business Profile URL to sameAs and a Get Directions link - no Maps presence exists anywhere on the site",
+      "Add openingHoursSpecification to LocalBusiness and opening hours to the contact page",
+      "Verify Instagram sameAs URL (reads 'siddhivinyakoverseas', brand is 'siddhivinayak')",
+      "Connect Google Search Console - the audit had no field data, indexation data or query data at all"
+    ]
+  },
+  "categories": [
+    {
+      "name": "Technical SEO",
+      "score": 72,
+      "what_works": [
+        "Full security header set including HSTS with preload",
+        "Every canonicalisation variant (http, www, trailing slash) resolves in exactly one 301 hop with no chains",
+        "Real 404s rather than soft 404s - the .htaccess ends with an explicit 404 rule instead of a catch-all SPA rewrite",
+        "All 92 sitemap URLs return HTTP 200",
+        "robots.txt deliberately does not Disallow noindexed admin paths so crawlers can read the X-Robots-Tag header - correct and subtle",
+        "Viewport permits pinch-zoom (maximum-scale=5.0)"
+      ],
+      "findings": [
+        {
+          "title": "sitemap.xml advertises 25 URLs that serve a duplicate-titled shell",
+          "severity": "High",
+          "description": "scripts/prerender.mjs:27 excludes /blog/ and /urgent-requirements/ from prerendering while scripts/seo-routes.mjs:200-221 writes those same URLs into sitemap.xml from Supabase. The two build scripts contradict each other.",
+          "recommendation": "Remove both prefixes from SKIP_PREFIXES so they prerender like the other 67 URLs. The Supabase data path already exists in seo-routes.mjs."
+        },
+        {
+          "title": "Content-Security-Policy is a placeholder",
+          "severity": "Low",
+          "description": "Only upgrade-insecure-requests is set; no default-src, script-src or frame-ancestors. X-Frame-Options alone carries clickjacking protection.",
+          "recommendation": "Either build a real policy or accept it; not an SEO issue, but it can mislead a security review."
+        },
+        {
+          "title": "lastmod missing on most sitemap entries",
+          "severity": "Low",
+          "description": "The homepage and several static routes carry no <lastmod>; only Supabase-driven URLs do.",
+          "recommendation": "Populate lastmod from content-file mtimes to help recrawl prioritisation on a site whose visa rules change yearly."
+        }
+      ]
+    },
+    {
+      "name": "Content Quality",
+      "score": 42,
+      "what_works": [
+        "/visa-consultants-in-surat is hand-written and genuinely local, not a template",
+        "/regional-coverage (3,260 words) and /reviews (1,841) are substantial",
+        "Clear, readable prose with no keyword stuffing or AI-boilerplate tells",
+        "/immigration-disclaimer exists, which is rare in this vertical"
+      ],
+      "findings": [
+        {
+          "title": "'Fixed jobs, guaranteed statutory salaries' is the site's central promise",
+          "severity": "Critical",
+          "description": "Appears in homepage body copy, the homepage meta description and as a navigation label. No visa consultancy can guarantee a foreign employer's salary or a visa grant - both are third-party decisions. In a YMYL vertical this is what rater guidelines characterise as untrustworthy. Separately, recruiting Indian nationals for overseas employment is regulated under the Emigration Act 1983 via the Protector General of Emigrants, and no registration number appears anywhere on the site - this needs professional legal review, not an audit opinion.",
+          "recommendation": "Replace guarantee language with verifiable claims ('employer-sponsored roles with contracts stating statutory minimum salaries') plus an explicit statement that visa outcomes rest with the immigration authority. Display any licence held."
+        },
+        {
+          "title": "No named authors, credentials or verifiable identity anywhere",
+          "severity": "High",
+          "description": "/about is 231 words with no person's name, qualification, GST, CIN or accreditation. It offers unverifiable quantity claims instead: '6+ years', '500+ work visa clients', 'thousands of families'. For YMYL, Google's raters are asked to identify who is responsible for the content; here the answer is nobody.",
+          "recommendation": "Named counsellors with photos, roles and credentials on /about; bylines on every /guides/* page linking to those profiles; any licence number in the footer."
+        },
+        {
+          "title": "The /guides/ section is too thin to compete and carries Article schema",
+          "severity": "High",
+          "description": "All nine guides sit at a median of 201 words of main content (range 169-226), targeting queries whose first page is gov.uk, IRCC and multi-thousand-word competitor guides. Eight carry Article markup declaring themselves substantive.",
+          "recommendation": "Rebuild three guides closest to the business (Japan SSW, Canada documents, visa rejection reasons) to genuinely answer the question with figures and a last-verified date citing the official source. Do not rewrite all nine at once, and do not pad - the gap is coverage, not length."
+        },
+        {
+          "title": "Country pages are template clones",
+          "severity": "High",
+          "description": "11 /work-visa/* and 11 /study-in-* pages follow one template with the country name substituted. Not thin (median 787 words) but structurally identical, with tier-2 destinations carrying the least country-specific substance.",
+          "recommendation": "Differentiate on facts only that country has: actual visa subclass names, current fee in INR, realistic processing time, occupations in demand. /work-visa/japan is closest to right - use it as the model."
+        },
+        {
+          "title": "No citations to official immigration sources and no last-verified dates",
+          "severity": "Medium",
+          "description": "No outbound links to IRCC, UKVI, Australian Home Affairs, BAMF or Japanese immigration found on sampled pages, and no freshness dating on rules that change yearly.",
+          "recommendation": "Cite the official source next to every factual claim, with the date checked. Cheapest available YMYL trust signal."
+        }
+      ]
+    },
+    {
+      "name": "On-Page SEO",
+      "score": 58,
+      "what_works": [
+        "150 of 150 images carry an alt attribute, none empty",
+        "Exactly one <h1> per prerendered page, zero exceptions",
+        "Canonicals on all 67 prerendered pages are present and self-referencing",
+        "Only one orphan page (/countries) across 92 URLs",
+        "Structured data is valid JSON on every page carrying it"
+      ],
+      "findings": [
+        {
+          "title": "25 pages share one identical title and have no canonical",
+          "severity": "Critical",
+          "description": "/blog/* (11) and /urgent-requirements/* (14) return a ~5.8KB document with 10 words, no h1, no canonical, no JSON-LD, and the same title and meta description on all 25. The content is real once JavaScript runs (up to 2,079 words) - the indexable signals never arrive.",
+          "recommendation": "Prerender these routes (see Technical) and fix the metadata library (below). Both are needed."
+        },
+        {
+          "title": "react-helmet-async is inert under React 19",
+          "severity": "Critical",
+          "description": "package.json pins react@^19 (19.2.8) with react-helmet-async@^2.0.5, whose peer range stops at React 18. Verified live: SPA navigation from / to /study-in-canada leaves the title unchanged and the canonical pointing at the homepage; on a blog URL document.head.querySelectorAll('[data-rh]').length is 0. The page components declare correct Helmet blocks (BlogPostPage.tsx:78-91, UrgentRequirementDetailPage.tsx:207-221) - the library never applies them. Googlebot loads each URL fresh, so the 67 prerendered pages still serve correct static tags; the indexing damage is concentrated on the 25 app-shell URLs.",
+          "recommendation": "Delete react-helmet-async and HelmetProvider (src/main.tsx:34) and render <title>/<meta>/<link> directly in components - React 19 hoists them to <head> natively. This removes an unmaintained dependency rather than swapping in another."
+        },
+        {
+          "title": "50 of 92 titles exceed the SERP display width",
+          "severity": "High",
+          "description": "50 titles over 60 characters, 34 over 70, longest 87 (/post-study-work-visa). The brand suffix '| Siddhivinayak Overseas' costs 24 characters on every page. SeoHead.tsx:27-31 already strips it past 65 chars, but pages using Helmet directly bypass that guard.",
+          "recommendation": "Route every page through SeoHead so the existing length guard applies, or shorten the suffix to '| Siddhivinayak'."
+        },
+        {
+          "title": "15 meta descriptions over 160 characters",
+          "severity": "Medium",
+          "description": "Longest 235 (homepage), then /pathways/student-visa-to-work-visa-with-job-and-salary (233), /regional-coverage (217).",
+          "recommendation": "Trim to under 160. Google rewrites over-length descriptions, so the tail is wasted rather than harmful."
+        },
+        {
+          "title": "One generic og:image sitewide",
+          "severity": "Medium",
+          "description": "90 of 92 pages share consultant-office.jpg; /privacy and /terms have none. Every shared link shows the same office photo - and WhatsApp sharing matters for this audience.",
+          "recommendation": "Per-page OG images for country and urgent-requirement pages."
+        }
+      ]
+    },
+    {
+      "name": "Schema / Structured Data",
+      "score": 55,
+      "what_works": [
+        "Valid JSON on every block across 67 pages - zero parse errors",
+        "Coherent entity graph: @id values, parentOrganization linking, WebPage.isPartOf, WebSite.potentialAction SearchAction",
+        "Good type coverage: Organization, LocalBusiness+ProfessionalService, EducationalOrganization on 67 pages; BreadcrumbList on 57; Service on 50"
+      ],
+      "findings": [
+        {
+          "title": "147 of 159 FAQ answers (92%) never appear on the page",
+          "severity": "Critical",
+          "description": "Across 51 pages carrying FAQPage, 92% of answers exist only in JSON-LD. On 43 pages no answer is visible at all, while 100% of the questions are visible - so readers see questions whose answers exist only in markup. Google's structured-data policy prohibits marking up content that is not visible to users.",
+          "recommendation": "Render the answers into the visible DOM as expanded, self-contained 40-60 word responses. This resolves the policy violation and simultaneously creates the extractable passages the AI-search finding calls for - one fix, two wins."
+        },
+        {
+          "title": "LocalBusiness has no opening hours",
+          "severity": "High",
+          "description": "The block carries address, geo, telephone, priceRange, image, url, sameAs and @id, but no openingHoursSpecification - and no hours appear in visible copy either. For a walk-in Surat office this is a real user-experience gap.",
+          "recommendation": "Add openingHoursSpecification to the markup AND visible hours to the contact page - both, since markup must describe visible content."
+        },
+        {
+          "title": "No Google Maps presence anywhere on the site",
+          "severity": "High",
+          "description": "No Maps embed, no Get Directions link, no GBP URL in sameAs (which lists only Instagram and Facebook). geo coordinates are present but at 4 decimal places where Google prefers 5+. The Instagram URL reads 'siddhivinyakoverseas' - note 'vinyak', not 'vinayak' - which should be verified.",
+          "recommendation": "Add the GBP URL to sameAs and a Get Directions link. Cheapest entity-resolution win available."
+        },
+        {
+          "title": "56 of 67 pages emit three blocks twice; live DOM has them three times",
+          "severity": "Medium",
+          "description": "Organization (720B), WebSite (489B) and ProfessionalService+LocalBusiness (3,224B) are byte-identical duplicates in the raw HTML. /study-in-canada after JavaScript carries 19 JSON-LD blocks. Cause: JsonLd.tsx appends to document.head in useEffect with no de-duplication, and prerender.mjs snapshots the DOM after those effects run. Google de-duplicates identical markup, so this is page weight and validation noise rather than a ranking penalty.",
+          "recommendation": "Skip insertion when a block with the same @id or content hash is already present, which also makes the prerender idempotent."
+        },
+        {
+          "title": "FAQPage on 51 pages cannot produce rich results",
+          "severity": "Medium",
+          "description": "Since August 2023 Google shows FAQ rich results only for authoritative government and health sites. A private consultancy will not get them.",
+          "recommendation": "Keep the markup for entity and passage understanding, but stop counting it as a rich-result win and put no further effort into expanding it for that purpose."
+        },
+        {
+          "title": "No review markup on a site with reviews",
+          "severity": "Medium",
+          "description": "/reviews carries first-party testimonials with visible stars but no Review or AggregateRating markup.",
+          "recommendation": "Do NOT mark up self-collected testimonials - Google's policy prohibits self-serving AggregateRating and it is a common manual-action trigger. Route customers to Google Business Profile reviews instead: higher value, zero risk, feeds the map pack directly."
+        },
+        {
+          "title": "25 pages carry no structured data at all",
+          "severity": "Medium",
+          "description": "The app-shell pages emit zero JSON-LD in raw HTML. Both components declare schema; it only exists after JavaScript runs.",
+          "recommendation": "Fixing the prerender unlocks Article on blog posts and JobPosting on urgent-requirements - JobPosting being one of the few rich results still widely granted."
+        }
+      ]
+    },
+    {
+      "name": "Performance (CWV)",
+      "score": 68,
+      "what_works": [
+        "CLS is 0.0005 on both pages measured - 200x inside Google's 0.1 threshold",
+        "Brotli and gzip configured; hashed assets immutable for one year; HTML no-cache so deploys apply immediately",
+        "Only 18-21 requests per page",
+        "Fonts preconnected and preloaded with fetchpriority=high"
+      ],
+      "findings": [
+        {
+          "title": "LCP and INP were not measured, and no field data exists",
+          "severity": "Info",
+          "description": "No Google API credentials are configured so CrUX was unavailable, and PageSpeed Insights returned 'rate limit exceeded' on every attempt. The browser used did not surface largest-contentful-paint entries. The two Core Web Vitals that matter most are therefore unknown - this category's score is low-confidence.",
+          "recommendation": "Connect Search Console to get CrUX field data free. That single step replaces every lab number in this audit and is the highest-value action in this category."
+        },
+        {
+          "title": "1.9 MB of JavaScript on a prerendered content page",
+          "severity": "High",
+          "description": "/study-visa downloads 1,953 KB of decoded JavaScript against 7 KB of images, for a page whose content is already in the HTML. Unlikely to hurt LCP (prerendered markup paints first) but it is the main suspect for INP, which is dominated by main-thread hydration work.",
+          "recommendation": "Verify in vite.config.ts that three.js (homepage 3D globe) is not in the shared vendor chunk every route loads. Then measure INP specifically rather than acting on the JS figure alone."
+        },
+        {
+          "title": "Homepage TTFB is inconsistent",
+          "severity": "Medium",
+          "description": "976 ms on / versus 397 ms on /study-visa in the same session. The homepage is the slower document and the most common landing page. Google's 'good' threshold is 800 ms.",
+          "recommendation": "Re-measure across several runs before acting - shared-hosting variance could explain it."
+        }
+      ]
+    },
+    {
+      "name": "AI Search Readiness",
+      "score": 33,
+      "what_works": [
+        "No crawler blocking: every AI and search crawler tested returns HTTP 200, no UA blocking, no interstitial",
+        "robots.txt explicitly allows GPTBot, ClaudeBot, Google-Extended, Applebot, Bytespider, CCBot",
+        "67 of 92 pages are server-prerendered, so non-JS crawlers can read them"
+      ],
+      "findings": [
+        {
+          "title": "The pages cannot answer the questions they target",
+          "severity": "Critical",
+          "description": "All eight guide pages and all nine study-in pages contain zero currency figures. /study-in-germany names the blocked account three times without ever stating its value; /study-in-canada says 'Exact figures depend on city and program.' There are zero <table> elements sitewide. AI search cites specific, self-contained, checkable passages - this site offers none.",
+          "recommendation": "Add real numbers with source and date: blocked-account amount, GIC and proof-of-funds figures, tuition and living-cost ranges, SSW sector list and language thresholds."
+        },
+        {
+          "title": "The business is not a resolvable entity",
+          "severity": "High",
+          "description": "No Wikipedia or Wikidata presence; sameAs has two weak entries; no Google Business Profile link; the entity is fragmented across three schema nodes carrying three different names.",
+          "recommendation": "Consolidate entity naming across Organization, LocalBusiness and EducationalOrganization, and add every real profile to sameAs."
+        },
+        {
+          "title": "The explicitly-allowed crawlers are the training crawlers, not the citation crawlers",
+          "severity": "Low",
+          "description": "GPTBot, ClaudeBot and Google-Extended govern model training and Gemini grounding. The crawlers that decide citability - OAI-SearchBot, Claude-SearchBot, PerplexityBot - are permitted only incidentally via the wildcard.",
+          "recommendation": "Name them explicitly in robots.txt. Ten minutes, and it protects against a future wildcard tightening."
+        },
+        {
+          "title": "On-page work alone cannot fix AI visibility",
+          "severity": "Info",
+          "description": "The strongest citation signal for this business is third-party corroboration - reviews, directories, press - which no amount of markup or copy editing produces.",
+          "recommendation": "Treat Google Business Profile reviews and genuine directory presence as the AI-visibility programme, not as a local-SEO side task."
+        }
+      ]
+    },
+    {
+      "name": "Images",
+      "score": 85,
+      "what_works": [
+        "150 of 150 images carry an alt attribute and none is empty - measured across all 92 URLs",
+        "Modern formats in use: AVIF and WebP variants alongside JPEG fallbacks",
+        "Images are only 7 KB on a content page, so heavy homepage textures are correctly not loading sitewide"
+      ],
+      "findings": [
+        {
+          "title": "One generic OG image sitewide",
+          "severity": "Medium",
+          "description": "90 of 92 pages share consultant-office.jpg as their social preview.",
+          "recommendation": "Generate per-page OG images for the country and urgent-requirement pages."
+        }
+      ]
+    }
+  ],
+  "action_plan": {
+    "phases": [
+      {
+        "name": "Phase 1: Critical Fixes",
+        "timeframe": "Week 1",
+        "items": [
+          "Connect Google Search Console and submit sitemap.xml - the entire audit ran with no indexation, query or field data",
+          "Remove /blog/ and /urgent-requirements/ from SKIP_PREFIXES in scripts/prerender.mjs:27 so 25 URLs stop serving a duplicate-titled shell",
+          "Replace react-helmet-async with React 19 native document metadata; delete HelmetProvider from src/main.tsx:34",
+          "Render the 147 hidden FAQ answers into visible page content - resolves a Google structured-data policy violation across 51 pages",
+          "Rewrite 'fixed jobs, guaranteed statutory salaries' copy and get legal advice on Emigration Act 1983 / eMigrate registration requirements"
+        ]
+      },
+      {
+        "name": "Phase 2: High-Impact Improvements",
+        "timeframe": "Weeks 2-3",
+        "items": [
+          "Shorten 50 over-length titles by routing every page through SeoHead's existing length guard",
+          "Add named counsellors with credentials to /about and bylines to all /guides/* pages",
+          "Claim and populate Google Business Profile; add its URL to sameAs plus a Get Directions link and opening hours",
+          "Add openingHoursSpecification to LocalBusiness and visible hours to /contact",
+          "Add real currency figures with source and date to the three priority guides and the study-in pages",
+          "Rescope LocalBusiness.areaServed from 37+ entries to Surat and South Gujarat; move the pan-India claim to Organization"
+        ]
+      },
+      {
+        "name": "Phase 3: Content & Authority",
+        "timeframe": "Month 2",
+        "items": [
+          "Rebuild the three priority guides (Japan SSW, Canada documents, visa rejection reasons) to genuinely answer their queries",
+          "Differentiate the 22 country template pages on country-specific facts, using /work-visa/japan as the model",
+          "Build a review programme routing customers to Google Business Profile rather than marking up self-collected testimonials",
+          "Add comparison tables - there are currently zero on the site",
+          "Pursue directory and citation presence for entity resolution"
+        ]
+      },
+      {
+        "name": "Phase 4: Monitoring & Iteration",
+        "timeframe": "Ongoing",
+        "items": [
+          "Re-measure Core Web Vitals from CrUX field data once Search Console has collected it",
+          "Run Lighthouse once the PageSpeed Insights quota resets to obtain the LCP and INP this audit could not measure",
+          "Track which of the three rebuilt guides gains impressions before rebuilding the remaining six",
+          "Re-run this audit after Phase 1 to confirm the 25 shell pages now serve correct metadata"
+        ]
+      }
+    ]
+  },
+  "limitations": [
+    "No Google Search Console, CrUX or GA4 credentials - no indexation status, no query data, no organic traffic, no field Core Web Vitals",
+    "PageSpeed Insights quota was exhausted; no Lighthouse scores obtained; LCP and INP unmeasured",
+    "No Moz or Ahrefs credentials - no backlink profile, domain authority or competitor link-gap analysis was performed",
+    "Six of seven specialist agents terminated on an API rate limit; technical, content, performance and schema findings were reproduced inline with a reduced method",
+    "Google Business Profile dashboard data could not be read - all GBP statements are inferences from the site"
+  ],
+  "artifacts": {
+    "findings_dir": "findings/",
+    "screenshots_dir": "screenshots/",
+    "onpage_data": "onpage.json"
+  }
+}

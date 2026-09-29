@@ -8,8 +8,13 @@
 export const ADMIN_INPUT_REQUIRED = 'Admin input required'
 
 /** Phrases that promise an outcome nobody can actually guarantee. Matched
- *  case-insensitively against generated text before it reaches the admin. */
-const UNSAFE_CLAIM_PATTERNS: RegExp[] = [
+ *  case-insensitively against generated text before it reaches the admin.
+ *
+ *  Exported because scripts/validate-seo.mjs reads these literals out of this
+ *  file and runs them over the built HTML, so hand-written marketing copy is
+ *  screened by the same rules as AI-generated copy. Keep them as plain regex
+ *  literals on their own lines — that script parses the source text. */
+export const UNSAFE_CLAIM_PATTERNS: RegExp[] = [
   /guaranteed?\s+(visa|job|employment|placement|approval|acceptance)/i,
   /100%\s*(visa\s*)?(approval|guarantee|success|placement)/i,
   /(visa|job)\s+guarantee/i,

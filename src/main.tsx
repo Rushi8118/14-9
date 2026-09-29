@@ -1,7 +1,6 @@
 import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import { HelmetProvider } from 'react-helmet-async'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from './components/auth-provider'
 import { ThemeProvider } from './components/theme-provider'
@@ -33,21 +32,26 @@ const queryClient = new QueryClient({
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <HelmetProvider>
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="dark"
-              enableSystem
-              disableTransitionOnChange
-            >
-              <App />
-              <Toaster position="top-center" richColors />
-            </ThemeProvider>
-          </AuthProvider>
-        </QueryClientProvider>
-      </HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          {/*
+            Light is the app-wide default because every route except /admin is always
+            light; the admin area opts into dark itself via RouteThemeSync and its own
+            `admin-theme` key. enableSystem is off deliberately — with it on, a visitor
+            whose OS is in dark mode had `.dark` applied on load and then stripped again
+            once RouteThemeSync ran, which is a flash on every public page for those users.
+          */}
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem={false}
+            disableTransitionOnChange
+          >
+            <App />
+            <Toaster position="top-center" richColors />
+          </ThemeProvider>
+        </AuthProvider>
+      </QueryClientProvider>
     </BrowserRouter>
   </StrictMode>,
 )

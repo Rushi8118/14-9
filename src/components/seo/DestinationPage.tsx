@@ -8,6 +8,7 @@ import { FaqSection } from '@/components/seo/FaqSection'
 import { CtaBand } from '@/components/seo/CtaBand'
 import { RelatedLinks } from '@/components/seo/RelatedLinks'
 import { CountryVacancies } from '@/components/seo/CountryVacancies'
+import { ReviewedBy } from '@/components/seo/ReviewedBy'
 import type { DestinationContent } from '@/content/destination-types'
 import {
   articleSchema,
@@ -59,6 +60,12 @@ export function DestinationPage({ content, showWhatsAppFab = true }: Destination
         description: content.description,
         path: content.path,
         datePublished: content.datePublished,
+        dateModified: content.dateModified,
+        // Only a real, displayed reviewer name becomes Person markup. Google's
+        // policy is that structured data describes visible content, and an
+        // invented author on immigration advice is a false claim about who
+        // vetted it.
+        author: content.attribution?.reviewedBy,
       }),
     )
   }
@@ -70,6 +77,7 @@ export function DestinationPage({ content, showWhatsAppFab = true }: Destination
         description={content.description}
         path={content.path}
         keywords={content.keywords}
+        image={content.image}
         type={content.kind === 'guide' ? 'article' : 'website'}
         noindex={content.noindex}
         jsonLd={jsonLd}
@@ -134,6 +142,57 @@ export function DestinationPage({ content, showWhatsAppFab = true }: Destination
                       </li>
                     ))}
                   </ul>
+                ) : null}
+                {/* Comparison tables. Sections could previously only hold prose
+                    and bullets, which is why the site has no tables at all —
+                    and a side-by-side comparison is the shape most often pulled
+                    into featured snippets and AI answers. Rendered as a real
+                    <table> with scoped headers so it is extractable and
+                    accessible, not a grid of divs. */}
+                {section.table?.columns?.length ? (
+                  <div className="mt-6 overflow-x-auto rounded-2xl border border-border/60">
+                    <table className="w-full border-collapse text-left text-sm">
+                      {section.table.caption ? (
+                        <caption className="px-4 pt-4 text-left text-sm text-muted-foreground">
+                          {section.table.caption}
+                        </caption>
+                      ) : null}
+                      <thead>
+                        <tr className="border-b border-border/60 bg-muted/30">
+                          {section.table.columns.map((column) => (
+                            <th
+                              key={column}
+                              scope="col"
+                              className="px-4 py-3 font-semibold text-foreground"
+                            >
+                              {column}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {section.table.rows.map((row) => (
+                          <tr key={row.join('|')} className="border-b border-border/40 last:border-0">
+                            {row.map((cell, i) =>
+                              i === 0 ? (
+                                <th
+                                  key={cell}
+                                  scope="row"
+                                  className="px-4 py-3 text-left font-medium text-foreground"
+                                >
+                                  {cell}
+                                </th>
+                              ) : (
+                                <td key={cell} className="px-4 py-3 text-muted-foreground">
+                                  {cell}
+                                </td>
+                              ),
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 ) : null}
               </article>
             ))}
@@ -206,6 +265,12 @@ export function DestinationPage({ content, showWhatsAppFab = true }: Destination
         ) : null}
 
         <FaqSection faqs={content.faqs} />
+        {/* Renders nothing unless real attribution exists — see ReviewedBy. */}
+        {content.attribution ? (
+          <div className="px-4 pb-4 md:px-6">
+            <ReviewedBy attribution={content.attribution} />
+          </div>
+        ) : null}
         <ImmigrationDisclaimer country={content.country} jobs={content.kind === 'work'} />
         <RelatedLinks links={content.related} />
         <CtaBand />

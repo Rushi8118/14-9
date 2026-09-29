@@ -1,4 +1,4 @@
-import { Helmet } from 'react-helmet-async'
+import { SeoHead } from '@/components/seo/SeoHead'
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Star, Quote, Search, Filter, Globe2 } from 'lucide-react'
@@ -41,25 +41,11 @@ export default function ReviewsPage() {
 
   return (
     <>
-      <Helmet>
-        <title>Customer Reviews | Siddhivinayak Overseas</title>
-        <meta
-          name="description"
-          content="Read real reviews from our clients who successfully obtained work and study visas with Siddhivinayak Overseas."
-        />
-        <link rel="canonical" href="https://siddhivinayakoverseas.com/reviews" />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://siddhivinayakoverseas.com/reviews" />
-        <meta property="og:title" content="Customer Reviews | Siddhivinayak Overseas" />
-        <meta property="og:description" content="Read real reviews from our clients who successfully obtained work and study visas with Siddhivinayak Overseas." />
-        <meta property="og:image" content="https://siddhivinayakoverseas.com/consultant-office.jpg" />
-        <meta property="og:image:width" content="1024" />
-        <meta property="og:image:height" content="1024" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Customer Reviews | Siddhivinayak Overseas" />
-        <meta name="twitter:description" content="Read real reviews from our clients who successfully obtained work and study visas with Siddhivinayak Overseas." />
-        <meta name="twitter:image" content="https://siddhivinayakoverseas.com/consultant-office.jpg" />
-      </Helmet>
+      <SeoHead
+        title="Customer Reviews"
+        description="Read feedback from Siddhivinayak Overseas clients about their work visa and study visa journeys. Individual experiences and outcomes vary."
+        path="/reviews"
+      />
       <SiteHeader />
       <main className="premium-page min-h-screen bg-background pt-24 pb-20">
         <div className="mx-auto max-w-7xl px-4 md:px-6">
