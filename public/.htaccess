@@ -26,6 +26,14 @@ DirectorySlash Off
   # Anything else under /countries/ (including the orphaned .../programs/... route) goes to the hub.
   RewriteRule ^countries/.+$ /countries [R=301,L]
 
+  # /contact-us never existed as a page. Two blog posts link to it, so Googlebot
+  # followed the link, hit the trailing-slash rule below, and landed on a 404 --
+  # which is the "Not found (404)" and "Page with redirect" pair Search Console
+  # reported on 23 Sept. The contact page is /contact. This catches the external
+  # and already-crawled links; the links inside the two posts still need fixing
+  # in the admin panel, because a redirect is a patch, not a correct link.
+  RewriteRule ^contact-us$ /contact [R=301,L]
+
   # 2. Canonical URLs have no trailing slash (root excepted)
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteRule ^(.+)/$ /$1 [R=301,L]
