@@ -32,7 +32,7 @@ DirectorySlash Off
   # reported on 23 Sept. The contact page is /contact. This catches the external
   # and already-crawled links; the links inside the two posts still need fixing
   # in the admin panel, because a redirect is a patch, not a correct link.
-  RewriteRule ^contact-us$ /contact [R=301,L]
+  RewriteRule ^contact-us/?$ /contact [R=301,L]
 
   # 2. Canonical URLs have no trailing slash (root excepted)
   RewriteCond %{REQUEST_FILENAME} !-f

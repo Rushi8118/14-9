@@ -40,6 +40,62 @@ function workCountries(root) {
   return found
 }
 
+/**
+ * State and Gujarat-city location routes, parsed from regional-coverage.ts.
+ *
+ * Read from the dataset rather than listed by hand so the routes cannot drift
+ * from the pages src/content/regional-pages.ts actually generates: a route
+ * listed here but not built prerenders a 404, and a page built but not listed
+ * never reaches sitemap.xml. The slug rule below must stay identical to
+ * `slugify` in regional-pages.ts.
+ *
+ * Surat is excluded: it has its own hand-written page and is already in
+ * STATIC_ROUTES.
+ */
+function locationRoutes(root) {
+  const source = readFileSync(resolve(root, 'src/content/regional-coverage.ts'), 'utf8')
+
+  const slugify = (value) =>
+    value
+      .toLowerCase()
+      .replace(/&/g, ' ')
+      .replace(/\band\b/g, ' ')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+
+  const entries = [
+    ...source.matchAll(
+      /name: '([^']+)',\s*\n\s*type: '(state|ut)',\s*\n\s*country: 'India'([\s\S]*?)majorCities: \[([^\]]*)\]/g,
+    ),
+  ]
+
+  if (entries.length < 20) {
+    throw new Error(
+      `[seo-routes] Parsed only ${entries.length} Indian regions from regional-coverage.ts. ` +
+      'Check INDIAN_STATES_DATA formatting — a silent miss here would drop pages from the site.',
+    )
+  }
+
+  const routes = entries.map(([, name]) => `/visa-consultants-in-${slugify(name)}`)
+
+  // Gujarat cities get their own pages; every other state's cities are served
+  // inside that state's page. See the header of regional-pages.ts for why.
+  const gujarat = entries.find(([, name]) => name === 'Gujarat')
+  if (!gujarat) throw new Error('[seo-routes] Gujarat missing from regional-coverage.ts')
+
+  const cities = gujarat[4]
+    .split(',')
+    .map((c) => c.trim().replace(/^'|'$/g, '').replace(/\s*\(.*?\)\s*/g, '').trim())
+    .filter(Boolean)
+    .filter((c) => c.toLowerCase() !== 'surat')
+
+  if (cities.length < 5) {
+    throw new Error(`[seo-routes] Parsed only ${cities.length} Gujarat cities — check majorCities formatting.`)
+  }
+
+  return [...routes, ...cities.map((c) => `/visa-consultants-in-${slugify(c)}`)]
+}
+
 export const STATIC_ROUTES = [
   '/',
   '/visa-consultants-in-surat',
@@ -116,7 +172,51 @@ function sourceFileForRoute(route) {
   if (route.startsWith('/guides')) return 'src/content/guides.ts'
   if (route === '/visa-consultants-in-surat') return 'src/content/local-surat.ts'
   if (route === '/regional-coverage') return 'src/content/regional-coverage.ts'
-  return null
+  // Generated location pages: their text comes from regional-pages.ts, their
+  // facts from regional-coverage.ts. The generator is the better signal —
+  // editing it is what changes every one of these pages.
+  if (route.startsWith('/visa-consultants-in-') && route !== '/visa-consultants-in-surat')
+    return 'src/content/regional-pages.ts'
+  return PAGE_COMPONENT_FOR_ROUTE[route] ?? null
+}
+
+/**
+ * Routes whose content lives in a hand-written page component rather than a
+ * content file.
+ *
+ * Without these, sourceFileForRoute returned null and the route shipped with no
+ * `lastmod` at all -- and it was exactly the wrong 15 pages: the homepage and
+ * every commercial page. Confirmed in the live sitemap on 2026-09-30, where /,
+ * /study-visa, /work-visa, /services, /countries, /about and /contact each had
+ * a bare <loc> while every template-generated country page carried a date.
+ *
+ * `lastmod` is how a sitemap tells Google a page is worth re-fetching. Omitting
+ * it on the pages that matter most, while supplying it on the ones that matter
+ * least, inverts the crawl priority the sitemap is there to express.
+ *
+ * The date is the page component's last commit, on the same principle already
+ * used for content files: editing the file is what changes the page. It
+ * under-reports a change made only in a shared child component, which is the
+ * safe direction to be wrong -- a missing update is a slower recrawl, whereas
+ * claiming a date the content does not have is a signal Google learns to
+ * distrust.
+ */
+const PAGE_COMPONENT_FOR_ROUTE = {
+  '/': 'src/pages/HomePage.tsx',
+  '/about': 'src/pages/AboutPage.tsx',
+  '/services': 'src/pages/ServicesPage.tsx',
+  '/contact': 'src/pages/ContactPage.tsx',
+  '/countries': 'src/pages/CountriesPage.tsx',
+  '/work-visa': 'src/pages/WorkVisaPage.tsx',
+  '/study-visa': 'src/pages/StudyVisaPage.tsx',
+  '/post-study-work-visa': 'src/pages/PostStudyWorkVisaPage.tsx',
+  '/success-stories': 'src/pages/SuccessStoriesPage.tsx',
+  '/reviews': 'src/pages/ReviewsPage.tsx',
+  '/blog': 'src/pages/BlogIndexPage.tsx',
+  '/urgent-requirements': 'src/pages/UrgentRequirementsPage.tsx',
+  '/terms': 'src/pages/TermsPage.tsx',
+  '/privacy': 'src/pages/PrivacyPage.tsx',
+  '/immigration-disclaimer': 'src/pages/ImmigrationDisclaimerPage.tsx',
 }
 
 /** Last commit date for a path, as YYYY-MM-DD. Returns undefined outside a git checkout. */
@@ -234,11 +334,13 @@ export async function getPublicRoutes(root) {
     ...requirements.map((row) => ({ path: `/urgent-requirements/${row.slug}`, lastmod: isoDate(row.updated_at) })),
   ]
 
-  const staticPaths = [...STATIC_ROUTES, ...workRoutes.map((r) => r.path)]
+  const locationPaths = locationRoutes(root)
+  const staticPaths = [...STATIC_ROUTES, ...workRoutes.map((r) => r.path), ...locationPaths]
   const lastmodFor = await staticRouteDates(root, staticPaths)
   const seen = new Set()
   return [
     ...STATIC_ROUTES.map((path) => ({ path, lastmod: lastmodFor(path) })),
+    ...locationPaths.map((path) => ({ path, lastmod: lastmodFor(path) })),
     ...workRoutes.map((r) => ({ ...r, lastmod: lastmodFor(r.path) })),
     ...dynamic,
   ].filter(({ path }) => {
