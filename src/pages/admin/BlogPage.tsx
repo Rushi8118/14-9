@@ -444,6 +444,8 @@ export default function AdminBlogPage() {
                 focusKeyword={editor.focus_keyword}
                 content={editor.content}
                 faqCount={editor.faq.length}
+                faq={editor.faq}
+                disclaimer={editor.disclaimer}
                 imageAlt={editor.image_alt}
                 existingSlugs={existingSlugs}
                 existingTitles={existingTitles}

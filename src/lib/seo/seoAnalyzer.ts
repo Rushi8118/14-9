@@ -5,6 +5,8 @@
  * or AI-assistant recommendations, only checks structural/on-page basics.
  */
 
+import { findComplianceIssues } from './complianceChecks'
+
 export type SeoAnalysisInput = {
   title: string
   metaTitle?: string
@@ -22,6 +24,13 @@ export type SeoAnalysisInput = {
   currentSlug?: string
   /** Title as last saved, so an unchanged title isn't reported as its own duplicate. */
   currentTitle?: string
+  /** Disclaimer text, if the editor has a separate field for it. */
+  disclaimer?: string
+  /**
+   * FAQ entries. `faqCount` alone cannot be screened for promised outcomes or
+   * unsourced figures, and an answer is exactly where those tend to appear.
+   */
+  faq?: Array<{ question?: string; answer?: string }>
 }
 
 export type SeoIssue = {
@@ -188,11 +197,32 @@ export function analyzeSeoContent(input: SeoAnalysisInput): SeoAnalysisResult {
   if (h2Count + h3Count === 0) issues.push({ id: 'headings', severity: 'warning', message: 'No H2/H3 headings found — add structure for readers and search engines.' })
   if (isThinContent) issues.push({ id: 'thin', severity: 'warning', message: `Only ${wordCount} words — thin content is less useful to readers and search engines. Aim for 300+.` })
   if (!input.imageAlt?.trim()) issues.push({ id: 'alt', severity: 'warning', message: 'Image alt text is missing — add descriptive alt text for accessibility and image search.' })
-  if ((input.faqCount || 0) === 0) issues.push({ id: 'faq', severity: 'info', message: 'No FAQ entries — an FAQ section helps both readers and FAQPage rich results.' })
+  // Google retired FAQ rich results for all sites on 7 May 2026, so this no
+  // longer promises a SERP feature. An FAQ still helps readers and gives the
+  // page answerable passages, which is the honest reason to add one.
+  if ((input.faqCount || 0) === 0) issues.push({ id: 'faq', severity: 'info', message: 'No FAQ entries — an FAQ answers real questions directly, which helps readers even though FAQ rich results were retired in May 2026.' })
   if (readabilityScore < 40) issues.push({ id: 'readability', severity: 'warning', message: 'Readability is low — use shorter sentences and simpler words.' })
 
+  // YMYL compliance: promised outcomes, unsourced figures, missing disclaimer,
+  // leftover placeholders. Kept in complianceChecks.ts because it is a different
+  // kind of judgement from on-page mechanics -- these are about whether the
+  // content is safe to publish, not whether it is optimised.
+  const compliance = findComplianceIssues({
+    title: input.title,
+    metaDescription: input.metaDescription,
+    content: input.content,
+    disclaimer: input.disclaimer,
+    faq: input.faq,
+  })
+  issues.push(...compliance)
+
+  // A promised outcome is not a style problem, so it has to move the score, not
+  // just add a line to a list someone can scroll past.
+  const blocking = compliance.filter((i) => i.severity === 'error').length
+  const compliancePenalty = Math.min(40, blocking * 20 + compliance.filter((i) => i.severity === 'warning').length * 5)
+
   const passedCount = checklist.filter((c) => c.passed).length
-  const score = Math.round((passedCount / checklist.length) * 100)
+  const score = Math.max(0, Math.round((passedCount / checklist.length) * 100) - compliancePenalty)
 
   return {
     score,
