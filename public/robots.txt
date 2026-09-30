@@ -64,3 +64,9 @@ User-agent: Perplexity-User
 Allow: /
 
 Sitemap: https://siddhivinayakoverseas.com/sitemap.xml
+
+# Plain-text map of the site for AI assistants that fetch a page at answer time.
+# Not a ranking signal anywhere, and Google has said it does not use it -- it is a
+# convenience file, generated from the prerender manifest so it can only list pages
+# that were actually built and are indexable. See scripts/generate-llms-txt.mjs.
+# https://siddhivinayakoverseas.com/llms.txt
