@@ -120,6 +120,12 @@ export const STATIC_ROUTES = [
   // src/content/work-countries.ts, which also carries each country's tier.
   '/post-study-work-visa',
   '/regional-coverage',
+  // B2B: employers and recruitment partners. Hand-written content in
+  // src/content/business.ts, so they are listed rather than parsed.
+  '/for-business',
+  '/for-business/employers',
+  '/for-business/recruitment-partners',
+  '/for-business/contact',
   '/guides',
   '/pathways',
   '/pathways/student-visa-to-work-visa-with-job-and-salary',
@@ -172,6 +178,8 @@ function sourceFileForRoute(route) {
   if (route.startsWith('/guides')) return 'src/content/guides.ts'
   if (route === '/visa-consultants-in-surat') return 'src/content/local-surat.ts'
   if (route === '/regional-coverage') return 'src/content/regional-coverage.ts'
+  if (route === '/for-business/contact') return 'src/pages/BusinessContactPage.tsx'
+  if (route.startsWith('/for-business')) return 'src/content/business.ts'
   // Generated location pages: their text comes from regional-pages.ts, their
   // facts from regional-coverage.ts. The generator is the better signal —
   // editing it is what changes every one of these pages.

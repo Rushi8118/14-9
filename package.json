@@ -8,9 +8,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node --no-deprecation scripts/prerender.mjs && node scripts/generate-sitemap.mjs && node scripts/validate-seo.mjs",
+    "build": "vite build && node --no-deprecation scripts/prerender.mjs && node scripts/generate-sitemap.mjs && node scripts/generate-llms-txt.mjs && node scripts/validate-seo.mjs",
     "publish": "node scripts/publish.mjs",
     "sitemap": "node scripts/generate-sitemap.mjs",
+    "llms": "node scripts/generate-llms-txt.mjs",
     "validate:seo": "node scripts/validate-seo.mjs",
     "perf": "node scripts/measure-perf.mjs",
     "seo:report": "node scripts/validate-seo.mjs --report",
