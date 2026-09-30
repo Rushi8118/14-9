@@ -59,6 +59,10 @@ DROP POLICY IF EXISTS "View consultations" ON public.consultations;
 DROP POLICY IF EXISTS "Insert consultations" ON public.consultations;
 DROP POLICY IF EXISTS "Update consultations" ON public.consultations;
 DROP POLICY IF EXISTS "Delete consultations" ON public.consultations;
+DROP POLICY IF EXISTS "consultations_select" ON public.consultations;
+DROP POLICY IF EXISTS "consultations_insert" ON public.consultations;
+DROP POLICY IF EXISTS "consultations_update" ON public.consultations;
+DROP POLICY IF EXISTS "consultations_delete" ON public.consultations;
 
 -- Read: your own, the one assigned to you, or staff.
 CREATE POLICY "consultations_select" ON public.consultations
