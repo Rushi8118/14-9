@@ -116,7 +116,46 @@ function sourceFileForRoute(route) {
   if (route.startsWith('/guides')) return 'src/content/guides.ts'
   if (route === '/visa-consultants-in-surat') return 'src/content/local-surat.ts'
   if (route === '/regional-coverage') return 'src/content/regional-coverage.ts'
-  return null
+  return PAGE_COMPONENT_FOR_ROUTE[route] ?? null
+}
+
+/**
+ * Routes whose content lives in a hand-written page component rather than a
+ * content file.
+ *
+ * Without these, sourceFileForRoute returned null and the route shipped with no
+ * `lastmod` at all -- and it was exactly the wrong 15 pages: the homepage and
+ * every commercial page. Confirmed in the live sitemap on 2026-09-30, where /,
+ * /study-visa, /work-visa, /services, /countries, /about and /contact each had
+ * a bare <loc> while every template-generated country page carried a date.
+ *
+ * `lastmod` is how a sitemap tells Google a page is worth re-fetching. Omitting
+ * it on the pages that matter most, while supplying it on the ones that matter
+ * least, inverts the crawl priority the sitemap is there to express.
+ *
+ * The date is the page component's last commit, on the same principle already
+ * used for content files: editing the file is what changes the page. It
+ * under-reports a change made only in a shared child component, which is the
+ * safe direction to be wrong -- a missing update is a slower recrawl, whereas
+ * claiming a date the content does not have is a signal Google learns to
+ * distrust.
+ */
+const PAGE_COMPONENT_FOR_ROUTE = {
+  '/': 'src/pages/HomePage.tsx',
+  '/about': 'src/pages/AboutPage.tsx',
+  '/services': 'src/pages/ServicesPage.tsx',
+  '/contact': 'src/pages/ContactPage.tsx',
+  '/countries': 'src/pages/CountriesPage.tsx',
+  '/work-visa': 'src/pages/WorkVisaPage.tsx',
+  '/study-visa': 'src/pages/StudyVisaPage.tsx',
+  '/post-study-work-visa': 'src/pages/PostStudyWorkVisaPage.tsx',
+  '/success-stories': 'src/pages/SuccessStoriesPage.tsx',
+  '/reviews': 'src/pages/ReviewsPage.tsx',
+  '/blog': 'src/pages/BlogIndexPage.tsx',
+  '/urgent-requirements': 'src/pages/UrgentRequirementsPage.tsx',
+  '/terms': 'src/pages/TermsPage.tsx',
+  '/privacy': 'src/pages/PrivacyPage.tsx',
+  '/immigration-disclaimer': 'src/pages/ImmigrationDisclaimerPage.tsx',
 }
 
 /** Last commit date for a path, as YYYY-MM-DD. Returns undefined outside a git checkout. */
