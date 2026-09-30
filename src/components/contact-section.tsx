@@ -181,15 +181,37 @@ export function ContactSection() {
       toast.success("Enquiry sent successfully!")
       trackEvent(GA_EVENTS.FORM_SUBMIT, 'Form', `Consultation - ${type === 'work' ? 'Work Visa' : 'Study Visa'}`, finalCountry ? undefined : 0)
 
-      // Send confirmation email (best-effort)
-      fetch("/api/emails/consultation", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          type,
-          preferred_country: finalCountry,
-        }),
-      }).catch(() => {})
+      // Notify the office. This replaced a fetch to "/api/emails/consultation",
+      // which never existed -- there is no api/ directory, the site is static
+      // Apache hosting with no server routes, and `.catch(() => {})` swallowed
+      // the 404. Every enquiry since launch reached the database and alerted
+      // nobody.
+      //
+      // The row is already saved at this point, so a mail failure is a
+      // notification problem, not a lost lead. The enquirer is told the truth:
+      // we have it, but reach out on WhatsApp if you want it seen faster.
+      supabase.functions
+        .invoke("notify-enquiry", {
+          body: {
+            enquiry_type: "b2c_enquiry",
+            name: data.name?.toString(),
+            email: data.email?.toString(),
+            phone: phone || whatsapp || undefined,
+            country: finalCountry,
+            service: type === "work" ? "Work visa" : "Study visa",
+            message: data.message?.toString(),
+          },
+        })
+        .then(({ error }) => {
+          if (error) throw error
+        })
+        .catch((notifyError: unknown) => {
+          console.error("notify-enquiry failed:", notifyError)
+          toast.warning(
+            `We have your enquiry, but our email alert did not go through. ` +
+              `For a faster reply, message us on WhatsApp at ${NAP.phoneINDisplay}.`,
+          )
+        })
     } catch (err: any) {
 
       setter("idle")
