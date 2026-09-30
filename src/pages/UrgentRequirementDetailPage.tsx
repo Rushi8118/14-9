@@ -23,6 +23,7 @@ import { isAdminInputRequired } from '@/lib/ai/guardrails'
 import { toast } from 'sonner'
 import { FlagIcon } from '@/components/flag-icon'
 import { RelatedRequirements } from '@/components/seo/RelatedRequirements'
+import { ServingRegions } from '@/components/seo/ServingRegions'
 import { workVisaPathFor } from '@/lib/seo/keyword-suggest'
 
 /** Never show the internal "Admin input required" placeholder to the
@@ -586,6 +587,11 @@ export default function UrgentRequirementDetailPage() {
           currentSlug={requirement.slug}
           country={requirement.country}
           category={requirement.category}
+        />
+        <ServingRegions
+          seed={requirement.slug}
+          country={requirement.country}
+          title="Applying from another state?"
         />
       </main>
 

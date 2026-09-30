@@ -8,6 +8,7 @@ import { FaqSection } from '@/components/seo/FaqSection'
 import { CtaBand } from '@/components/seo/CtaBand'
 import { RelatedLinks } from '@/components/seo/RelatedLinks'
 import { CountryVacancies } from '@/components/seo/CountryVacancies'
+import { RelatedRequirements } from '@/components/seo/RelatedRequirements'
 import { ReviewedBy } from '@/components/seo/ReviewedBy'
 import type { DestinationContent } from '@/content/destination-types'
 import {
@@ -263,6 +264,12 @@ export function DestinationPage({ content, showWhatsAppFab = true }: Destination
         {content.kind === 'work' && content.country ? (
           <CountryVacancies country={content.country} />
         ) : null}
+
+        {/* Location pages have no `country`, so CountryVacancies above renders nothing
+            for them. Current openings are what a reader on a state page wants next, and
+            this is the link that lets a state page pass signal into the vacancy pages
+            instead of only ever receiving it. */}
+        {content.kind === 'local' ? <RelatedRequirements currentSlug={content.path} /> : null}
 
         <FaqSection faqs={content.faqs} />
         {/* Renders nothing unless real attribution exists — see ReviewedBy. */}

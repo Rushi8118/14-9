@@ -141,7 +141,26 @@ function buildRegionPage(region: RegionalLocation): DestinationContent {
     description:
       `Study and work visa guidance for applicants from ${place} — ${cities.slice(0, 3).join(', ')} and more. ` +
       `Online consultation from our Surat office.`,
-    keywords: region.primaryKeywords.join(', '),
+    // The dataset's hand-written keywords, plus a city-intent set generated for
+    // every city in the region. People search the way they think -- "visa
+    // consultants in rajkot", "study abroad consultants nagpur" -- not by state
+    // name. The hand-written ones come first because they were chosen; the
+    // generated ones make sure no city in the region is unrepresented.
+    keywords: [
+      ...region.primaryKeywords,
+      ...cities.flatMap((c) => {
+        const city = c.toLowerCase()
+        return [
+          `visa consultants in ${city}`,
+          `study visa consultant ${city}`,
+          `work visa consultant ${city}`,
+          `study abroad consultants ${city}`,
+        ]
+      }),
+      `visa consultants in ${place.toLowerCase()}`,
+      `study abroad consultants ${place.toLowerCase()}`,
+      `work visa agent ${place.toLowerCase()}`,
+    ].join(', '),
     heroDescription: isGujarat
       ? `We are a Gujarat consultancy, based in Surat. Eligibility checks, documentation and visa filing support for applicants across ${cityList}.`
       : `Honest eligibility checks, documentation and visa filing support for applicants in ${place}, delivered online from our Surat office.`,

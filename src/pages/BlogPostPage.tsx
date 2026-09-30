@@ -5,6 +5,7 @@ import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { BlogContent } from '@/components/blog/BlogContent'
 import { RelatedPosts } from '@/components/blog/RelatedPosts'
+import { ServingRegions } from '@/components/seo/ServingRegions'
 import { usePublicBlogPost } from '@/hooks/useAdminBlogPosts'
 import { articleSchema, breadcrumbSchema, faqSchema } from '@/lib/seo/schema'
 import { SITE_NAME, absoluteUrl } from '@/lib/seo/site'
@@ -166,6 +167,7 @@ export default function BlogPostPage() {
           </div>
         </article>
         <RelatedPosts currentSlug={post.slug} category={post.category} tags={post.tags} />
+        <ServingRegions seed={post.slug} />
       </main>
       <SiteFooter />
     </>
