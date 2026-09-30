@@ -78,6 +78,8 @@ const PathwaysPage = lazy(() => import('./pages/PathwaysPage'))
 const PathwayPage = lazy(() => import('./pages/PathwayPage'))
 const RegionalDirectoryPage = lazy(() => import('./pages/RegionalDirectoryPage'))
 const LocationPage = lazy(() => import('./pages/LocationPage'))
+const BusinessPage = lazy(() => import('./pages/BusinessPage'))
+const BusinessContactPage = lazy(() => import('./pages/BusinessContactPage'))
 import { LOCATION_ROUTE_PATHS } from './content/location-paths'
 
 const LoginPage = lazy(() => import('./pages/LoginPage'))
@@ -148,6 +150,11 @@ function AppRoutes() {
       {/* State and Gujarat-city pages. One route each: React Router 7 only matches a
           dynamic segment that occupies a whole path segment, so the tidier
           "/visa-consultants-in-:place" matches nothing. See location-paths.ts. */}
+      {/* B2B: employers, and recruitment partners in other Indian states. */}
+      <Route path="/for-business" element={<Page><BusinessPage /></Page>} />
+      <Route path="/for-business/employers" element={<Page><BusinessPage /></Page>} />
+      <Route path="/for-business/recruitment-partners" element={<Page><BusinessPage /></Page>} />
+      <Route path="/for-business/contact" element={<Page><BusinessContactPage /></Page>} />
       {LOCATION_ROUTE_PATHS.map((path) => (
         <Route key={path} path={path} element={<Page><LocationPage /></Page>} />
       ))}

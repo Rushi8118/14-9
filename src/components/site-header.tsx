@@ -54,6 +54,18 @@ const NAV_ITEMS = [
       { label: 'Surat Office', href: '/visa-consultants-in-surat' },
     ],
   },
+  {
+    // B2B lives in the nav rather than only in the footer: an employer or an
+    // agent who lands on the homepage has no other way to discover that this
+    // business serves them at all.
+    label: 'For Business',
+    href: '/for-business',
+    children: [
+      { label: 'Recruitment Partners (any state)', href: '/for-business/recruitment-partners' },
+      { label: 'For Employers', href: '/for-business/employers' },
+      { label: 'Business Enquiry', href: '/for-business/contact' },
+    ],
+  },
   { label: 'Contact', href: '/contact' },
 ]
 

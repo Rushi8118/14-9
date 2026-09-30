@@ -173,6 +173,10 @@
 ## Other pages
 
 - [Global Visa Destinations](https://siddhivinayakoverseas.com/countries)
+- [For Businesses](https://siddhivinayakoverseas.com/for-business)
+- [Business Enquiry](https://siddhivinayakoverseas.com/for-business/contact)
+- [For Employers](https://siddhivinayakoverseas.com/for-business/employers)
+- [Recruitment Partners](https://siddhivinayakoverseas.com/for-business/recruitment-partners)
 - [Post Study Work Visa Guide 2026](https://siddhivinayakoverseas.com/post-study-work-visa)
 - [Customer Reviews](https://siddhivinayakoverseas.com/reviews)
 - [Client Success Stories](https://siddhivinayakoverseas.com/success-stories)
@@ -180,4 +184,4 @@
 ---
 
 Generated from the site's prerender manifest, so every link above is a page that was built,
-verified and is indexable. 122 pages listed.
+verified and is indexable. 126 pages listed.
