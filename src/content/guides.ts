@@ -464,3 +464,40 @@ export const GUIDES_BY_PATH = Object.fromEntries(guideArticles.map((g) => [g.pat
   string,
   DestinationContent
 >
+
+/**
+ * Make sure every guide is reachable from another guide.
+ *
+ * Each guide hand-writes its own `related` array, which is better than the
+ * pathways had -- but crawled from production on 2026-09-30, only three of the
+ * eight guides were the target of any sibling link. The other five, including
+ * /guides/ielts-requirements-for-study-abroad and
+ * /guides/post-study-work-visa-comparison, had a single inbound internal link
+ * from the /guides index and nothing else. Both were in the set Search Console
+ * reported as "Discovered - currently not indexed".
+ *
+ * This appends siblings as a cycle -- guide i gets the next two, wrapping
+ * around -- so every guide receives exactly two inbound links regardless of
+ * what the hand-written arrays happen to cover. The editorial links stay first,
+ * because a link someone chose is worth more than one a loop generated.
+ */
+const GUIDE_SIBLING_LINKS = 2
+
+guideArticles.forEach((guide, i) => {
+  const siblings = []
+  for (let k = 1; k <= GUIDE_SIBLING_LINKS && k < guideArticles.length; k++) {
+    const sibling = guideArticles[(i + k) % guideArticles.length]
+    siblings.push({
+      label: sibling.title,
+      to: sibling.path,
+      description: sibling.heroDescription,
+    })
+  }
+
+  const seen = new Set<string>()
+  guide.related = [...guide.related, ...siblings].filter((link) => {
+    if (link.to === guide.path || seen.has(link.to)) return false
+    seen.add(link.to)
+    return true
+  })
+})
