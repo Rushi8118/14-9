@@ -164,7 +164,10 @@ function buildRegionPage(region: RegionalLocation): DestinationContent {
         heading: `Study and work visa support for applicants from ${place}`,
         body: [
           `Applicants from ${place} come to us with the same three needs: an honest assessment of whether a route is realistic, a plan matched to their budget rather than to a sales target, and documentation that survives scrutiny. Where a destination is a poor fit, we say so — that conversation is cheaper than a refusal.`,
-          `We work with applicants across ${cityList}${cities.length > 8 ? ' and other districts' : ''}.`,
+          // Every city by name, not the first eight. These names are the
+          // page's most distinguishing tokens: they are what separates the
+          // Bihar page from the Odisha page, for a reader and for a crawler.
+          `We work with applicants across ${place}${region.capital ? `, from ${region.capital} and` : ' —'} ${cities.join(', ')}.`,
         ],
         bullets: [
           'Study visas: course and country choice, funds planning, SOP and interview preparation',
@@ -238,6 +241,27 @@ function buildGujaratCityPage(city: string, gujarat: RegionalLocation): Destinat
   return {
     path: `/visa-consultants-in-${slugify(city)}`,
     kind: 'local',
+    /**
+     * Live and crawlable, deliberately out of the index.
+     *
+     * Measured on the first build of these pages: the nine Gujarat city pages
+     * scored 0.877-0.889 pairwise similarity, every one of them exactly 1442
+     * words. That is not a near-miss, it is the signature of a template with the
+     * city name swapped -- the doorway pattern these pages were designed to
+     * avoid, and worse than the 0.82-0.92 work-visa pages already flagged as a
+     * problem on this site.
+     *
+     * The cause is that regional-coverage.ts holds no per-city facts. Everything
+     * that differs between Rajkot and Mehsana on these pages is the name.
+     *
+     * They stay live because they are genuinely useful to someone who lands on
+     * one, and noindex keeps them out of sitemap.xml automatically (see
+     * scripts/seo-routes.mjs). Remove this flag per city once that city's page
+     * carries something true and specific to it -- which Regional Passport
+     * Office has jurisdiction, which university its colleges affiliate to,
+     * travel to the Surat office -- rather than sooner.
+     */
+    noindex: true,
     serviceType: 'Visa consultancy',
     eyebrow: `Visa consultants · ${city}`,
     h1: `Visa Consultants for ${city} — Study & Work Abroad`,

@@ -78,6 +78,7 @@ const PathwaysPage = lazy(() => import('./pages/PathwaysPage'))
 const PathwayPage = lazy(() => import('./pages/PathwayPage'))
 const RegionalDirectoryPage = lazy(() => import('./pages/RegionalDirectoryPage'))
 const LocationPage = lazy(() => import('./pages/LocationPage'))
+import { LOCATION_ROUTE_PATHS } from './content/location-paths'
 
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
@@ -144,9 +145,12 @@ function AppRoutes() {
       <Route path="/work-visa/:slug" element={<Page><WorkVisaCountryPage /></Page>} />
       <Route path="/visa-consultants-in-surat" element={<Page><VisaConsultantsSuratPage /></Page>} />
       <Route path="/regional-coverage" element={<Page><RegionalDirectoryPage /></Page>} />
-      {/* State and Gujarat-city pages. Declared AFTER the static Surat route above,
-          which React Router ranks ahead of this pattern, so Surat keeps its own page. */}
-      <Route path="/visa-consultants-in-:place" element={<Page><LocationPage /></Page>} />
+      {/* State and Gujarat-city pages. One route each: React Router 7 only matches a
+          dynamic segment that occupies a whole path segment, so the tidier
+          "/visa-consultants-in-:place" matches nothing. See location-paths.ts. */}
+      {LOCATION_ROUTE_PATHS.map((path) => (
+        <Route key={path} path={path} element={<Page><LocationPage /></Page>} />
+      ))}
       <Route path="/guides" element={<Page><GuidesPage /></Page>} />
       <Route path="/pathways" element={<Page><PathwaysPage /></Page>} />
       <Route path="/pathways/:slug" element={<Page><PathwayPage /></Page>} />
