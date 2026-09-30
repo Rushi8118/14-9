@@ -1032,6 +1032,7 @@ export default function UrgentRequirementsAdminPage() {
               focusKeyword={form.focusKeyword}
               content={form.content}
               faqCount={form.faq.length}
+              faq={form.faq}
               imageAlt={form.imageAlt}
               existingSlugs={existingSlugs}
               existingTitles={existingTitles}

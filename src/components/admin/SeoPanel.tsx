@@ -244,6 +244,11 @@ export function SeoPanel(props: SeoPanelProps) {
   const analysis = useMemo(() => analyzeSeoContent(props), [
     props.title, props.metaTitle, props.metaDescription, props.slug, props.focusKeyword,
     props.content, props.faqCount, props.imageAlt, props.existingSlugs, props.existingTitles, props.currentSlug, props.currentTitle,
+    // The compliance checks read FAQ answers and the disclaimer, so editing one
+    // has to re-run the analysis. `faqCount` alone does not change when an
+    // answer is rewritten, which would leave a promised outcome unflagged.
+    // Serialised because `faq` is a fresh array on every render.
+    props.disclaimer, JSON.stringify(props.faq ?? []),
   ])
 
   const url = `${SITE_URL}${props.pathPrefix}/${props.slug || '(slug)'}`
