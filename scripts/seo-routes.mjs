@@ -40,6 +40,62 @@ function workCountries(root) {
   return found
 }
 
+/**
+ * State and Gujarat-city location routes, parsed from regional-coverage.ts.
+ *
+ * Read from the dataset rather than listed by hand so the routes cannot drift
+ * from the pages src/content/regional-pages.ts actually generates: a route
+ * listed here but not built prerenders a 404, and a page built but not listed
+ * never reaches sitemap.xml. The slug rule below must stay identical to
+ * `slugify` in regional-pages.ts.
+ *
+ * Surat is excluded: it has its own hand-written page and is already in
+ * STATIC_ROUTES.
+ */
+function locationRoutes(root) {
+  const source = readFileSync(resolve(root, 'src/content/regional-coverage.ts'), 'utf8')
+
+  const slugify = (value) =>
+    value
+      .toLowerCase()
+      .replace(/&/g, ' ')
+      .replace(/\band\b/g, ' ')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+
+  const entries = [
+    ...source.matchAll(
+      /name: '([^']+)',\s*\n\s*type: '(state|ut)',\s*\n\s*country: 'India'([\s\S]*?)majorCities: \[([^\]]*)\]/g,
+    ),
+  ]
+
+  if (entries.length < 20) {
+    throw new Error(
+      `[seo-routes] Parsed only ${entries.length} Indian regions from regional-coverage.ts. ` +
+      'Check INDIAN_STATES_DATA formatting — a silent miss here would drop pages from the site.',
+    )
+  }
+
+  const routes = entries.map(([, name]) => `/visa-consultants-in-${slugify(name)}`)
+
+  // Gujarat cities get their own pages; every other state's cities are served
+  // inside that state's page. See the header of regional-pages.ts for why.
+  const gujarat = entries.find(([, name]) => name === 'Gujarat')
+  if (!gujarat) throw new Error('[seo-routes] Gujarat missing from regional-coverage.ts')
+
+  const cities = gujarat[4]
+    .split(',')
+    .map((c) => c.trim().replace(/^'|'$/g, '').replace(/\s*\(.*?\)\s*/g, '').trim())
+    .filter(Boolean)
+    .filter((c) => c.toLowerCase() !== 'surat')
+
+  if (cities.length < 5) {
+    throw new Error(`[seo-routes] Parsed only ${cities.length} Gujarat cities — check majorCities formatting.`)
+  }
+
+  return [...routes, ...cities.map((c) => `/visa-consultants-in-${slugify(c)}`)]
+}
+
 export const STATIC_ROUTES = [
   '/',
   '/visa-consultants-in-surat',
@@ -116,6 +172,11 @@ function sourceFileForRoute(route) {
   if (route.startsWith('/guides')) return 'src/content/guides.ts'
   if (route === '/visa-consultants-in-surat') return 'src/content/local-surat.ts'
   if (route === '/regional-coverage') return 'src/content/regional-coverage.ts'
+  // Generated location pages: their text comes from regional-pages.ts, their
+  // facts from regional-coverage.ts. The generator is the better signal —
+  // editing it is what changes every one of these pages.
+  if (route.startsWith('/visa-consultants-in-') && route !== '/visa-consultants-in-surat')
+    return 'src/content/regional-pages.ts'
   return PAGE_COMPONENT_FOR_ROUTE[route] ?? null
 }
 
@@ -273,11 +334,13 @@ export async function getPublicRoutes(root) {
     ...requirements.map((row) => ({ path: `/urgent-requirements/${row.slug}`, lastmod: isoDate(row.updated_at) })),
   ]
 
-  const staticPaths = [...STATIC_ROUTES, ...workRoutes.map((r) => r.path)]
+  const locationPaths = locationRoutes(root)
+  const staticPaths = [...STATIC_ROUTES, ...workRoutes.map((r) => r.path), ...locationPaths]
   const lastmodFor = await staticRouteDates(root, staticPaths)
   const seen = new Set()
   return [
     ...STATIC_ROUTES.map((path) => ({ path, lastmod: lastmodFor(path) })),
+    ...locationPaths.map((path) => ({ path, lastmod: lastmodFor(path) })),
     ...workRoutes.map((r) => ({ ...r, lastmod: lastmodFor(r.path) })),
     ...dynamic,
   ].filter(({ path }) => {

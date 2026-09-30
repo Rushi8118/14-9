@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { regionPath } from '@/content/regional-pages'
 import {
   MapPin, Search, Globe2, Briefcase, GraduationCap,
   CheckCircle2, ArrowRight, Filter,
@@ -288,7 +289,15 @@ export default function RegionalDirectoryPage() {
                             {loc.country} · {loc.type === 'ut' ? 'Union Territory' : loc.type === 'state' ? 'State' : 'Country'}
                           </span>
                           <h3 className="mt-1 font-serif text-xl font-bold text-foreground">
-                            {loc.name}
+                            {/* Indian states have their own page; this hub is how Google
+                                reaches them, so the name has to be the link. */}
+                            {loc.country === 'India' ? (
+                              <Link to={regionPath(loc.name)} className="hover:text-primary">
+                                {loc.name}
+                              </Link>
+                            ) : (
+                              loc.name
+                            )}
                           </h3>
                         </div>
                         {loc.capital && (

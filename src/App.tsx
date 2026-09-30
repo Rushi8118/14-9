@@ -77,6 +77,7 @@ const ImmigrationDisclaimerPage = lazy(() => import('./pages/ImmigrationDisclaim
 const PathwaysPage = lazy(() => import('./pages/PathwaysPage'))
 const PathwayPage = lazy(() => import('./pages/PathwayPage'))
 const RegionalDirectoryPage = lazy(() => import('./pages/RegionalDirectoryPage'))
+const LocationPage = lazy(() => import('./pages/LocationPage'))
 
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
@@ -143,6 +144,9 @@ function AppRoutes() {
       <Route path="/work-visa/:slug" element={<Page><WorkVisaCountryPage /></Page>} />
       <Route path="/visa-consultants-in-surat" element={<Page><VisaConsultantsSuratPage /></Page>} />
       <Route path="/regional-coverage" element={<Page><RegionalDirectoryPage /></Page>} />
+      {/* State and Gujarat-city pages. Declared AFTER the static Surat route above,
+          which React Router ranks ahead of this pattern, so Surat keeps its own page. */}
+      <Route path="/visa-consultants-in-:place" element={<Page><LocationPage /></Page>} />
       <Route path="/guides" element={<Page><GuidesPage /></Page>} />
       <Route path="/pathways" element={<Page><PathwaysPage /></Page>} />
       <Route path="/pathways/:slug" element={<Page><PathwayPage /></Page>} />
