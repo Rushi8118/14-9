@@ -48,7 +48,13 @@ export default function BlogPostPage() {
     )
   }
 
-  const title = post.meta_title || post.title
+  let title = post.meta_title || post.title
+  // Avoid exact title collision with corresponding urgent requirement job mandates
+  if (post.slug === 'malta-hospitality-jobs-40-urgent-vacancies' && title.startsWith('Malta Hospitality Jobs: 40 Urgent Vacancies')) {
+    title = 'Malta Hospitality Jobs: 40 Vacancies Guide & Details'
+  } else if (post.slug === 'new-zealand-aewv-warehouse-jobs-nzd-3000' && title.startsWith('New Zealand AEWV Warehouse Jobs: NZD 2,500–3,000')) {
+    title = 'New Zealand AEWV Warehouse Jobs: NZD 3,000 Guide'
+  }
   const description = post.meta_desc || post.excerpt || ''
   const canonical = post.canonical_url || absoluteUrl(`/blog/${post.slug}`)
   const keywords = (post.keywords || []).join(', ')

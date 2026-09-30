@@ -145,7 +145,8 @@ function checkPage(route, rawHtml, claimPatterns) {
   const title = decodeEntities(titles[0]?.replace(/<\/?title[^>]*>/gi, '').trim() ?? '')
   if (title.length > 65) warn(route, `title is ${title.length} chars, Google truncates past ~60: "${title}"`)
 
-  const description = attr(html, 'meta', 'name="description"', 'content')
+  const rawDescription = attr(html, 'meta', 'name="description"', 'content')
+  const description = rawDescription ? decodeEntities(rawDescription) : null
   if (!description) error(route, 'no meta description')
   else if (description.length > 165) warn(route, `meta description is ${description.length} chars`)
   else if (description.length < 70) warn(route, `meta description is only ${description.length} chars`)

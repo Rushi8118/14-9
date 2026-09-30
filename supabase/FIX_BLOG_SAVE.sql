@@ -298,10 +298,15 @@ WHERE n.nspname = 'public' AND p.proname = 'save_blog_post'
 
 UNION ALL
 
+-- NOTE: this deliberately does NOT test auth.uid(). The Supabase SQL Editor runs
+-- as postgres, so auth.uid() is NULL there and any auth.uid() check reports a
+-- false negative no matter what role you actually hold. An earlier version of
+-- this file did exactly that and told an admin their account could not save.
 SELECT
-  'your role can save posts',
-  CASE WHEN EXISTS (
-    SELECT 1 FROM public.user_profiles
-    WHERE id = auth.uid()
-      AND user_role IN ('super_admin','superadmin','admin','marketing')
-  ) THEN 'OK' ELSE 'YOUR user_role CANNOT SAVE — see user_profiles.user_role' END;
+  'who can save blog posts',
+  COALESCE(
+    (SELECT string_agg(email, ', ' ORDER BY email)
+     FROM public.user_profiles
+     WHERE user_role IN ('super_admin','superadmin','admin','marketing')),
+    'NOBODY - no user_profiles row has an admin role'
+  );
