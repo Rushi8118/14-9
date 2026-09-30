@@ -900,3 +900,52 @@ export const PATHWAY_GROUPS: Array<{ title: string; description: string; slugs: 
     slugs: ['india-to-uk-work-visa', 'nepal-to-japan-work-visa-ssw', 'pakistan-to-uk-work-visa', 'pakistan-to-europe-work-visa', 'bangladesh-to-uk-work-visa', 'sri-lanka-to-canada-work-visa'],
   },
 ]
+
+/**
+ * Cross-link every pathway to its siblings.
+ *
+ * `build()` in pathways-build.ts gives each pathway the same three related
+ * links -- /pathways, /contact, /immigration-disclaimer -- and not one of them
+ * points at another pathway. The measurable result, crawled from production on
+ * 2026-09-30: all 14 pathway pages had exactly ONE inbound internal link, from
+ * the /pathways index. Google reported 7 pages as "Discovered - currently not
+ * indexed", which is what it says about a URL it found in a sitemap, saw linked
+ * once from a listing page, and judged not worth spending crawl budget on.
+ *
+ * The links are assigned as a cycle within each group: page i links forward to
+ * the next three members, wrapping around. That matters. Linking every page to
+ * "the first three siblings" would leave the pages at the end of each group
+ * with no inbound links at all -- the same defect in a new shape. A cycle gives
+ * every page exactly three in and three out.
+ *
+ * This is done here rather than in build() because PATHWAY_GROUPS lives in this
+ * file, and pathways-build.ts is imported by the page lists; reaching back for
+ * it from there is the circular import the comment at the top of that file
+ * warns about.
+ */
+const SIBLING_LINKS = 3
+
+for (const group of PATHWAY_GROUPS) {
+  const members = group.slugs.map((s) => PATHWAYS_BY_SLUG[s]).filter(Boolean)
+
+  members.forEach((page, i) => {
+    const siblings = []
+    for (let k = 1; k <= SIBLING_LINKS && k < members.length; k++) {
+      const sibling = members[(i + k) % members.length]
+      siblings.push({
+        label: sibling.title,
+        to: sibling.path,
+        description: sibling.heroDescription,
+      })
+    }
+
+    // Siblings first: they are the contextually useful links. Dedupe by target
+    // so a page listed in two groups does not get the same card twice.
+    const seen = new Set<string>()
+    page.related = [...siblings, ...page.related].filter((link) => {
+      if (link.to === page.path || seen.has(link.to)) return false
+      seen.add(link.to)
+      return true
+    })
+  })
+}
