@@ -8,7 +8,11 @@ const InteractiveGlobe = lazy(() => import('@/components/interactive-globe'))
 function GlobePoster() {
   return (
     <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-transparent">
-      <div className="relative h-64 w-64 rounded-full overflow-hidden shadow-[0_0_60px_rgba(245,184,61,0.4)] ring-1 ring-amber-300/40">
+      {/* Sizes with the viewport. It was a fixed h-64 w-64 (256px), which on a
+          375px phone sat inside a 340px-tall container and left a band of empty
+          space above and below it -- the globe looked stranded and pushed the
+          CTAs further below the fold. */}
+      <div className="relative aspect-square w-[58vw] max-w-64 rounded-full overflow-hidden shadow-[0_0_60px_rgba(245,184,61,0.4)] ring-1 ring-amber-300/40">
         {/* Homepage LCP element. 768px covers the 256px container at 2x DPR; the
             AVIF is ~56KB against 501KB for the full-size blue-marble texture. */}
         <picture>
@@ -164,7 +168,10 @@ export function Hero() {
           <div className="relative mx-auto w-full flex items-center justify-center">
             <div
               className="relative w-full overflow-visible bg-transparent"
-              style={{ height: 'clamp(340px, 46vw, 480px)' }}
+              // Floor was 340px, which on a phone is far taller than the poster
+              // inside it. 64vw tracks the poster (58vw) with a little breathing
+              // room, so the hero stops carrying dead space on small screens.
+              style={{ height: 'clamp(210px, 64vw, 480px)' }}
               aria-hidden="true"
             >
               {renderGlobe ? (
