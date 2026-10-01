@@ -1,4 +1,5 @@
 import { SeoHead } from '@/components/seo/SeoHead'
+import { StarRow } from '@/components/ui/star-row'
 import {
   breadcrumbSchema,
   organizationSchema,
@@ -7,7 +8,7 @@ import {
 } from '@/lib/seo/schema'
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Star, Quote, Search, Filter, Globe2 } from 'lucide-react'
+import { Quote, Search, Filter, Globe2 } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { Input } from '@/components/ui/input'
@@ -150,15 +151,12 @@ export default function ReviewsPage() {
                       </div>
                       <div>
                         <p className="font-bold text-foreground leading-none mb-1.5">{review.name}</p>
-                        <div className="flex gap-0.5" aria-label={`${review.rating} out of 5 stars`}>
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`h-3 w-3 ${i < review.rating ? "fill-primary text-primary" : "text-muted-foreground/30"}`}
-                              aria-hidden="true"
-                            />
-                          ))}
-                        </div>
+                        <StarRow
+                          count={5}
+                          filled={review.rating}
+                          starClassName="h-3 w-3"
+                          className="flex gap-0.5"
+                        />
                       </div>
                     </div>
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { Star } from "lucide-react";
+import { StarRow } from '@/components/ui/star-row'
 import { cn } from "@/lib/utils";
 import { CountUp } from "./count-up";
 import { Link } from "react-router-dom";
@@ -44,11 +44,12 @@ export const TrustedUsers: React.FC<TrustedUsersProps> = ({
       </div>
 
       <div className="flex flex-col items-center gap-2 text-center">
-        <div className={`flex gap-1 justify-center ${starColorClass}`}>
-          {Array.from({ length: rating }).map((_, i) => (
-            <Star key={i} fill="currentColor" className="w-5 h-5" aria-hidden="true" />
-          ))}
-        </div>
+        <StarRow
+          count={rating}
+          starClassName="w-5 h-5"
+          filledClassName=""
+          className={`flex gap-1 justify-center ${starColorClass}`}
+        />
         <div className="text-foreground text-sm md:text-base font-semibold">
           <span className="block">
             {caption}{" "}

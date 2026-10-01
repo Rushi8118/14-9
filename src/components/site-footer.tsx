@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { StarSprite } from '@/components/ui/star-row'
 import { trackEvent, GA_EVENTS } from "@/lib/analytics"
 import { NAP } from "@/lib/seo/site"
 import { SocialLinks } from "@/components/social-links"
@@ -18,6 +19,10 @@ import {
 export function SiteFooter() {
   return (
     <footer className="footer-gold-border border-t border-primary/30 bg-gradient-to-b from-card to-secondary">
+      {/* One <symbol> per page for every star on it. SVG <use> resolves by id
+          anywhere in the document, so defining it here -- in the one component
+          every page renders -- is enough regardless of where the stars appear. */}
+      <StarSprite />
       <div className="mx-auto max-w-7xl px-4 py-12 md:px-6">
 
         {/* Main Footer */}
@@ -32,6 +37,11 @@ export function SiteFooter() {
                   alt="Siddhivinayak Overseas logo"
                   width={32}
                   height={32}
+                  // Below the fold on every page. The header logo deliberately
+                  // stays eager: lazy-loading an above-the-fold image delays LCP,
+                  // which is the opposite of what the audit is asking for.
+                  loading="lazy"
+                  decoding="async"
                   className="h-8 w-8 object-contain"
                 />
               </span>
