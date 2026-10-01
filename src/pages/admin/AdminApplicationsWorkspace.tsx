@@ -295,13 +295,52 @@ export default function AdminApplicationsWorkspace() {
     try {
       if (isEnquiry) {
         const consultationStatus = values.status === 'approved' ? 'confirmed' : values.status === 'rejected' ? 'cancelled' : values.status === 'under_review' ? 'scheduled' : 'requested'
-        const { error: consultationError } = await supabase.from('consultations').update({ status: consultationStatus, assigned_consultant: values.officerId || null, consultant_notes: values.notes || null, updated_at: new Date().toISOString() }).eq('id', selectedApp.id)
+        /**
+         * Only status, officer and notes were ever written here, so editing the
+         * applicant's name, phone or priority on an enquiry silently did
+         * nothing -- the form reported success and the values reverted.
+         *
+         * name goes back into user_notes, which is where the forms put it and
+         * where get_all_applications now reads it from. The existing keys are
+         * preserved rather than replaced, because user_notes also carries the
+         * applicant's own message, the vacancy they applied to, and so on.
+         *
+         * phone has a real column on consultations and simply was not used.
+         *
+         * priority needs a column that does not exist yet; see
+         * supabase/FIX_APPLICATION_IDS.sql, which adds it.
+         */
+        const existingNotes = (detailQuery.data?.application.personal_info ?? {}) as Record<string, unknown>
+        const consultationUpdates: Record<string, unknown> = {
+          status: consultationStatus,
+          assigned_consultant: values.officerId || null,
+          consultant_notes: values.notes || null,
+          priority: values.priority || 'normal',
+          updated_at: new Date().toISOString(),
+        }
+        if (values.phone) consultationUpdates.phone_number = values.phone
+        if (values.fullName) {
+          consultationUpdates.user_notes = {
+            ...existingNotes,
+            name: values.fullName,
+            // Keep the key the vacancy form uses in step, or the list would go
+            // on showing the old name through its applicant_name fallback.
+            ...(existingNotes.applicant_name ? { applicant_name: values.fullName } : {}),
+          }
+        }
+        const { data: updatedConsultation, error: consultationError } = await supabase.from('consultations').update(consultationUpdates).eq('id', selectedApp.id).select('id').maybeSingle()
         if (consultationError) throw consultationError
+        if (!updatedConsultation) throw new Error('No consultation was updated. Check your admin permissions.')
       } else {
         const { error: applicationError } = await supabase.from('applications').update({ status: values.status, priority: values.priority, assigned_consultant: values.officerId || null, consultant_notes: values.notes || null, personal_info: { ...(detailQuery.data?.application.personal_info || {}), full_name: values.fullName, phone: values.phone }, updated_at: new Date().toISOString() }).eq('id', selectedApp.id)
         if (applicationError) throw applicationError
       }
-      if (values.fullName || values.phone) await supabase.from('user_profiles').update({ full_name: values.fullName || null, phone: values.phone || null, updated_at: new Date().toISOString() }).eq('id', selectedApp.user_id)
+      // Only when the row belongs to an account. An anonymous enquiry has
+      // user_id null, and `.eq('id', null)` matches nothing -- it looked like a
+      // save because it reported no error while updating no rows.
+      if (selectedApp.user_id && (values.fullName || values.phone)) {
+        await supabase.from('user_profiles').update({ full_name: values.fullName || null, phone: values.phone || null, updated_at: new Date().toISOString() }).eq('id', selectedApp.user_id)
+      }
       toast.success('Application details saved.')
       await queryClient.invalidateQueries({ queryKey: ['admin-applications'] })
       await detailQuery.refetch()

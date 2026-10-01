@@ -30,6 +30,11 @@ BEGIN
       'user_id', a.user_id,
       'visa_program_id', a.visa_program_id,
       'country_id', a.country_id,
+      -- The Country column read row.country_name, which this function never
+      -- returned, so every row displayed "Not set" no matter what country the
+      -- application was actually for.
+      'country_name', co.name,
+      'country_flag_emoji', co.flag_emoji,
       'country_name', c.name,
       'country_flag_emoji', c.flag_emoji,
       'application_type', a.application_type,
@@ -57,6 +62,7 @@ BEGIN
     a.created_at AS sort_date
     FROM applications AS a
     LEFT JOIN user_profiles AS up ON up.id = a.user_id
+    LEFT JOIN countries co ON co.id = a.country_id
     LEFT JOIN countries AS c ON c.id = a.country_id
     LEFT JOIN user_profiles AS officer ON officer.id = a.assigned_consultant
 
@@ -68,6 +74,10 @@ BEGIN
       'user_id', c.user_id,
       'visa_program_id', NULL,
       'country_id', NULL,
+      -- An enquiry has no countries row, but it does have the country the
+      -- person typed or picked on the form.
+      'country_name', NULLIF(TRIM(c.preferred_country), ''),
+      'country_flag_emoji', NULL,
       -- 'business' used to be the catch-all here, so an appointment booking and
       -- a vacancy application both displayed as Business, which is simply untrue
       -- of either. Each known consultation_type now maps to what it actually is;
@@ -97,10 +107,12 @@ BEGIN
         WHEN 'no_show'   THEN 'withdrawn'
         ELSE 'submitted'
       END,
-      -- consultations has no priority column, so this stays constant. Changing
-      -- priority on an enquiry row therefore cannot persist -- it needs a column
-      -- before the control can mean anything.
-      'priority', 'normal',
+      -- consultations.priority is added by supabase/FIX_APPLICATION_IDS.sql.
+      -- RUN THAT FILE FIRST: PostgreSQL validates a plpgsql body at CREATE time,
+      -- so if the column is absent this whole function fails to create with
+      -- "column c.priority does not exist" -- the COALESCE handles a NULL value,
+      -- not a missing column.
+      'priority', COALESCE(NULLIF(BTRIM(c.priority), ''), 'normal'),
       'personal_info', c.user_notes,
       'education_history', '[]'::JSONB,
       'work_history', '[]'::JSONB,
