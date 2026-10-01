@@ -35,7 +35,7 @@
  */
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
 
-const SMTP_HOST = Deno.env.get("SMTP_HOST") ?? "smtp.zoho.com"
+const SMTP_HOST = Deno.env.get("SMTP_HOST")
 const SMTP_PORT = Number(Deno.env.get("SMTP_PORT") ?? "465")
 const SMTP_USER = Deno.env.get("SMTP_USER") ?? "info@siddhivinayakoverseas.com"
 const SMTP_PASSWORD = Deno.env.get("SMTP_PASSWORD")

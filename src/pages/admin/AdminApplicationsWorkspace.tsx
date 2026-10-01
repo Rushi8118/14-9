@@ -155,6 +155,24 @@ export default function AdminApplicationsWorkspace() {
 
   useEffect(() => subscribePostgresChanges(supabase, 'admin-applications-workspace', { event: '*', schema: 'public', table: 'applications' }, () => { void refetch(); if (selectedApp) void detailQuery.refetch() }), [refetch, selectedApp, detailQuery])
 
+  /**
+   * Keep the open detail panel in step with the list.
+   *
+   * selectedApp is a snapshot of the row taken when it was clicked. Every action
+   * invalidates and refetches the list, but nothing re-pointed selectedApp at
+   * the refreshed row, so the panel header kept rendering the status the row had
+   * when it was opened -- changing an enquiry to Under Review updated the table
+   * and the panel still read "Submitted".
+   *
+   * Compared by id, and only assigned when the row object has actually changed,
+   * so this cannot loop on a stable refetch.
+   */
+  useEffect(() => {
+    if (!selectedApp) return
+    const fresh = rawData.find(row => row.id === selectedApp.id)
+    if (fresh && fresh !== selectedApp) setSelectedApp(fresh)
+  }, [rawData, selectedApp])
+
   const filtered = useMemo(() => rawData.filter(row => {
     const q = search.toLowerCase()
     const matchesSearch = !q || [row.application_id, row.user_profile_full_name, row.user_profile_email, row.country_name, row.application_type].some(v => v?.toLowerCase().includes(q))

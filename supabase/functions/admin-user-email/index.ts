@@ -6,8 +6,7 @@
 // most already-created/confirmed users it silently no-ops.
 //
 // This function uses the service-role key to generate the correct auth link
-// via `supabase.auth.admin.generateLink(...)` and delivers it using the same
-// Zoho SMTP mechanism already used by `send-welcome-email`.
+// via `supabase.auth.admin.generateLink(...)` and delivers it using SMTP.
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4"
 
@@ -15,10 +14,10 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 const SITE_URL = Deno.env.get("SITE_URL") ?? "https://siddhivinayakoverseas.com"
 
-const ZOHO_SMTP_HOST = "smtp.zoho.com"
-const ZOHO_SMTP_PORT = 465
-const ZOHO_EMAIL = "info@siddhivinayakoverseas.com"
-const ZOHO_APP_PASSWORD = Deno.env.get("ZOHO_APP_PASSWORD")
+const SMTP_HOST = Deno.env.get("SMTP_HOST") ?? Deno.env.get("ZOHO_SMTP_HOST") ?? ""
+const SMTP_PORT = Number(Deno.env.get("SMTP_PORT") ?? Deno.env.get("ZOHO_SMTP_PORT") ?? "465")
+const SMTP_USER = Deno.env.get("SMTP_USER") ?? Deno.env.get("ZOHO_EMAIL") ?? "info@siddhivinayakoverseas.com"
+const SMTP_PASSWORD = Deno.env.get("SMTP_PASSWORD") ?? Deno.env.get("ZOHO_APP_PASSWORD")
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -26,13 +25,13 @@ const CORS_HEADERS = {
 }
 
 async function sendEmail(to: string, subject: string, text: string, html: string) {
-  if (!ZOHO_APP_PASSWORD) {
-    throw new Error("Email is not configured on the server (ZOHO_APP_PASSWORD missing)")
+  if (!SMTP_PASSWORD || !SMTP_HOST) {
+    throw new Error("Email is not configured on the server (SMTP_PASSWORD missing)")
   }
 
   const boundary = `----=_Part_${Date.now()}`
   const rawEmail = [
-    `From: Siddhivinayak Overseas <${ZOHO_EMAIL}>`,
+    `From: Siddhivinayak Overseas <${SMTP_USER}>`,
     `To: ${to}`,
     `Subject: ${subject}`,
     `MIME-Version: 1.0`,
@@ -50,7 +49,7 @@ async function sendEmail(to: string, subject: string, text: string, html: string
     `--${boundary}--`,
   ].join("\r\n")
 
-  const conn = await Deno.connect({ hostname: ZOHO_SMTP_HOST, port: ZOHO_SMTP_PORT, transport: "tcp" })
+  const conn = await Deno.connect({ hostname: SMTP_HOST, port: SMTP_PORT, transport: "tcp" })
   const encoder = new TextEncoder()
   const decoder = new TextDecoder()
   const buf = new Uint8Array(4096)
@@ -67,12 +66,12 @@ async function sendEmail(to: string, subject: string, text: string, html: string
   try {
     const greeting = await readResponse()
     if (!greeting.startsWith("220")) throw new Error(`SMTP greeting failed: ${greeting}`)
-    await send(`EHLO ${ZOHO_SMTP_HOST}`)
+    await send(`EHLO ${SMTP_HOST}`)
     await send("AUTH LOGIN")
-    await send(btoa(ZOHO_EMAIL))
-    const authResp = await send(btoa(ZOHO_APP_PASSWORD))
+    await send(btoa(SMTP_USER))
+    const authResp = await send(btoa(SMTP_PASSWORD))
     if (!authResp.startsWith("235")) throw new Error(`SMTP auth failed: ${authResp}`)
-    await send(`MAIL FROM:<${ZOHO_EMAIL}>`)
+    await send(`MAIL FROM:<${SMTP_USER}>`)
     const rcpt = await send(`RCPT TO:<${to}>`)
     if (!rcpt.startsWith("250")) throw new Error(`SMTP recipient rejected: ${rcpt}`)
     await send("DATA")

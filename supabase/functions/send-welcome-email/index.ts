@@ -1,9 +1,9 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
 
-const ZOHO_SMTP_HOST = "smtp.zoho.com"
-const ZOHO_SMTP_PORT = 465
-const ZOHO_EMAIL = "info@siddhivinayakoverseas.com"
-const ZOHO_APP_PASSWORD = Deno.env.get("ZOHO_APP_PASSWORD")
+const SMTP_HOST = Deno.env.get("SMTP_HOST") ?? Deno.env.get("ZOHO_SMTP_HOST") ?? ""
+const SMTP_PORT = Number(Deno.env.get("SMTP_PORT") ?? Deno.env.get("ZOHO_SMTP_PORT") ?? "465")
+const SMTP_USER = Deno.env.get("SMTP_USER") ?? Deno.env.get("ZOHO_EMAIL") ?? "info@siddhivinayakoverseas.com"
+const SMTP_PASSWORD = Deno.env.get("SMTP_PASSWORD") ?? Deno.env.get("ZOHO_APP_PASSWORD")
 
 serve(async (req) => {
   if (req.method !== "POST") {
@@ -20,8 +20,8 @@ serve(async (req) => {
       })
     }
 
-    if (!ZOHO_APP_PASSWORD) {
-      console.error("ZOHO_APP_PASSWORD secret not set")
+    if (!SMTP_PASSWORD || !SMTP_HOST) {
+      console.error("SMTP_PASSWORD or SMTP_HOST secret not set")
       return new Response(JSON.stringify({ error: "Server configuration error" }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
@@ -32,7 +32,7 @@ serve(async (req) => {
 
     const boundary = `----=_Part_${Date.now()}`
     const rawEmail = [
-      `From: Siddhivinayak Overseas <${ZOHO_EMAIL}>`,
+      `From: Siddhivinayak Overseas <${SMTP_USER}>`,
       `To: ${email}`,
       `Subject: Welcome to Siddhivinayak Overseas!`,
       `MIME-Version: 1.0`,
@@ -84,7 +84,7 @@ serve(async (req) => {
       `</table>`,
       `<hr style="border:none;border-top:1px solid #eee;margin:32px 0;">`,
       `<p style="color:#999;font-size:13px;margin:0;line-height:1.6;">`,
-      `Need help? Contact us at <a href="mailto:${ZOHO_EMAIL}" style="color:#d4a843;">${ZOHO_EMAIL}</a> or call +91 98765 43210.`,
+      `Need help? Contact us at <a href="mailto:${SMTP_USER}" style="color:#d4a843;">${SMTP_USER}</a> or call +91 98765 43210.`,
       `</p>`,
       `</td></tr>`,
       `<tr><td style="background:#f9f9f9;padding:20px 40px;text-align:center;">`,
@@ -100,10 +100,10 @@ serve(async (req) => {
       `--${boundary}--`,
     ].join("\r\n")
 
-    // Connect to Zoho SMTP via TLS on port 465
+    // Connect to SMTP via TLS on port 465
     const conn = await Deno.connect({
-      hostname: ZOHO_SMTP_HOST,
-      port: ZOHO_SMTP_PORT,
+      hostname: SMTP_HOST,
+      port: SMTP_PORT,
       transport: "tcp",
     })
 
@@ -123,11 +123,11 @@ serve(async (req) => {
 
     // SMTP handshake
     await readResponse() // greeting
-    await send(`EHLO ${ZOHO_SMTP_HOST}`)
+    await send(`EHLO ${SMTP_HOST}`)
     await send("AUTH LOGIN")
-    await send(btoa(ZOHO_EMAIL))
-    await send(btoa(ZOHO_APP_PASSWORD))
-    await send(`MAIL FROM:<${ZOHO_EMAIL}>`)
+    await send(btoa(SMTP_USER))
+    await send(btoa(SMTP_PASSWORD))
+    await send(`MAIL FROM:<${SMTP_USER}>`)
     await send(`RCPT TO:<${email}>`)
     await send("DATA")
     await send(rawEmail + "\r\n.")

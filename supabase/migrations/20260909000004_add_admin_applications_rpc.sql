@@ -80,7 +80,26 @@ BEGIN
         WHEN c.consultation_type = 'general' THEN 'consultation'
         ELSE 'enquiry'
       END,
-      'status', 'submitted',
+      -- Was hardcoded to 'submitted', so a consultation's real status was never
+      -- reported: changing an enquiry to Under Review wrote 'scheduled' to the
+      -- table correctly and the list read back "Submitted" every time, which
+      -- looked exactly like the update had failed.
+      --
+      -- This is the inverse of the mapping the admin client writes:
+      --   approved -> confirmed, rejected -> cancelled,
+      --   under_review -> scheduled, anything else -> requested
+      'status', CASE c.status
+        WHEN 'requested' THEN 'submitted'
+        WHEN 'scheduled' THEN 'under_review'
+        WHEN 'confirmed' THEN 'approved'
+        WHEN 'completed' THEN 'approved'
+        WHEN 'cancelled' THEN 'rejected'
+        WHEN 'no_show'   THEN 'withdrawn'
+        ELSE 'submitted'
+      END,
+      -- consultations has no priority column, so this stays constant. Changing
+      -- priority on an enquiry row therefore cannot persist -- it needs a column
+      -- before the control can mean anything.
       'priority', 'normal',
       'personal_info', c.user_notes,
       'education_history', '[]'::JSONB,
