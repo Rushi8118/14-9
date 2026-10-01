@@ -8,7 +8,11 @@ const InteractiveGlobe = lazy(() => import('@/components/interactive-globe'))
 function GlobePoster() {
   return (
     <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-transparent">
-      <div className="relative h-64 w-64 rounded-full overflow-hidden shadow-[0_0_60px_rgba(245,184,61,0.4)] ring-1 ring-amber-300/40">
+      {/* Sizes with the viewport. It was a fixed h-64 w-64 (256px), which on a
+          375px phone sat inside a 340px-tall container and left a band of empty
+          space above and below it -- the globe looked stranded and pushed the
+          CTAs further below the fold. */}
+      <div className="relative aspect-square w-[58vw] max-w-64 rounded-full overflow-hidden shadow-[0_0_60px_rgba(245,184,61,0.4)] ring-1 ring-amber-300/40">
         {/* Homepage LCP element. 768px covers the 256px container at 2x DPR; the
             AVIF is ~56KB against 501KB for the full-size blue-marble texture. */}
         <picture>
@@ -30,21 +34,62 @@ function GlobePoster() {
 }
 
 /**
- * The 3D globe is decorative and costs a three.js bundle plus texture downloads,
- * so phones and data-saver users get the poster image instead.
+ * The 3D globe is decorative and costs a three.js bundle plus texture downloads.
+ * Desktop loads it immediately; phones paint the poster first and upgrade to the
+ * globe when the browser goes idle. Data-saver and 2g users keep the poster.
  */
 function useGlobeEnabled() {
   const [enabled, setEnabled] = useState(false)
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return
-    const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData
-    if (saveData) return
 
-    const query = window.matchMedia('(min-width: 1024px)')
-    const apply = () => setEnabled(query.matches)
-    apply()
-    query.addEventListener('change', apply)
-    return () => query.removeEventListener('change', apply)
+    const connection = (navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string }
+    }).connection
+
+    // Data-saver is an explicit request not to download a megabyte of 3D for
+    // decoration. Honour it on every screen size.
+    if (connection?.saveData) return
+    // Same for a connection that genuinely cannot carry it.
+    if (connection?.effectiveType === 'slow-2g' || connection?.effectiveType === '2g') return
+
+    // Desktop: start immediately, as before.
+    if (window.matchMedia('(min-width: 1024px)').matches) {
+      setEnabled(true)
+      return
+    }
+
+    /**
+     * Phones now get the real rotating globe too, but not at the cost of first
+     * paint. The scene is three.js (~732KB) plus react-three-fiber (~157KB) plus
+     * four textures (~159KB as WebP) -- starting that during load would push out
+     * LCP on exactly the devices least able to absorb it.
+     *
+     * So the poster image paints first and remains the LCP element, and the 3D
+     * globe replaces it once the browser reports it is idle. The swap happens in
+     * the same box at the same size, so nothing moves and CLS stays at zero.
+     */
+    // Typed locally rather than through `window`, because narrowing on
+    // `'requestIdleCallback' in window` collapses the else-branch to never.
+    const idle = window as unknown as {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number
+      cancelIdleCallback?: (id: number) => void
+    }
+
+    let idleId = 0
+    let timerId = 0
+    const start = () => setEnabled(true)
+
+    if (typeof idle.requestIdleCallback === 'function') {
+      idleId = idle.requestIdleCallback(start, { timeout: 2500 })
+    } else {
+      timerId = window.setTimeout(start, 1200)
+    }
+
+    return () => {
+      if (idleId && typeof idle.cancelIdleCallback === 'function') idle.cancelIdleCallback(idleId)
+      if (timerId) window.clearTimeout(timerId)
+    }
   }, [])
   return enabled
 }
@@ -164,7 +209,10 @@ export function Hero() {
           <div className="relative mx-auto w-full flex items-center justify-center">
             <div
               className="relative w-full overflow-visible bg-transparent"
-              style={{ height: 'clamp(340px, 46vw, 480px)' }}
+              // Floor was 340px, which on a phone is far taller than the poster
+              // inside it. 64vw tracks the poster (58vw) with a little breathing
+              // room, so the hero stops carrying dead space on small screens.
+              style={{ height: 'clamp(210px, 64vw, 480px)' }}
               aria-hidden="true"
             >
               {renderGlobe ? (
