@@ -68,10 +68,17 @@ BEGIN
       'user_id', c.user_id,
       'visa_program_id', NULL,
       'country_id', NULL,
+      -- 'business' used to be the catch-all here, so an appointment booking and
+      -- a vacancy application both displayed as Business, which is simply untrue
+      -- of either. Each known consultation_type now maps to what it actually is;
+      -- only a genuine B2B enquiry is Business.
       'application_type', CASE
         WHEN c.consultation_type = 'study_visa' THEN 'study'
         WHEN c.consultation_type = 'work_visa' THEN 'work'
-        ELSE 'business'
+        WHEN c.consultation_type = 'urgent_requirement' THEN 'work'
+        WHEN c.consultation_type = 'b2b_enquiry' THEN 'business'
+        WHEN c.consultation_type = 'general' THEN 'consultation'
+        ELSE 'enquiry'
       END,
       'status', 'submitted',
       'priority', 'normal',
@@ -109,6 +116,11 @@ BEGIN
         NULLIF(TRIM(c.user_notes ->> 'name'), ''),
         NULLIF(TRIM(c.user_notes ->> 'full_name'), ''),
         NULLIF(TRIM(c.user_notes ->> 'fullName'), ''),
+        -- UrgentRequirementDetailPage writes the applicant under these two keys.
+        -- Missing them is why "apply for this vacancy" leads still read Unknown
+        -- after the first pass of this fix.
+        NULLIF(TRIM(c.user_notes ->> 'applicant_name'), ''),
+        NULLIF(TRIM(c.user_notes ->> 'applicantName'), ''),
         NULLIF(TRIM(c.user_notes ->> 'contact_person'), ''),
         NULLIF(TRIM(CONCAT_WS(' ', c.user_notes ->> 'first_name', c.user_notes ->> 'last_name')), ''),
         NULLIF(TRIM(c.user_notes ->> 'company'), '')
@@ -116,6 +128,8 @@ BEGIN
       'user_profile_email', COALESCE(
         up.email,
         NULLIF(TRIM(c.user_notes ->> 'email'), ''),
+        NULLIF(TRIM(c.user_notes ->> 'applicant_email'), ''),
+        NULLIF(TRIM(c.user_notes ->> 'applicantEmail'), ''),
         NULLIF(TRIM(c.user_notes ->> 'business_email'), '')
       )
     ) AS row_data,
