@@ -1,6 +1,15 @@
 -- =========================================================
 -- RPC function to fetch all applications (bypasses RLS)
 -- Run this in Supabase SQL Editor
+--
+-- 2026-10-01: fixes the admin Applications list showing "Unknown" for every
+-- enquiry row. The consultations branch read the applicant's name from
+-- user_profiles via c.user_id, but an enquiry from the public contact form has
+-- no account, so user_id is NULL and the LEFT JOIN returned nothing. The name
+-- and email the submitter actually typed sit in c.user_notes; they are now read
+-- from there whenever there is no profile.
+--
+-- Re-running this file is safe: it is CREATE OR REPLACE and changes no data.
 -- =========================================================
 
 DROP FUNCTION IF EXISTS public.get_all_applications();
@@ -19,6 +28,21 @@ DECLARE
   result jsonb;
   v_offset INT := (p_page - 1) * p_page_size;
 BEGIN
+  -- This function is SECURITY DEFINER, so it runs with the owner's rights and
+  -- bypasses RLS entirely. Without this check any authenticated user could call
+  -- it and read every application and consultation on the site -- names, phone
+  -- numbers, whatsapp numbers, preferred countries and consultant_notes.
+  --
+  -- migrations/20260909000004_add_admin_applications_rpc.sql has always had this
+  -- guard. This file did not, and both define the same function with the same
+  -- signature, so whichever ran last decided whether the data was protected.
+  -- They now match, which is the point: a CREATE OR REPLACE that silently
+  -- removes a permission check is the same defect that downgraded
+  -- save_blog_post from 26 fields to 12.
+  IF NOT user_has_permission(ARRAY['applications.read', 'applications.process']) THEN
+    RAISE EXCEPTION 'insufficient privileges';
+  END IF;
+
   SELECT COALESCE(jsonb_agg(row_data), '[]'::jsonb) INTO result
   FROM (
     SELECT jsonb_build_object(
@@ -87,8 +111,26 @@ BEGIN
       ),
       'created_at', c.created_at,
       'updated_at', c.updated_at,
-      'user_profile_full_name', up.full_name,
-      'user_profile_email', up.email
+      -- An enquiry submitted from the public contact form has no account, so
+      -- c.user_id is NULL and this LEFT JOIN yields nothing -- which is why the
+      -- admin list showed "Unknown" for every such row. The submitter's name and
+      -- email are in c.user_notes, put there by the form; read them when there
+      -- is no profile to read instead. Several key spellings are tried because
+      -- the forms on this site have not always agreed on one.
+      'user_profile_full_name', COALESCE(
+        up.full_name,
+        NULLIF(TRIM(c.user_notes ->> 'name'), ''),
+        NULLIF(TRIM(c.user_notes ->> 'full_name'), ''),
+        NULLIF(TRIM(c.user_notes ->> 'fullName'), ''),
+        NULLIF(TRIM(c.user_notes ->> 'contact_person'), ''),
+        NULLIF(TRIM(CONCAT_WS(' ', c.user_notes ->> 'first_name', c.user_notes ->> 'last_name')), ''),
+        NULLIF(TRIM(c.user_notes ->> 'company'), '')
+      ),
+      'user_profile_email', COALESCE(
+        up.email,
+        NULLIF(TRIM(c.user_notes ->> 'email'), ''),
+        NULLIF(TRIM(c.user_notes ->> 'business_email'), '')
+      )
     ) AS row_data,
     c.created_at AS sort_date
     FROM consultations c

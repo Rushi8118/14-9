@@ -166,6 +166,21 @@ export default function AdminApplicationsWorkspace() {
   const runAction = async () => {
     if (!action || actionPending) return
     const ids = action.row ? [action.row.id] : selected
+    /**
+     * Enquiry rows are consultations surfaced as pseudo-applications (ENQ-xxxx).
+     * Their id is a consultations id, so manage_application cannot find them and
+     * returns "Application not found" -- which is correct of it, and was being
+     * thrown straight at the user. The RPC fallback below only triggered when the
+     * function was MISSING, never when it ran and legitimately found nothing.
+     *
+     * Resolved per id rather than from action.row, because a bulk action over
+     * `selected` has no row and can mix applications with enquiries.
+     */
+    const rowById = new Map(rawData.map(row => [row.id, row]))
+    const isEnquiryRow = (id: string) => {
+      const row = rowById.get(id) ?? (action.row?.id === id ? action.row : undefined)
+      return Boolean(row?.application_id?.startsWith('ENQ-') || row?.meta?.source === 'consultations')
+    }
     if (!ids.length) return
     const rpcAction = action.name === 'under_review' ? 'change_status' : action.name
     const rpcValue = action.name === 'under_review' ? 'under_review' : action.value
@@ -173,10 +188,13 @@ export default function AdminApplicationsWorkspace() {
     setActionPending(true)
     try {
       for (const id of ids) {
-        const rpcResult = await supabase.rpc('manage_application', { p_application_id: id, p_action: rpcAction, p_value: rpcValue ? (rpcAction === 'assign' ? { officer_id: rpcValue } : rpcAction === 'change_priority' ? { priority: rpcValue } : { status: rpcValue }) : {}, p_reason: reason.trim() || null })
-        if (rpcResult.error && !/schema cache|could not find the function|PGRST202/i.test(rpcResult.error.message)) throw rpcResult.error
+        const isEnquiry = isEnquiryRow(id)
+        // Skip the RPC for enquiries: it only knows the applications table.
+        const rpcResult = isEnquiry
+          ? { error: { message: 'skipped: enquiry row, handled against consultations' } as { message: string } }
+          : await supabase.rpc('manage_application', { p_application_id: id, p_action: rpcAction, p_value: rpcValue ? (rpcAction === 'assign' ? { officer_id: rpcValue } : rpcAction === 'change_priority' ? { priority: rpcValue } : { status: rpcValue }) : {}, p_reason: reason.trim() || null })
+        if (!isEnquiry && rpcResult.error && !/schema cache|could not find the function|PGRST202/i.test(rpcResult.error.message)) throw rpcResult.error
         if (rpcResult.error) {
-          const isEnquiry = action.row?.application_id?.startsWith('ENQ-')
           if (isEnquiry) {
             const consultationUpdates: Record<string, unknown> = { updated_at: new Date().toISOString() }
             if (rpcAction === 'change_status' || ['approve', 'reject', 'request_documents'].includes(rpcAction)) consultationUpdates.status = rpcAction === 'approve' || rpcValue === 'approved' ? 'confirmed' : rpcAction === 'reject' || rpcValue === 'rejected' ? 'cancelled' : rpcAction === 'request_documents' ? 'requested' : 'scheduled'
@@ -218,8 +236,19 @@ export default function AdminApplicationsWorkspace() {
   const setCaseStatus = async (status: string) => {
     if (!selectedApp) return
     try {
-      const { error: rpcError } = await supabase.rpc('set_application_case_status', { p_application_id: selectedApp.id, p_status: status })
-      if (rpcError) throw rpcError
+      // Same reason as runAction: set_application_case_status only knows the
+      // applications table, so an ENQ- row's consultations id makes it report
+      // "Application not found".
+      const isEnquiry = selectedApp.application_id?.startsWith('ENQ-') || selectedApp.meta?.source === 'consultations'
+      if (isEnquiry) {
+        const consultationStatus = status === 'approved' ? 'confirmed' : status === 'rejected' ? 'cancelled' : status === 'under_review' ? 'scheduled' : 'requested'
+        const { data: updated, error: consultationError } = await supabase.from('consultations').update({ status: consultationStatus, updated_at: new Date().toISOString() }).eq('id', selectedApp.id).select('id').maybeSingle()
+        if (consultationError) throw consultationError
+        if (!updated) throw new Error('No consultation was updated. Check your admin permissions.')
+      } else {
+        const { error: rpcError } = await supabase.rpc('set_application_case_status', { p_application_id: selectedApp.id, p_status: status })
+        if (rpcError) throw rpcError
+      }
       toast.success(`Case marked ${pretty(status)}.`)
       await queryClient.invalidateQueries({ queryKey: ['admin-applications'] })
       await detailQuery.refetch()

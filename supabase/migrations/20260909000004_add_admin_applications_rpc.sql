@@ -98,8 +98,26 @@ BEGIN
       ),
       'created_at', c.created_at,
       'updated_at', c.updated_at,
-      'user_profile_full_name', up.full_name,
-      'user_profile_email', up.email
+      -- An enquiry submitted from the public contact form has no account, so
+      -- c.user_id is NULL and this LEFT JOIN yields nothing -- which is why the
+      -- admin list showed "Unknown" for every such row. The submitter's name and
+      -- email are in c.user_notes, put there by the form; read them when there
+      -- is no profile to read instead. Several key spellings are tried because
+      -- the forms on this site have not always agreed on one.
+      'user_profile_full_name', COALESCE(
+        up.full_name,
+        NULLIF(TRIM(c.user_notes ->> 'name'), ''),
+        NULLIF(TRIM(c.user_notes ->> 'full_name'), ''),
+        NULLIF(TRIM(c.user_notes ->> 'fullName'), ''),
+        NULLIF(TRIM(c.user_notes ->> 'contact_person'), ''),
+        NULLIF(TRIM(CONCAT_WS(' ', c.user_notes ->> 'first_name', c.user_notes ->> 'last_name')), ''),
+        NULLIF(TRIM(c.user_notes ->> 'company'), '')
+      ),
+      'user_profile_email', COALESCE(
+        up.email,
+        NULLIF(TRIM(c.user_notes ->> 'email'), ''),
+        NULLIF(TRIM(c.user_notes ->> 'business_email'), '')
+      )
     ) AS row_data,
     c.created_at AS sort_date
     FROM consultations AS c
