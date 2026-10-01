@@ -213,6 +213,20 @@ export default function AdminApplicationsWorkspace() {
             if (deleteError) throw deleteError
           } else {
             const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+            /**
+             * approve / reject / return_for_corrections / request_documents used
+             * to fall through this block setting nothing but updated_at, so the
+             * toast said the action completed and the row never changed. Only
+             * change_status was mapped. The consultations branch above always
+             * handled these; the applications branch did not.
+             */
+            const STATUS_FOR_ACTION: Record<string, string> = {
+              approve: 'approved',
+              reject: 'rejected',
+              return_for_corrections: 'draft',
+              request_documents: 'under_review',
+            }
+            if (STATUS_FOR_ACTION[rpcAction]) updates.status = STATUS_FOR_ACTION[rpcAction]
             if (rpcAction === 'change_status') updates.status = rpcValue
             if (rpcAction === 'change_priority') updates.priority = rpcValue
             if (rpcAction === 'assign') updates.assigned_consultant = rpcValue || null
