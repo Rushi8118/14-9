@@ -195,7 +195,7 @@ Ranges vary widely by country and route — from a few weeks to several months. 
 No, and nobody honestly can — the decision rests with the immigration authority. What we do is make sure your file is complete, consistent and meets the published criteria, which is what reduces avoidable refusals.
 
 **Q: Where is your office?**
-620, 6th Floor, Pragti IT Park, Kiran Chowk to Yogi Chowk Road, Surat, Gujarat 395006. Call +91 99250 64666.
+620, 6th Floor, Pragti IT Park, Kiran Chowk to Yogi Chowk Road, Surat, Gujarat 395006. Call +91 95120 00632.
 
 **Q: What does it cost?**
 Our service charges are separate from government and embassy fees. We quote both in writing before you commit — no hidden charges.

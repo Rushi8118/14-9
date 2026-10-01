@@ -134,7 +134,8 @@ const body = `# Siddhivinayak Overseas
 ## Contact
 
 - Office: 620, 6th Floor, Pragti IT Park, Kiran Chowk to Yogi Chowk Road, Surat, Gujarat 395006, India
-- Phone / WhatsApp: +91 99250 64666
+- Phone: +91 95120 00632
+- WhatsApp: +91 95120 00632
 - Email: info@siddhivinayakoverseas.com
 - Consultation: ${SITE_URL}/contact
 

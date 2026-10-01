@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://siddhivinayakoverseas.com/visa-consultants-in-surat</loc>
@@ -82,15 +83,19 @@
   </url>
   <url>
     <loc>https://siddhivinayakoverseas.com/for-business</loc>
+    <lastmod>2026-09-30</lastmod>
   </url>
   <url>
     <loc>https://siddhivinayakoverseas.com/for-business/employers</loc>
+    <lastmod>2026-09-30</lastmod>
   </url>
   <url>
     <loc>https://siddhivinayakoverseas.com/for-business/recruitment-partners</loc>
+    <lastmod>2026-09-30</lastmod>
   </url>
   <url>
     <loc>https://siddhivinayakoverseas.com/for-business/contact</loc>
+    <lastmod>2026-10-01</lastmod>
   </url>
   <url>
     <loc>https://siddhivinayakoverseas.com/guides</loc>
@@ -222,11 +227,11 @@
   </url>
   <url>
     <loc>https://siddhivinayakoverseas.com/blog</loc>
-    <lastmod>2026-09-29</lastmod>
+    <lastmod>2026-10-01</lastmod>
   </url>
   <url>
     <loc>https://siddhivinayakoverseas.com/urgent-requirements</loc>
-    <lastmod>2026-09-29</lastmod>
+    <lastmod>2026-10-01</lastmod>
   </url>
   <url>
     <loc>https://siddhivinayakoverseas.com/privacy</loc>
@@ -385,6 +390,10 @@
     <lastmod>2026-09-29</lastmod>
   </url>
   <url>
+    <loc>https://siddhivinayakoverseas.com/work-visa/malta</loc>
+    <lastmod>2026-09-29</lastmod>
+  </url>
+  <url>
     <loc>https://siddhivinayakoverseas.com/work-visa/uk</loc>
     <lastmod>2026-09-29</lastmod>
   </url>
@@ -454,7 +463,7 @@
   </url>
   <url>
     <loc>https://siddhivinayakoverseas.com/urgent-requirements/hotel-jobs-australia-overseas-workers</loc>
-    <lastmod>2026-09-17</lastmod>
+    <lastmod>2026-10-01</lastmod>
   </url>
   <url>
     <loc>https://siddhivinayakoverseas.com/urgent-requirements/hong-kong-restaurant-jobs-indian-workers</loc>
@@ -473,16 +482,28 @@
     <lastmod>2026-09-28</lastmod>
   </url>
   <url>
-    <loc>https://siddhivinayakoverseas.com/urgent-requirements/italy-healthcare-jobs-850-urgent-vacancies</loc>
-    <lastmod>2026-09-30</lastmod>
+    <loc>https://siddhivinayakoverseas.com/urgent-requirements/israel-visit-visa-jobs-work-travel-opportunity</loc>
+    <lastmod>2026-10-01</lastmod>
   </url>
   <url>
-    <loc>https://siddhivinayakoverseas.com/urgent-requirements/paper-factory-packing-jobs-belarus</loc>
-    <lastmod>2026-09-22</lastmod>
+    <loc>https://siddhivinayakoverseas.com/urgent-requirements/turkey-warehouse-worker-jobs</loc>
+    <lastmod>2026-10-01</lastmod>
+  </url>
+  <url>
+    <loc>https://siddhivinayakoverseas.com/urgent-requirements/malta-hospitality-jobs-40-urgent-vacancies</loc>
+    <lastmod>2026-10-01</lastmod>
+  </url>
+  <url>
+    <loc>https://siddhivinayakoverseas.com/urgent-requirements/italy-healthcare-jobs-850-urgent-vacancies</loc>
+    <lastmod>2026-10-01</lastmod>
   </url>
   <url>
     <loc>https://siddhivinayakoverseas.com/urgent-requirements/new-zealand-aewv-warehouse-jobs</loc>
     <lastmod>2026-09-28</lastmod>
+  </url>
+  <url>
+    <loc>https://siddhivinayakoverseas.com/urgent-requirements/paper-factory-packing-jobs-belarus</loc>
+    <lastmod>2026-10-01</lastmod>
   </url>
   <url>
     <loc>https://siddhivinayakoverseas.com/urgent-requirements/germany-warehouse-loading-unloading-jobs</loc>

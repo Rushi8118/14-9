@@ -1,4 +1,5 @@
-import { Quote, Star, ArrowRight } from 'lucide-react'
+import { Quote, ArrowRight } from 'lucide-react'
+import { StarRow } from '@/components/ui/star-row'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { customerReviews, getReviewInitials } from '@/lib/reviews-data'
@@ -36,15 +37,12 @@ export function Testimonials() {
                 <div className="card-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                   {getReviewInitials(t.name)}
                 </div>
-                <div className="flex gap-0.5" aria-label={`${t.rating} out of 5 stars`}>
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`h-3 w-3 ${i < t.rating ? 'fill-primary text-primary' : 'text-muted-foreground/30'}`}
-                      aria-hidden="true"
-                    />
-                  ))}
-                </div>
+                <StarRow
+                  count={5}
+                  filled={t.rating}
+                  starClassName="h-3 w-3"
+                  className="flex gap-0.5"
+                />
               </div>
               <blockquote className="grow text-sm leading-relaxed text-foreground/90 italic">
                 &ldquo;{t.text}&rdquo;

@@ -155,11 +155,10 @@ export function SiteHeader() {
       </a>
 
       <header
-        className={`fixed inset-x-0 top-0 z-50 backdrop-blur-xl transition-[background-color,border-color,box-shadow] duration-200 ${
-          scrolled
+        className={`fixed inset-x-0 top-0 z-50 backdrop-blur-xl transition-[background-color,border-color,box-shadow] duration-200 ${scrolled
             ? 'border-b border-primary/25 bg-background/95 shadow-[0_8px_30px_-12px_rgba(201,138,18,0.35)]'
             : 'border-b border-primary/15 bg-background/90'
-        }`}
+          }`}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-3 md:px-6 md:py-4">
           {/* Logo */}
@@ -336,15 +335,15 @@ export function SiteHeader() {
                     </Link>
                     {'children' in item && item.children
                       ? item.children.map((child) => (
-                          <Link
-                            key={child.href}
-                            to={child.href}
-                            onClick={() => setOpen(false)}
-                            className="block rounded-xl px-6 py-2 text-sm text-muted-foreground hover:bg-primary/5 hover:text-primary"
-                          >
-                            {child.label}
-                          </Link>
-                        ))
+                        <Link
+                          key={child.href}
+                          to={child.href}
+                          onClick={() => setOpen(false)}
+                          className="block rounded-xl px-6 py-2 text-sm text-muted-foreground hover:bg-primary/5 hover:text-primary"
+                        >
+                          {child.label}
+                        </Link>
+                      ))
                       : null}
                   </motion.div>
                 ))}

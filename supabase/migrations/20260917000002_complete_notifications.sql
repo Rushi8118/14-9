@@ -370,7 +370,7 @@ BEGIN
     -- Stored so the client sees it once access is restored.
     PERFORM public.create_user_notification(
       NEW.id, 'general', 'Your account was ' || NEW.status,
-      'Please contact Siddhivinayak Overseas on +91 99250 64666 if you think this is a mistake.',
+      'Please contact Siddhivinayak Overseas on +91 95120 00632 if you think this is a mistake.',
       '/contact', 'Contact us'
     );
   END IF;

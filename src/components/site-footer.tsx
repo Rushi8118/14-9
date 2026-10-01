@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { StarSprite } from '@/components/ui/star-row'
 import { trackEvent, GA_EVENTS } from "@/lib/analytics"
 import { NAP } from "@/lib/seo/site"
 import { SocialLinks } from "@/components/social-links"
@@ -18,6 +19,10 @@ import {
 export function SiteFooter() {
   return (
     <footer className="footer-gold-border border-t border-primary/30 bg-gradient-to-b from-card to-secondary">
+      {/* One <symbol> per page for every star on it. SVG <use> resolves by id
+          anywhere in the document, so defining it here -- in the one component
+          every page renders -- is enough regardless of where the stars appear. */}
+      <StarSprite />
       <div className="mx-auto max-w-7xl px-4 py-12 md:px-6">
 
         {/* Main Footer */}
@@ -32,6 +37,11 @@ export function SiteFooter() {
                   alt="Siddhivinayak Overseas logo"
                   width={32}
                   height={32}
+                  // Below the fold on every page. The header logo deliberately
+                  // stays eager: lazy-loading an above-the-fold image delays LCP,
+                  // which is the opposite of what the audit is asking for.
+                  loading="lazy"
+                  decoding="async"
                   className="h-8 w-8 object-contain"
                 />
               </span>
@@ -318,21 +328,23 @@ export function SiteFooter() {
                 </a>
               </li>
 
-              <li className="flex items-center gap-2">
-                <Phone className="h-5 w-5 text-primary footer-icon-hover" />
-                <a
-                  href={`tel:${NAP.phone2IN}`}
-                  onClick={() => trackEvent(GA_EVENTS.PHONE_CLICK, 'Engagement', 'Phone Click - Footer IN Alt')}
-                  className="flex items-center gap-2 text-muted-foreground transition-colors duration-200 hover:text-primary"
-                >
-                  {NAP.phone2INDisplay}
-                </a>
-              </li>
+              {NAP.phone2IN && NAP.phone2IN !== NAP.phoneIN && (
+                <li className="flex items-center gap-2">
+                  <Phone className="h-5 w-5 text-primary footer-icon-hover" />
+                  <a
+                    href={`tel:${NAP.phone2IN}`}
+                    onClick={() => trackEvent(GA_EVENTS.PHONE_CLICK, 'Engagement', 'Phone Click - Footer IN Alt')}
+                    className="flex items-center gap-2 text-muted-foreground transition-colors duration-200 hover:text-primary"
+                  >
+                    {NAP.phone2INDisplay}
+                  </a>
+                </li>
+              )}
 
               <li className="flex items-center gap-2">
                 <MessageCircle className="h-5 w-5 text-green-500 footer-icon-hover" />
                 <a
-                  href="https://wa.me/919925064666"
+                  href={NAP.whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => trackEvent(GA_EVENTS.WHATSAPP_CLICK, 'Engagement', 'WhatsApp Click - Footer')}
@@ -446,7 +458,7 @@ export function WhatsAppFab() {
 
   return (
     <a
-      href="https://wa.me/919925064666"
+      href={NAP.whatsappUrl}
       target="_blank"
       rel="noopener noreferrer"
       onClick={() => {

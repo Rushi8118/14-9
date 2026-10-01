@@ -231,6 +231,26 @@ html {
   }
 }
 
+/* ---------- WIDE DESKTOP CONTAINER EXPANSION ---------- */
+/* Gracefully utilizes lateral screen space on widescreen desktop monitors across all pages */
+@media (min-width: 1280px) {
+  .max-w-7xl {
+    max-width: 1536px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .max-w-7xl {
+    max-width: 1720px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .max-w-7xl {
+    max-width: 1800px;
+  }
+}
+
 /* ---------- SKIP TO CONTENT ---------- */
 
 .skip-to-content {

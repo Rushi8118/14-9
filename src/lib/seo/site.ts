@@ -13,15 +13,15 @@ export const NAP = {
   addressCountry: 'IN',
   fullAddress:
     '620, 6th Floor, Pragti IT Park, Kiran Chowk to Yogi Chowk Road, Surat, Gujarat, India',
-  phoneIN: '+919925064666',
-  phoneINDisplay: '+91 99250 64666',
+  phoneIN: '+919512000632',
+  phoneINDisplay: '+91 95120 00632',
   phone2IN: '+919512000632',
   phone2INDisplay: '+91 95120 00632',
   email: 'info@siddhivinayakoverseas.com',
-  whatsappUrl: 'https://wa.me/919925064666',
+  whatsappUrl: 'https://wa.me/919512000632',
   /** Office WhatsApp that answers the applicant dashboard's Officer Chat. */
-  officeChatWhatsApp: '919925064666',
-  officeChatWhatsAppDisplay: '+91 99250 64666',
+  officeChatWhatsApp: '919512000632',
+  officeChatWhatsAppDisplay: '+91 95120 00632',
   geo: {
     latitude: 21.1702,
     longitude: 72.8311,

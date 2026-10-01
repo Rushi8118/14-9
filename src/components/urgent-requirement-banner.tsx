@@ -109,9 +109,13 @@ export function UrgentRequirementBanner() {
                     to={`/urgent-requirements/${current.slug}`}
                     className="group block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C49A2B] focus-visible:ring-offset-2"
                   >
-                    <h3 className="font-serif text-lg font-semibold leading-snug text-[#1A2340] transition-colors group-hover:text-primary sm:text-xl line-clamp-2">
+                    {/* h2, not h3. This banner renders immediately after the hero <h1> on the
+                        homepage and is the first heading after it, so an h3 skipped a level --
+                        reported as "Gaps: H1->H3". A screen-reader user navigating by heading
+                        hits this before any h2 exists, and the jump reads as a missing section. */}
+                    <h2 className="font-serif text-lg font-semibold leading-snug text-[#1A2340] transition-colors group-hover:text-primary sm:text-xl line-clamp-2">
                       {current.title}
-                    </h3>
+                    </h2>
                     {current.summary && (
                       <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-[#5C6478] line-clamp-2">
                         {current.summary}

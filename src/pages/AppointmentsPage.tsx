@@ -9,7 +9,9 @@ import {
   AlertCircle,
   MessageSquare,
   CheckCircle2,
+  Copy,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ThemeDatePicker } from '@/components/ui/theme-date-picker'
@@ -267,14 +269,36 @@ export default function AppointmentsPage() {
                         )}
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setCancelTargetId(appt.id)}
-                        className={`p-2 min-h-10 min-w-10 text-foreground/55 hover:text-red-700 rounded-full hover:bg-red-50 shrink-0 transition ${focusRing}`}
-                        aria-label="Cancel appointment"
-                      >
-                        <XCircle className="h-4.5 w-4.5" aria-hidden="true" />
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const dateStr = new Date(appt.scheduled_at).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+                            const timeStr = new Date(appt.scheduled_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+                            const text = `Siddhivinayak Overseas Appointment\nSession: ${appt.appointment_type}\nDate: ${dateStr}\nTime: ${timeStr} (${appt.duration_minutes} mins)\nStatus: ${appt.raw_status || 'Scheduled'}${appt.notes ? `\nNotes: "${appt.notes}"` : ''}${appt.consultant_notes ? `\nConsultant Instructions: "${appt.consultant_notes}"` : ''}`
+                            navigator.clipboard.writeText(text).then(() => {
+                              toast.success('Appointment details copied to clipboard!')
+                            }).catch(() => {
+                              toast.error('Failed to copy')
+                            })
+                          }}
+                          className={`p-2 min-h-10 min-w-10 text-foreground/55 hover:text-foreground rounded-full hover:bg-muted/60 shrink-0 transition ${focusRing}`}
+                          aria-label="Copy appointment details"
+                          title="Copy appointment details"
+                        >
+                          <Copy className="h-4 w-4" aria-hidden="true" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setCancelTargetId(appt.id)}
+                          className={`p-2 min-h-10 min-w-10 text-foreground/55 hover:text-red-700 rounded-full hover:bg-red-50 shrink-0 transition ${focusRing}`}
+                          aria-label="Cancel appointment"
+                          title="Cancel appointment"
+                        >
+                          <XCircle className="h-4.5 w-4.5" aria-hidden="true" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Consultant Reply / Instructions Card */}
