@@ -171,24 +171,6 @@ export default function AppointmentsAdminPage() {
     })
   }
 
-  const getZohoMailUrl = (c: Consultation) => {
-    if (!c.client_email) return 'https://mail.zoho.com/zm/'
-    const when = new Date(c.scheduled_at)
-    const subject = `Consultation Appointment - Siddhivinayak Overseas (${format(when, 'd MMM yyyy')})`
-    const body = `Dear ${c.client_name || 'Client'},\n\nRegarding your consultation appointment with Siddhivinayak Overseas:\n\n• Date & Time: ${format(when, 'EEE d MMM yyyy, h:mm a')}\n• Session: ${meetingLabel(c)}${c.preferred_country ? ` (${c.preferred_country})` : ''}\n\n`
-    return `https://mail.zoho.com/zm/#mail/compose/to=${encodeURIComponent(c.client_email)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-  }
-
-  const handleZohoMailClick = (c: Consultation) => {
-    if (!c.client_email) {
-      toast.error('No email address available for this client.')
-      return
-    }
-    const details = formatAppointmentDetails(c)
-    navigator.clipboard.writeText(details).catch(() => {})
-    toast.success('Opening Zoho Mail... Appointment details also copied to clipboard!')
-  }
-
   // Debounce so typing doesn't hit the database on every keystroke.
   useEffect(() => {
     const timer = window.setTimeout(() => setSearch(searchInput.trim()), 300)
@@ -509,25 +491,6 @@ export default function AppointmentsAdminPage() {
                       )}
                     </Button>
 
-                    {c.client_email && (
-                      <Button
-                        asChild
-                        size="sm"
-                        variant="outline"
-                        className="h-8 px-2.5 text-xs gap-1 border-amber-300/80 bg-amber-50/60 text-amber-900 hover:bg-amber-100 hover:border-amber-400 dark:bg-amber-950/30 dark:border-amber-700 dark:text-amber-200"
-                      >
-                        <a
-                          href={getZohoMailUrl(c)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => handleZohoMailClick(c)}
-                          title="Open in Zoho Mail and compose"
-                        >
-                          <Mail className="h-3 w-3 text-amber-600 dark:text-amber-400" aria-hidden="true" />
-                          <span>Zoho Mail</span>
-                        </a>
-                      </Button>
-                    )}
 
                     <Button
                       size="sm"
@@ -631,25 +594,6 @@ export default function AppointmentsAdminPage() {
                       {copiedId === replyTarget.id ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
                       <span>{copiedId === replyTarget.id ? 'Copied' : 'Copy All'}</span>
                     </Button>
-                    {replyTarget.client_email && (
-                      <Button
-                        asChild
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-7 px-2 text-[11px] gap-1 border-amber-300/80 bg-amber-50/60 text-amber-900 hover:bg-amber-100 dark:bg-amber-950/40 dark:border-amber-700 dark:text-amber-200"
-                      >
-                        <a
-                          href={getZohoMailUrl(replyTarget)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => handleZohoMailClick(replyTarget)}
-                        >
-                          <Mail className="h-3 w-3 text-amber-600 dark:text-amber-400" />
-                          <span>Zoho Mail</span>
-                        </a>
-                      </Button>
-                    )}
                   </div>
                 </div>
                 {typeof replyTarget.user_notes?.notes === 'string' && replyTarget.user_notes.notes.trim() && (

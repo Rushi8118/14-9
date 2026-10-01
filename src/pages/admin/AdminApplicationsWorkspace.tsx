@@ -155,6 +155,24 @@ export default function AdminApplicationsWorkspace() {
 
   useEffect(() => subscribePostgresChanges(supabase, 'admin-applications-workspace', { event: '*', schema: 'public', table: 'applications' }, () => { void refetch(); if (selectedApp) void detailQuery.refetch() }), [refetch, selectedApp, detailQuery])
 
+  /**
+   * Keep the open detail panel in step with the list.
+   *
+   * selectedApp is a snapshot of the row taken when it was clicked. Every action
+   * invalidates and refetches the list, but nothing re-pointed selectedApp at
+   * the refreshed row, so the panel header kept rendering the status the row had
+   * when it was opened -- changing an enquiry to Under Review updated the table
+   * and the panel still read "Submitted".
+   *
+   * Compared by id, and only assigned when the row object has actually changed,
+   * so this cannot loop on a stable refetch.
+   */
+  useEffect(() => {
+    if (!selectedApp) return
+    const fresh = rawData.find(row => row.id === selectedApp.id)
+    if (fresh && fresh !== selectedApp) setSelectedApp(fresh)
+  }, [rawData, selectedApp])
+
   const filtered = useMemo(() => rawData.filter(row => {
     const q = search.toLowerCase()
     const matchesSearch = !q || [row.application_id, row.user_profile_full_name, row.user_profile_email, row.country_name, row.application_type].some(v => v?.toLowerCase().includes(q))
@@ -166,6 +184,21 @@ export default function AdminApplicationsWorkspace() {
   const runAction = async () => {
     if (!action || actionPending) return
     const ids = action.row ? [action.row.id] : selected
+    /**
+     * Enquiry rows are consultations surfaced as pseudo-applications (ENQ-xxxx).
+     * Their id is a consultations id, so manage_application cannot find them and
+     * returns "Application not found" -- which is correct of it, and was being
+     * thrown straight at the user. The RPC fallback below only triggered when the
+     * function was MISSING, never when it ran and legitimately found nothing.
+     *
+     * Resolved per id rather than from action.row, because a bulk action over
+     * `selected` has no row and can mix applications with enquiries.
+     */
+    const rowById = new Map(rawData.map(row => [row.id, row]))
+    const isEnquiryRow = (id: string) => {
+      const row = rowById.get(id) ?? (action.row?.id === id ? action.row : undefined)
+      return Boolean(row?.application_id?.startsWith('ENQ-') || row?.meta?.source === 'consultations')
+    }
     if (!ids.length) return
     const rpcAction = action.name === 'under_review' ? 'change_status' : action.name
     const rpcValue = action.name === 'under_review' ? 'under_review' : action.value
@@ -173,10 +206,13 @@ export default function AdminApplicationsWorkspace() {
     setActionPending(true)
     try {
       for (const id of ids) {
-        const rpcResult = await supabase.rpc('manage_application', { p_application_id: id, p_action: rpcAction, p_value: rpcValue ? (rpcAction === 'assign' ? { officer_id: rpcValue } : rpcAction === 'change_priority' ? { priority: rpcValue } : { status: rpcValue }) : {}, p_reason: reason.trim() || null })
-        if (rpcResult.error && !/schema cache|could not find the function|PGRST202/i.test(rpcResult.error.message)) throw rpcResult.error
+        const isEnquiry = isEnquiryRow(id)
+        // Skip the RPC for enquiries: it only knows the applications table.
+        const rpcResult = isEnquiry
+          ? { error: { message: 'skipped: enquiry row, handled against consultations' } as { message: string } }
+          : await supabase.rpc('manage_application', { p_application_id: id, p_action: rpcAction, p_value: rpcValue ? (rpcAction === 'assign' ? { officer_id: rpcValue } : rpcAction === 'change_priority' ? { priority: rpcValue } : { status: rpcValue }) : {}, p_reason: reason.trim() || null })
+        if (!isEnquiry && rpcResult.error && !/schema cache|could not find the function|PGRST202/i.test(rpcResult.error.message)) throw rpcResult.error
         if (rpcResult.error) {
-          const isEnquiry = action.row?.application_id?.startsWith('ENQ-')
           if (isEnquiry) {
             const consultationUpdates: Record<string, unknown> = { updated_at: new Date().toISOString() }
             if (rpcAction === 'change_status' || ['approve', 'reject', 'request_documents'].includes(rpcAction)) consultationUpdates.status = rpcAction === 'approve' || rpcValue === 'approved' ? 'confirmed' : rpcAction === 'reject' || rpcValue === 'rejected' ? 'cancelled' : rpcAction === 'request_documents' ? 'requested' : 'scheduled'
@@ -195,6 +231,20 @@ export default function AdminApplicationsWorkspace() {
             if (deleteError) throw deleteError
           } else {
             const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+            /**
+             * approve / reject / return_for_corrections / request_documents used
+             * to fall through this block setting nothing but updated_at, so the
+             * toast said the action completed and the row never changed. Only
+             * change_status was mapped. The consultations branch above always
+             * handled these; the applications branch did not.
+             */
+            const STATUS_FOR_ACTION: Record<string, string> = {
+              approve: 'approved',
+              reject: 'rejected',
+              return_for_corrections: 'draft',
+              request_documents: 'under_review',
+            }
+            if (STATUS_FOR_ACTION[rpcAction]) updates.status = STATUS_FOR_ACTION[rpcAction]
             if (rpcAction === 'change_status') updates.status = rpcValue
             if (rpcAction === 'change_priority') updates.priority = rpcValue
             if (rpcAction === 'assign') updates.assigned_consultant = rpcValue || null
@@ -218,8 +268,19 @@ export default function AdminApplicationsWorkspace() {
   const setCaseStatus = async (status: string) => {
     if (!selectedApp) return
     try {
-      const { error: rpcError } = await supabase.rpc('set_application_case_status', { p_application_id: selectedApp.id, p_status: status })
-      if (rpcError) throw rpcError
+      // Same reason as runAction: set_application_case_status only knows the
+      // applications table, so an ENQ- row's consultations id makes it report
+      // "Application not found".
+      const isEnquiry = selectedApp.application_id?.startsWith('ENQ-') || selectedApp.meta?.source === 'consultations'
+      if (isEnquiry) {
+        const consultationStatus = status === 'approved' ? 'confirmed' : status === 'rejected' ? 'cancelled' : status === 'under_review' ? 'scheduled' : 'requested'
+        const { data: updated, error: consultationError } = await supabase.from('consultations').update({ status: consultationStatus, updated_at: new Date().toISOString() }).eq('id', selectedApp.id).select('id').maybeSingle()
+        if (consultationError) throw consultationError
+        if (!updated) throw new Error('No consultation was updated. Check your admin permissions.')
+      } else {
+        const { error: rpcError } = await supabase.rpc('set_application_case_status', { p_application_id: selectedApp.id, p_status: status })
+        if (rpcError) throw rpcError
+      }
       toast.success(`Case marked ${pretty(status)}.`)
       await queryClient.invalidateQueries({ queryKey: ['admin-applications'] })
       await detailQuery.refetch()
@@ -234,13 +295,52 @@ export default function AdminApplicationsWorkspace() {
     try {
       if (isEnquiry) {
         const consultationStatus = values.status === 'approved' ? 'confirmed' : values.status === 'rejected' ? 'cancelled' : values.status === 'under_review' ? 'scheduled' : 'requested'
-        const { error: consultationError } = await supabase.from('consultations').update({ status: consultationStatus, assigned_consultant: values.officerId || null, consultant_notes: values.notes || null, updated_at: new Date().toISOString() }).eq('id', selectedApp.id)
+        /**
+         * Only status, officer and notes were ever written here, so editing the
+         * applicant's name, phone or priority on an enquiry silently did
+         * nothing -- the form reported success and the values reverted.
+         *
+         * name goes back into user_notes, which is where the forms put it and
+         * where get_all_applications now reads it from. The existing keys are
+         * preserved rather than replaced, because user_notes also carries the
+         * applicant's own message, the vacancy they applied to, and so on.
+         *
+         * phone has a real column on consultations and simply was not used.
+         *
+         * priority needs a column that does not exist yet; see
+         * supabase/FIX_APPLICATION_IDS.sql, which adds it.
+         */
+        const existingNotes = (detailQuery.data?.application.personal_info ?? {}) as Record<string, unknown>
+        const consultationUpdates: Record<string, unknown> = {
+          status: consultationStatus,
+          assigned_consultant: values.officerId || null,
+          consultant_notes: values.notes || null,
+          priority: values.priority || 'normal',
+          updated_at: new Date().toISOString(),
+        }
+        if (values.phone) consultationUpdates.phone_number = values.phone
+        if (values.fullName) {
+          consultationUpdates.user_notes = {
+            ...existingNotes,
+            name: values.fullName,
+            // Keep the key the vacancy form uses in step, or the list would go
+            // on showing the old name through its applicant_name fallback.
+            ...(existingNotes.applicant_name ? { applicant_name: values.fullName } : {}),
+          }
+        }
+        const { data: updatedConsultation, error: consultationError } = await supabase.from('consultations').update(consultationUpdates).eq('id', selectedApp.id).select('id').maybeSingle()
         if (consultationError) throw consultationError
+        if (!updatedConsultation) throw new Error('No consultation was updated. Check your admin permissions.')
       } else {
         const { error: applicationError } = await supabase.from('applications').update({ status: values.status, priority: values.priority, assigned_consultant: values.officerId || null, consultant_notes: values.notes || null, personal_info: { ...(detailQuery.data?.application.personal_info || {}), full_name: values.fullName, phone: values.phone }, updated_at: new Date().toISOString() }).eq('id', selectedApp.id)
         if (applicationError) throw applicationError
       }
-      if (values.fullName || values.phone) await supabase.from('user_profiles').update({ full_name: values.fullName || null, phone: values.phone || null, updated_at: new Date().toISOString() }).eq('id', selectedApp.user_id)
+      // Only when the row belongs to an account. An anonymous enquiry has
+      // user_id null, and `.eq('id', null)` matches nothing -- it looked like a
+      // save because it reported no error while updating no rows.
+      if (selectedApp.user_id && (values.fullName || values.phone)) {
+        await supabase.from('user_profiles').update({ full_name: values.fullName || null, phone: values.phone || null, updated_at: new Date().toISOString() }).eq('id', selectedApp.user_id)
+      }
       toast.success('Application details saved.')
       await queryClient.invalidateQueries({ queryKey: ['admin-applications'] })
       await detailQuery.refetch()

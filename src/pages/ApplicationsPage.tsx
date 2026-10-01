@@ -152,6 +152,23 @@ export default function ApplicationsPage() {
           ? data.other_category.toString()
           : data.category?.toString() || (type === 'work' ? workCategory : (data.level?.toString() || 'Study Program'))
 
+      /**
+       * Country is required now. It was optional, and the admin Applications
+       * list showed "Not set" for the country on effectively every row as a
+       * result -- staff could not tell what an enquiry was even about without
+       * opening it.
+       *
+       * "Other / Not sure" stays a valid answer, but then the free-text box has
+       * to be filled: an enquiry that names no country at all is one somebody
+       * has to chase before they can do anything with it.
+       */
+      if (!finalCountry || !finalCountry.trim() || finalCountry === 'Other / Not sure') {
+        toast.error('Please choose a preferred country, or type one in if it is not listed.')
+        setter('idle')
+        document.getElementById(type === 'work' ? 'w-country' : 's-country')?.focus()
+        return
+      }
+
       await submitInquiry({
         type,
         phone: enteredPhone,

@@ -55,7 +55,11 @@ export type DetailData = {
 export type Officer = { id: string; full_name: string | null; email: string }
 
 export const STATUSES = ['draft', 'submitted', 'under_review', 'approved', 'rejected', 'withdrawn'] as const
-export const TYPES = ['work', 'study', 'business', 'tourist', 'investor'] as const
+// 'consultation' and 'enquiry' exist because get_all_applications surfaces
+// consultations rows as pseudo-applications: an appointment booking is a
+// consultation and anything unrecognised is an enquiry. Without them in this
+// list those rows render but cannot be filtered for.
+export const TYPES = ['work', 'study', 'business', 'consultation', 'enquiry', 'tourist', 'investor'] as const
 export const PRIORITIES = ['urgent', 'high', 'normal', 'low'] as const
 export const CASE_STATUSES = ['open', 'in_progress', 'waiting_for_applicant', 'resolved', 'closed'] as const
 export type CaseStatus = (typeof CASE_STATUSES)[number]
