@@ -147,7 +147,7 @@ export default function UrgentRequirementDetailPage() {
 
   const remainingDays = getRemainingDays(requirement.expires_at)
   const isClosed = isRequirementExpired(requirement)
-  const whatsappUrl = `https://wa.me/919925064666?text=${encodeURIComponent(
+  const whatsappUrl = `https://wa.me/${NAP.officeChatWhatsApp}?text=${encodeURIComponent(
     `Hello Siddhivinayak Overseas, I want to apply for the urgent requirement: "${requirement.title}" (${requirement.country}). Please guide me on next steps.`
   )}`
 
@@ -283,12 +283,12 @@ export default function UrgentRequirementDetailPage() {
             </div>
 
             {/* Main Headline */}
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold text-foreground tracking-tight max-w-4xl">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold text-foreground tracking-tight max-w-5xl xl:max-w-6xl">
               {requirement.title}
             </h1>
 
             {requirement.summary && (
-              <p className="mt-4 text-base sm:text-lg text-muted-foreground max-w-3xl leading-relaxed">
+              <p className="mt-4 text-base sm:text-lg text-muted-foreground max-w-4xl xl:max-w-5xl leading-relaxed">
                 {requirement.summary}
               </p>
             )}

@@ -21,7 +21,7 @@ BEGIN
 
     PERFORM public.create_user_notification(
       NEW.id, 'general', 'Email address changed',
-      format('Your login email is now %s. If you did not make this change, contact us on +91 99250 64666.', NEW.email),
+      format('Your login email is now %s. If you did not make this change, contact us on +91 95120 00632.', NEW.email),
       '/dashboard/profile', 'View profile'
     );
   END IF;

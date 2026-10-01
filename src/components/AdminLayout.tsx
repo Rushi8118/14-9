@@ -588,9 +588,9 @@ const AdminLayout: React.FC = () => {
         <main
           id="admin-main"
           tabIndex={-1}
-          className="flex-1 min-h-0 p-4 lg:p-8 overflow-y-auto outline-none"
+          className="flex-1 min-h-0 p-4 sm:p-5 lg:px-6 lg:py-6 xl:px-8 overflow-y-auto outline-none"
         >
-          <div className="mx-auto w-full max-w-7xl">
+          <div className="w-full">
             <AdminErrorBoundary key={location.pathname}>
               <SuspendedOutlet />
             </AdminErrorBoundary>

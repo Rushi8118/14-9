@@ -281,7 +281,7 @@ export function ContactSection() {
                     WhatsApp
                   </p>
                   <a
-                    href="https://wa.me/919925064666"
+                    href={NAP.whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => trackEvent(GA_EVENTS.WHATSAPP_CLICK, 'Engagement', 'WhatsApp Click - Header')}

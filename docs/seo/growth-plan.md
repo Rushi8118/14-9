@@ -8,7 +8,7 @@ Companion to [`technical-audit.md`](./technical-audit.md) and [`content-plan.md`
 Siddhivinayak Overseas
 620, 6th Floor, Pragti IT Park, Kiran Chowk to Yogi Chowk Road
 Surat, Gujarat 395006, India
-+91 99250 64666  ·  +91 95120 00632
++91 95120 00632
 info@siddhivinayakoverseas.com
 21.1702, 72.8311
 ```

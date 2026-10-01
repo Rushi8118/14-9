@@ -39,7 +39,7 @@ export default function BlogIndexPage() {
       <SiteHeader />
       <main className="min-h-screen bg-background">
         <section className="border-b border-border bg-muted/30 px-4 pt-28 pb-10 md:px-6 md:pt-36 md:pb-14">
-          <div className="mx-auto max-w-5xl">
+          <div className="mx-auto max-w-7xl">
             <p className="text-xs font-semibold uppercase tracking-wider text-primary">Blog</p>
             <h1 className="mt-2 font-serif text-3xl font-bold text-foreground md:text-4xl">
               Guides for students & workers from Surat
@@ -51,7 +51,7 @@ export default function BlogIndexPage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-5xl px-4 py-10 md:px-6">
+        <section className="mx-auto max-w-7xl px-4 py-10 md:px-6">
           {isLoading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (

@@ -310,7 +310,33 @@ export default function AdminApplicationsWorkspace() {
 
     {selected.length > 0 && <div className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 p-3"><span className="text-sm font-medium">{selected.length} selected</span><Select onValueChange={value => setAction({ name: 'change_status', value })}><SelectTrigger className="w-40"><SelectValue placeholder="Change status" /></SelectTrigger><SelectContent>{STATUSES.map(value => <SelectItem key={value} value={value}>{pretty(value)}</SelectItem>)}</SelectContent></Select><Select onValueChange={value => setAction({ name: 'change_priority', value })}><SelectTrigger className="w-36"><SelectValue placeholder="Priority" /></SelectTrigger><SelectContent>{PRIORITIES.map(value => <SelectItem key={value} value={value}>{pretty(value)}</SelectItem>)}</SelectContent></Select><Button variant="outline" size="sm" onClick={() => exportRows(sorted.filter(row => selected.includes(row.id)))}><Download className="mr-1 h-4 w-4" />Export selected</Button>{canDelete && <Button variant="destructive" size="sm" onClick={() => setAction({ name: 'delete' })}><Trash2 className="mr-1 h-4 w-4" />Delete</Button>}</div>}
 
-    <div className="flex items-center justify-between"><span className="text-xs text-muted-foreground">{sorted.length} application{sorted.length === 1 ? '' : 's'} found{hasFilters && ' (filtered)'}</span><div className="flex items-center gap-2"><span className="text-xs text-muted-foreground">Columns</span>{Object.entries(visible).map(([key, value]) => <label key={key} className="flex items-center gap-1 text-xs"><Checkbox checked={value} onCheckedChange={checked => setVisible(current => ({ ...current, [key]: Boolean(checked) }))} />{pretty(key)}</label>)}<Select value={String(pageSize)} onValueChange={value => setPageSize(Number(value))}><SelectTrigger className="h-8 w-20"><SelectValue /></SelectTrigger><SelectContent>{PAGE_SIZES.map(value => <SelectItem key={value} value={String(value)}>{value}/page</SelectItem>)}</SelectContent></Select></div></div>
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <span className="text-xs text-muted-foreground">
+        {sorted.length} application{sorted.length === 1 ? '' : 's'} found{hasFilters && ' (filtered)'}
+      </span>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-2.5 py-1">
+          <span className="text-xs font-medium text-muted-foreground">Columns:</span>
+          {Object.entries(visible).map(([key, value]) => (
+            <label key={key} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer select-none">
+              <Checkbox
+                checked={value}
+                onCheckedChange={checked => setVisible(current => ({ ...current, [key]: Boolean(checked) }))}
+              />
+              <span>{pretty(key)}</span>
+            </label>
+          ))}
+        </div>
+        <Select value={String(pageSize)} onValueChange={value => setPageSize(Number(value))}>
+          <SelectTrigger className="h-8 w-20 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PAGE_SIZES.map(value => <SelectItem key={value} value={String(value)}>{value}/page</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
 
     {isLoading ? <TableSkeleton /> : error ? (
       <div className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-900">
@@ -327,7 +353,176 @@ export default function AdminApplicationsWorkspace() {
           </Empty>
         </div>
       </div>
-    ) : <div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full min-w-[1100px]"><thead><tr className="border-b border-border bg-muted/30"><th className="w-10 px-4 py-3"><Checkbox aria-label="Select all visible applications" checked={sorted.length > 0 && sorted.every(row => selected.includes(row.id))} onCheckedChange={checked => setSelected(checked ? sorted.map(row => row.id) : [])} /></th>{[['application_id', 'ID'], ['user_profile_full_name', 'Applicant'], ['application_type', 'Type'], ['country_name', 'Country'], ['status', 'Status'], ['priority', 'Priority'], ['assigned_officer_name', 'Officer'], ['created_at', 'Created'], ['updated_at', 'Updated'], ['sla', 'SLA']].map(([key, label]) => (key === 'country_name' && !visible.country) || (key === 'assigned_officer_name' && !visible.officer) || (key === 'updated_at' && !visible.updated) || (key === 'sla' && !visible.sla) ? null : <th key={key} scope="col" tabIndex={0} className="cursor-pointer px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:bg-muted/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" onClick={() => sort(key)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); sort(key) } }}>{label}{sortKey === key && <span className="ml-1 text-primary">{sortDir === 'asc' ? '↑' : '↓'}</span>}</th>)}<th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Actions</th></tr></thead><tbody className="divide-y divide-border">{sorted.map(row => <tr key={row.id} tabIndex={0} className="cursor-pointer hover:bg-muted/20 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary" onClick={() => setSelectedApp(row)} onKeyDown={event => { if (event.key === 'Enter') setSelectedApp(row) }}><td className="px-4 py-3" onClick={event => event.stopPropagation()}><Checkbox checked={selected.includes(row.id)} onCheckedChange={() => toggleSelected(row.id)} aria-label={`Select ${row.application_id || row.id}`} /></td><td className="px-4 py-3 font-mono text-xs text-muted-foreground">{row.application_id || row.id.slice(0, 8)}</td><td className="px-4 py-3"><p className="text-sm font-medium">{row.user_profile_full_name || 'Unknown'}</p><p className="text-xs text-muted-foreground">{row.user_profile_email}</p></td><td className="px-4 py-3 text-sm capitalize">{pretty(row.application_type)}</td>{visible.country && <td className="px-4 py-3 text-sm">{row.country_flag_emoji} {row.country_name || 'Not set'}</td>}<td className="px-4 py-3"><StatusBadge status={row.status} variant={statusVariant(row.status)} /></td><td className="px-4 py-3"><span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', row.priority === 'urgent' ? 'bg-amber-100 text-amber-700' : row.priority === 'high' ? 'bg-red-100 text-red-700' : 'bg-muted text-muted-foreground')}>{pretty(row.priority)}</span></td>{visible.officer && <td className="px-4 py-3 text-sm">{row.assigned_officer_name || 'Unassigned'}</td>}<td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">{dateText(row.created_at)}</td>{visible.updated && <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">{dateText(row.updated_at || row.created_at)}</td>}{visible.sla && <td className="px-4 py-3 text-xs"><span className={cn(daysPending(row) > 14 && row.status !== 'approved' && row.status !== 'rejected' ? 'text-red-600 font-semibold' : 'text-muted-foreground')}>{daysPending(row)}d pending</span></td>}<td className="px-4 py-3 text-right" onClick={event => event.stopPropagation()}><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Application actions"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => setSelectedApp(row)}><FileText className="h-4 w-4" />Open application</DropdownMenuItem>{canProcess && <DropdownMenuItem onClick={() => setAction({ name: 'under_review', row })}><Zap className="h-4 w-4" />Move to Under Review</DropdownMenuItem>}{canProcess && <DropdownMenuItem onClick={() => setAction({ name: 'approve', row })}><Check className="h-4 w-4" />Approve</DropdownMenuItem>}{canProcess && <DropdownMenuItem onClick={() => setAction({ name: 'reject', row })}><X className="h-4 w-4" />Reject</DropdownMenuItem>}{canUpdate && <DropdownMenuItem onClick={() => setAction({ name: 'archive', row })}><Archive className="h-4 w-4" />Archive</DropdownMenuItem>}{canDelete && <><DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onClick={() => setAction({ name: 'delete', row })}><Trash2 className="h-4 w-4" />Delete</DropdownMenuItem></>}</DropdownMenuContent></DropdownMenu></td></tr>)}</tbody></table></div>}
+    ) : (
+      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-xs">
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="border-b border-border bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <th className="w-10 px-3.5 py-3 text-center">
+                <Checkbox
+                  aria-label="Select all visible applications"
+                  checked={sorted.length > 0 && sorted.every(row => selected.includes(row.id))}
+                  onCheckedChange={checked => setSelected(checked ? sorted.map(row => row.id) : [])}
+                />
+              </th>
+              {([
+                ['application_id', 'ID'],
+                ['user_profile_full_name', 'Applicant'],
+                ['application_type', 'Type'],
+                ['country_name', 'Country'],
+                ['status', 'Status'],
+                ['priority', 'Priority'],
+                ['assigned_officer_name', 'Officer'],
+                ['created_at', 'Created'],
+                ['updated_at', 'Updated'],
+                ['sla', 'SLA'],
+              ] as const).map(([key, label]) =>
+                (key === 'country_name' && !visible.country) ||
+                (key === 'assigned_officer_name' && !visible.officer) ||
+                (key === 'updated_at' && !visible.updated) ||
+                (key === 'sla' && !visible.sla) ? null : (
+                  <th
+                    key={key}
+                    scope="col"
+                    tabIndex={0}
+                    className="cursor-pointer px-3.5 py-3 text-left hover:bg-muted/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition-colors whitespace-nowrap"
+                    onClick={() => sort(key)}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        sort(key)
+                      }
+                    }}
+                  >
+                    {label}
+                    {sortKey === key && <span className="ml-1 text-primary">{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                  </th>
+                )
+              )}
+              <th className="sticky right-0 bg-muted/95 backdrop-blur-xs px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.15)] z-10 whitespace-nowrap">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {sorted.map(row => (
+              <tr
+                key={row.id}
+                tabIndex={0}
+                className="group cursor-pointer hover:bg-muted/20 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary transition-colors"
+                onClick={() => setSelectedApp(row)}
+                onKeyDown={event => { if (event.key === 'Enter') setSelectedApp(row) }}
+              >
+                <td className="px-3.5 py-3 text-center" onClick={event => event.stopPropagation()}>
+                  <Checkbox
+                    checked={selected.includes(row.id)}
+                    onCheckedChange={() => toggleSelected(row.id)}
+                    aria-label={`Select ${row.application_id || row.id}`}
+                  />
+                </td>
+                <td className="px-3.5 py-3 font-mono text-[11px] text-muted-foreground whitespace-nowrap">
+                  {row.application_id || row.id.slice(0, 8)}
+                </td>
+                <td className="px-3.5 py-3 min-w-[200px]">
+                  <p className="text-xs font-semibold text-foreground">{row.user_profile_full_name || 'Unknown'}</p>
+                  <p className="text-xs text-muted-foreground break-all">{row.user_profile_email}</p>
+                </td>
+                <td className="px-3.5 py-3 text-xs capitalize whitespace-nowrap">
+                  {pretty(row.application_type)}
+                </td>
+                {visible.country && (
+                  <td className="px-3.5 py-3 text-xs whitespace-nowrap">
+                    {row.country_flag_emoji} {row.country_name || 'Not set'}
+                  </td>
+                )}
+                <td className="px-3.5 py-3 whitespace-nowrap">
+                  <StatusBadge status={row.status} variant={statusVariant(row.status)} />
+                </td>
+                <td className="px-3.5 py-3 whitespace-nowrap">
+                  <span className={cn(
+                    'rounded-full px-2.5 py-0.5 text-[11px] font-medium',
+                    row.priority === 'urgent' ? 'bg-amber-100 text-amber-700' :
+                    row.priority === 'high' ? 'bg-red-100 text-red-700' :
+                    'bg-muted text-muted-foreground'
+                  )}>
+                    {pretty(row.priority)}
+                  </span>
+                </td>
+                {visible.officer && (
+                  <td className="px-3.5 py-3 text-xs whitespace-nowrap">
+                    {row.assigned_officer_name || 'Unassigned'}
+                  </td>
+                )}
+                <td className="whitespace-nowrap px-3.5 py-3 text-xs text-muted-foreground">
+                  {dateText(row.created_at)}
+                </td>
+                {visible.updated && (
+                  <td className="whitespace-nowrap px-3.5 py-3 text-xs text-muted-foreground">
+                    {dateText(row.updated_at || row.created_at)}
+                  </td>
+                )}
+                {visible.sla && (
+                  <td className="px-3.5 py-3 text-xs whitespace-nowrap">
+                    <span className={cn(
+                      daysPending(row) > 14 && row.status !== 'approved' && row.status !== 'rejected'
+                        ? 'text-red-600 font-semibold'
+                        : 'text-muted-foreground'
+                    )}>
+                      {daysPending(row)}d pending
+                    </span>
+                  </td>
+                )}
+                <td
+                  className="sticky right-0 bg-card group-hover:bg-muted/40 px-4 py-3 text-center shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.15)] z-10 transition-colors"
+                  onClick={event => event.stopPropagation()}
+                >
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg mx-auto" aria-label="Application actions">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setSelectedApp(row)}>
+                        <FileText className="h-4 w-4" />Open application
+                      </DropdownMenuItem>
+                      {canProcess && (
+                        <DropdownMenuItem onClick={() => setAction({ name: 'under_review', row })}>
+                          <Zap className="h-4 w-4" />Move to Under Review
+                        </DropdownMenuItem>
+                      )}
+                      {canProcess && (
+                        <DropdownMenuItem onClick={() => setAction({ name: 'approve', row })}>
+                          <Check className="h-4 w-4" />Approve
+                        </DropdownMenuItem>
+                      )}
+                      {canProcess && (
+                        <DropdownMenuItem onClick={() => setAction({ name: 'reject', row })}>
+                          <X className="h-4 w-4" />Reject
+                        </DropdownMenuItem>
+                      )}
+                      {canUpdate && (
+                        <DropdownMenuItem onClick={() => setAction({ name: 'archive', row })}>
+                          <Archive className="h-4 w-4" />Archive
+                        </DropdownMenuItem>
+                      )}
+                      {canDelete && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem variant="destructive" onClick={() => setAction({ name: 'delete', row })}>
+                            <Trash2 className="h-4 w-4" />Delete
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
     <div className="flex items-center justify-between px-2"><span className="text-xs text-muted-foreground">Page {page}</span><div className="flex items-center gap-1"><Button variant="outline" size="sm" onClick={() => setPage(current => Math.max(1, current - 1))} disabled={page === 1}><ChevronLeft className="h-3 w-3" /></Button><Button variant="outline" size="sm" onClick={() => setPage(current => current + 1)} disabled={sorted.length < pageSize}><ChevronRight className="h-3 w-3" /></Button></div></div>
 
     <Sheet

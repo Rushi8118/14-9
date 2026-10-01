@@ -606,12 +606,12 @@ export default function UrgentRequirementsAdminPage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/30 border-b border-border/60 text-muted-foreground uppercase font-semibold text-[11px]">
               <tr>
-                <th className="py-3 px-4">Title & Country</th>
-                <th className="py-3 px-4">Vacancies</th>
-                <th className="py-3 px-4">Salary Package</th>
-                <th className="py-3 px-4">Timeline / Status</th>
-                <th className="py-3 px-4 text-center">Active Toggle</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+                <th className="py-3 px-4 min-w-[360px]">Title & Country</th>
+                <th className="py-3 px-4 whitespace-nowrap">Vacancies</th>
+                <th className="py-3 px-4 whitespace-nowrap">Salary Package</th>
+                <th className="py-3 px-4 whitespace-nowrap">Timeline / Status</th>
+                <th className="py-3 px-4 text-center whitespace-nowrap">Active Toggle</th>
+                <th className="py-3 px-4 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
@@ -628,28 +628,29 @@ export default function UrgentRequirementsAdminPage() {
 
                   return (
                     <tr key={req.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="py-3.5 px-4 max-w-xs sm:max-w-md">
-                        <div className="flex items-center gap-2.5">
-                          <div className="flex items-center justify-center p-1 bg-muted/40 rounded border border-border/50 shrink-0">
+                      <td className="py-3.5 px-4 min-w-[360px]">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center p-1 bg-muted/40 rounded-lg border border-border/50 shrink-0 w-11 h-9">
                             <FlagIcon country={req.country} code={req.country_code} className="text-2xl rounded-xs shadow-xs" />
                           </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             {isDraft ? (
-                              <span className="font-bold text-foreground line-clamp-1 flex items-center gap-1.5">
-                                <Lock className="h-3 w-3 text-muted-foreground shrink-0" />{req.title}
+                              <span className="font-bold text-foreground text-sm line-clamp-1 flex items-center gap-1.5">
+                                <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <span className="truncate">{req.title}</span>
                               </span>
                             ) : (
-                              <Link to={`/urgent-requirements/${req.slug}`} target="_blank" className="font-bold text-foreground hover:text-primary transition-colors line-clamp-1 flex items-center gap-1.5">
-                                {req.title}
-                                <ExternalLink className="h-3 w-3 opacity-50 shrink-0" />
+                              <Link to={`/urgent-requirements/${req.slug}`} target="_blank" className="font-bold text-foreground hover:text-primary transition-colors text-sm line-clamp-1 inline-flex items-center gap-1.5 group max-w-full">
+                                <span className="truncate group-hover:underline">{req.title}</span>
+                                <ExternalLink className="h-3 w-3 opacity-50 shrink-0 group-hover:opacity-100" />
                               </Link>
                             )}
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-[11px] text-muted-foreground">{req.country}</span>
-                              <span className="text-[11px] text-primary/80 bg-primary/10 px-1.5 py-0.2 rounded font-medium">{req.category}</span>
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                              <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap shrink-0">{req.country}</span>
+                              <span className="text-[11px] text-primary/90 bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md font-medium whitespace-nowrap shrink-0">{req.category}</span>
                               {(req.admin_input_required?.length || 0) > 0 && (
-                                <span className="text-[11px] text-amber-700 bg-amber-100 px-1.5 py-0.2 rounded font-medium flex items-center gap-1">
-                                  <AlertTriangle className="h-2.5 w-2.5" /> {req.admin_input_required!.length} to fill
+                                <span className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-100/90 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700/60 px-2 py-0.5 rounded-md font-medium inline-flex items-center gap-1 whitespace-nowrap shrink-0">
+                                  <AlertTriangle className="h-2.5 w-2.5 shrink-0" /> {req.admin_input_required!.length} to fill
                                 </span>
                               )}
                             </div>

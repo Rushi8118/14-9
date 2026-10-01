@@ -8,6 +8,7 @@ import {
   Check,
   CheckCircle2,
   Clock,
+  Copy,
   Inbox,
   Layers,
   Loader2,
@@ -136,6 +137,57 @@ export default function AppointmentsAdminPage() {
   const [replyStatus, setReplyStatus] = useState<Consultation['status']>('confirmed')
   const [notifyClient, setNotifyClient] = useState(true)
   const [isSendingReply, setIsSendingReply] = useState(false)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  const formatAppointmentDetails = (c: Consultation) => {
+    const when = new Date(c.scheduled_at)
+    const lines = [
+      `📌 APPOINTMENT DETAILS`,
+      `Client Name: ${c.client_name || 'Unnamed Client'}`,
+      `Phone: ${c.client_phone || 'N/A'}`,
+      `Email: ${c.client_email || 'N/A'}`,
+      `Date & Time: ${format(when, 'EEE d MMM yyyy, h:mm a')} (${c.duration_minutes || 30} mins)`,
+      `Session Type: ${meetingLabel(c)}`,
+      c.preferred_country ? `Target Country: ${c.preferred_country}` : null,
+      c.visa_category ? `Visa Category: ${c.visa_category}` : null,
+      `Source: ${sourceLabel(c)}`,
+      `Status: ${c.status.toUpperCase().replace('_', ' ')}`,
+      c.assigned_officer_name ? `Assigned Officer: ${c.assigned_officer_name}` : null,
+      c.user_notes?.notes ? `Client Inquiry / Notes: "${c.user_notes.notes}"` : null,
+      c.consultant_notes ? `Officer Notes/Reply: "${c.consultant_notes}"` : null,
+      `Booked At: ${format(new Date(c.created_at), 'd MMM yyyy, h:mm a')}`,
+    ].filter(Boolean)
+    return lines.join('\n')
+  }
+
+  const handleCopyAll = (c: Consultation) => {
+    const text = formatAppointmentDetails(c)
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedId(c.id)
+      toast.success('All appointment details copied to clipboard!')
+      setTimeout(() => setCopiedId(null), 2500)
+    }).catch(() => {
+      toast.error('Failed to copy to clipboard')
+    })
+  }
+
+  const getZohoMailUrl = (c: Consultation) => {
+    if (!c.client_email) return 'https://mail.zoho.com/zm/'
+    const when = new Date(c.scheduled_at)
+    const subject = `Consultation Appointment - Siddhivinayak Overseas (${format(when, 'd MMM yyyy')})`
+    const body = `Dear ${c.client_name || 'Client'},\n\nRegarding your consultation appointment with Siddhivinayak Overseas:\n\n• Date & Time: ${format(when, 'EEE d MMM yyyy, h:mm a')}\n• Session: ${meetingLabel(c)}${c.preferred_country ? ` (${c.preferred_country})` : ''}\n\n`
+    return `https://mail.zoho.com/zm/#mail/compose/to=${encodeURIComponent(c.client_email)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  }
+
+  const handleZohoMailClick = (c: Consultation) => {
+    if (!c.client_email) {
+      toast.error('No email address available for this client.')
+      return
+    }
+    const details = formatAppointmentDetails(c)
+    navigator.clipboard.writeText(details).catch(() => {})
+    toast.success('Opening Zoho Mail... Appointment details also copied to clipboard!')
+  }
 
   // Debounce so typing doesn't hit the database on every keystroke.
   useEffect(() => {
@@ -408,8 +460,9 @@ export default function AppointmentsAdminPage() {
                         </a>
                       )}
                       {c.client_email && (
-                        <a href={`mailto:${c.client_email}`} className="inline-flex items-center gap-1 hover:text-[var(--desk-navy)]">
-                          <Mail className="h-3.5 w-3.5" aria-hidden="true" />{c.client_email}
+                        <a href={`mailto:${c.client_email}`} className="inline-flex items-center gap-1 hover:text-[var(--desk-navy)]" title={`Email ${c.client_email}`}>
+                          <Mail className="h-3.5 w-3.5" aria-hidden="true" />
+                          <span>{c.client_email}</span>
                         </a>
                       )}
                       {c.preferred_country && <span>Country: {c.preferred_country}</span>}
@@ -435,34 +488,97 @@ export default function AppointmentsAdminPage() {
                     )}
                   </div>
 
-                  <div className="flex shrink-0 flex-wrap items-center gap-2 md:justify-end">
+                  <div className="flex shrink-0 flex-wrap items-center gap-1.5 md:justify-end">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleCopyAll(c)}
+                      className="h-8 px-2.5 text-xs gap-1 border-[var(--desk-line)] hover:bg-slate-50 dark:hover:bg-slate-900"
+                      title="Copy all details to clipboard"
+                    >
+                      {copiedId === c.id ? (
+                        <>
+                          <Check className="h-3 w-3 text-emerald-600" aria-hidden="true" />
+                          <span className="text-emerald-700 dark:text-emerald-400 font-semibold">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3 text-[var(--desk-muted)]" aria-hidden="true" />
+                          <span>Copy Details</span>
+                        </>
+                      )}
+                    </Button>
+
+                    {c.client_email && (
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="h-8 px-2.5 text-xs gap-1 border-amber-300/80 bg-amber-50/60 text-amber-900 hover:bg-amber-100 hover:border-amber-400 dark:bg-amber-950/30 dark:border-amber-700 dark:text-amber-200"
+                      >
+                        <a
+                          href={getZohoMailUrl(c)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => handleZohoMailClick(c)}
+                          title="Open in Zoho Mail and compose"
+                        >
+                          <Mail className="h-3 w-3 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                          <span>Zoho Mail</span>
+                        </a>
+                      </Button>
+                    )}
+
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => handleOpenReply(c)}
-                      className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-950/40"
+                      className="h-8 px-2.5 text-xs gap-1 border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-950/40"
                     >
-                      <MessageSquare className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" aria-hidden="true" />
-                      {c.consultant_notes ? 'Edit Reply' : 'Reply to Client'}
+                      <MessageSquare className="h-3 w-3 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+                      <span>{c.consultant_notes ? 'Edit Reply' : 'Reply to Client'}</span>
                     </Button>
 
                     {open && (
                       <>
                         {c.status !== 'confirmed' && (
-                          <Button size="sm" disabled={busy} onClick={() => void updateStatus(c, 'confirmed')} className="gap-1.5">
-                            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />}
-                            Confirm
+                          <Button
+                            size="sm"
+                            disabled={busy}
+                            onClick={() => void updateStatus(c, 'confirmed')}
+                            className="h-8 px-2.5 text-xs gap-1"
+                          >
+                            {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" aria-hidden="true" />}
+                            <span>Confirm</span>
                           </Button>
                         )}
-                        <Button size="sm" variant="outline" disabled={busy} onClick={() => void updateStatus(c, 'completed')}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={busy}
+                          onClick={() => void updateStatus(c, 'completed')}
+                          className="h-8 px-2.5 text-xs"
+                        >
                           Mark completed
                         </Button>
-                        <Button size="sm" variant="outline" disabled={busy} onClick={() => void updateStatus(c, 'no_show')}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={busy}
+                          onClick={() => void updateStatus(c, 'no_show')}
+                          className="h-8 px-2.5 text-xs"
+                        >
                           No-show
                         </Button>
-                        <Button size="sm" variant="outline" disabled={busy} onClick={() => setCancelTarget(c)} className="gap-1.5 text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40">
-                          <XCircle className="h-3.5 w-3.5" aria-hidden="true" />
-                          Cancel
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={busy}
+                          onClick={() => setCancelTarget(c)}
+                          className="h-8 px-2.5 text-xs gap-1 text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
+                        >
+                          <XCircle className="h-3 w-3" aria-hidden="true" />
+                          <span>Cancel</span>
                         </Button>
                       </>
                     )}
@@ -501,6 +617,41 @@ export default function AppointmentsAdminPage() {
                   <span className="capitalize">{meetingLabel(replyTarget)}</span>
                   {replyTarget.preferred_country && <span> · Country: {replyTarget.preferred_country}</span>}
                 </p>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-border/40 mt-1">
+                  <span className="text-[11px] text-muted-foreground">{format(new Date(replyTarget.scheduled_at), 'EEE d MMM, h:mm a')}</span>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleCopyAll(replyTarget)}
+                      className="h-7 px-2 text-[11px] gap-1"
+                    >
+                      {copiedId === replyTarget.id ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                      <span>{copiedId === replyTarget.id ? 'Copied' : 'Copy All'}</span>
+                    </Button>
+                    {replyTarget.client_email && (
+                      <Button
+                        asChild
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-[11px] gap-1 border-amber-300/80 bg-amber-50/60 text-amber-900 hover:bg-amber-100 dark:bg-amber-950/40 dark:border-amber-700 dark:text-amber-200"
+                      >
+                        <a
+                          href={getZohoMailUrl(replyTarget)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => handleZohoMailClick(replyTarget)}
+                        >
+                          <Mail className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                          <span>Zoho Mail</span>
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                </div>
                 {typeof replyTarget.user_notes?.notes === 'string' && replyTarget.user_notes.notes.trim() && (
                   <div className="mt-2 pt-2 border-t border-border/40">
                     <span className="font-medium text-foreground/85">Client inquiry:</span>

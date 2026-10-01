@@ -126,8 +126,8 @@ export default function UrgentRequirementsPage() {
         {/* Requirements Grid */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map((n) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((n) => (
                 <div key={n} className="rounded-2xl border border-border/60 bg-card p-6 h-72 animate-pulse space-y-4">
                   <div className="h-5 w-24 bg-muted/60 rounded-full" />
                   <div className="h-6 w-3/4 bg-muted/80 rounded-lg" />
@@ -152,7 +152,7 @@ export default function UrgentRequirementsPage() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filtered.map((req, idx) => {
                 const remainingDays = getRemainingDays(req.expires_at)
                 const isClosed = isRequirementExpired(req)

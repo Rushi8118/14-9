@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://siddhivinayakoverseas.com/visa-consultants-in-surat</loc>
@@ -82,15 +83,19 @@
   </url>
   <url>
     <loc>https://siddhivinayakoverseas.com/for-business</loc>
+    <lastmod>2026-09-30</lastmod>
   </url>
   <url>
     <loc>https://siddhivinayakoverseas.com/for-business/employers</loc>
+    <lastmod>2026-09-30</lastmod>
   </url>
   <url>
     <loc>https://siddhivinayakoverseas.com/for-business/recruitment-partners</loc>
+    <lastmod>2026-09-30</lastmod>
   </url>
   <url>
     <loc>https://siddhivinayakoverseas.com/for-business/contact</loc>
+    <lastmod>2026-09-30</lastmod>
   </url>
   <url>
     <loc>https://siddhivinayakoverseas.com/guides</loc>

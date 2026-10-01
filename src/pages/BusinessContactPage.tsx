@@ -81,7 +81,7 @@ export default function BusinessContactPage() {
         .catch((err: unknown) => {
           console.error('notify-enquiry failed:', err)
           toast.warning(
-            `We have your enquiry, but our email alert did not go through. For a faster reply, message ${NAP.phoneINDisplay} on WhatsApp.`,
+            `We have your enquiry, but our email alert did not go through. For a faster reply, message ${NAP.officeChatWhatsAppDisplay} on WhatsApp.`,
           )
         })
     } catch (err) {
@@ -129,7 +129,7 @@ export default function BusinessContactPage() {
           <div className="mt-10 rounded-2xl border border-primary/30 bg-primary/5 p-6">
             <h2 className="font-semibold text-foreground">Enquiry received</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              We will come back to you. If it is urgent, message {NAP.phoneINDisplay} on WhatsApp
+              We will come back to you. If it is urgent, message {NAP.officeChatWhatsAppDisplay} on WhatsApp
               or email {NAP.email}.
             </p>
             <Button variant="outline" className="mt-4 rounded-full" onClick={() => setState('idle')}>
