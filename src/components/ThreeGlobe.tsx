@@ -333,10 +333,10 @@ export function ThreeGlobe({ className = "", size = 500 }: ThreeGlobeProps) {
       const stars = new Points(
         starsGeometry,
         new PointsMaterial({
-          size: isMobile ? 0.012 : 0.015,
+          size: isMobile ? 0.014 : 0.018,
           vertexColors: true,
           transparent: true,
-          opacity: 0.8,
+          opacity: 0.95,
           sizeAttenuation: true,
         }),
       )
