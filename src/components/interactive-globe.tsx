@@ -287,8 +287,8 @@ export function InteractiveGlobe({
       const ctx = canvas.getContext("2d")!
       const glow = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2)
       glow.addColorStop(0, "rgba(255,255,255,1)")
-      glow.addColorStop(0.16, "rgba(255,255,255,0.95)")
-      glow.addColorStop(0.42, "rgba(255,255,255,0.2)")
+      glow.addColorStop(0.18, "rgba(255,255,255,0.95)")
+      glow.addColorStop(0.45, "rgba(255,255,255,0.28)")
       glow.addColorStop(1, "rgba(255,255,255,0)")
       ctx.fillStyle = glow
       ctx.fillRect(0, 0, s, s)
@@ -297,16 +297,16 @@ export function InteractiveGlobe({
       const vertical = ctx.createLinearGradient(0, 0, 0, s)
       for (const gradient of [horizontal, vertical]) {
         gradient.addColorStop(0, "rgba(255,255,255,0)")
-        gradient.addColorStop(0.5, "rgba(255,255,255,0.9)")
+        gradient.addColorStop(0.5, "rgba(255,255,255,0.95)")
         gradient.addColorStop(1, "rgba(255,255,255,0)")
       }
       ctx.fillStyle = horizontal
       ctx.beginPath()
-      ctx.ellipse(s / 2, s / 2, s / 2, 1.5, 0, 0, Math.PI * 2)
+      ctx.ellipse(s / 2, s / 2, s / 2, 1.8, 0, 0, Math.PI * 2)
       ctx.fill()
       ctx.fillStyle = vertical
       ctx.beginPath()
-      ctx.ellipse(s / 2, s / 2, 1.5, s / 2, 0, 0, Math.PI * 2)
+      ctx.ellipse(s / 2, s / 2, 1.8, s / 2, 0, 0, Math.PI * 2)
       ctx.fill()
       return new THREE.CanvasTexture(canvas)
     })()
@@ -319,10 +319,10 @@ export function InteractiveGlobe({
     // Premium golds and yellows read on both the cream page and the dark planet;
     // every ninth star is a pale champagne highlight.
     const starPalette = [
-      new THREE.Color(0xc79a4a),
-      new THREE.Color(0xdcbd78),
-      new THREE.Color(0xa9803e),
-      new THREE.Color(0xeedcb0),
+      new THREE.Color(0xd6a445),
+      new THREE.Color(0xf0cd7e),
+      new THREE.Color(0xc2923c),
+      new THREE.Color(0xfff0cb),
     ]
     for (let i = 0; i < beltCount; i++) {
       const angle = Math.random() * Math.PI * 2
@@ -356,7 +356,7 @@ export function InteractiveGlobe({
         void main() {
           vec4 mv = modelViewMatrix * vec4(position, 1.0);
           gl_Position = projectionMatrix * mv;
-          vTwinkle = 0.35 + 0.65 * pow(0.5 + 0.5 * sin(uTime * 1.7 + aPhase), 2.0);
+          vTwinkle = 0.42 + 0.58 * pow(0.5 + 0.5 * sin(uTime * 1.7 + aPhase), 2.0);
           vColor = aColor;
           gl_PointSize = aSize * uPixelRatio * (0.7 + 0.45 * vTwinkle) * (3.45 / -mv.z);
         }`,
@@ -366,7 +366,7 @@ export function InteractiveGlobe({
         varying float vTwinkle;
         void main() {
           float alpha = texture2D(uMap, gl_PointCoord).a;
-          gl_FragColor = vec4(vColor, alpha * vTwinkle * 0.7);
+          gl_FragColor = vec4(vColor, alpha * vTwinkle * 0.9);
           #include <colorspace_fragment>
         }`,
       transparent: true,
@@ -406,7 +406,7 @@ export function InteractiveGlobe({
           geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(TRAIL_POINTS * 3), 3))
           geo.setAttribute("aT", new THREE.BufferAttribute(trailT, 1))
           const material = new THREE.ShaderMaterial({
-            uniforms: { uHead: { value: 0 }, uColor: { value: new THREE.Color(0xdcbd78) } },
+            uniforms: { uHead: { value: 0 }, uColor: { value: new THREE.Color(0xedd187) } },
             vertexShader: /* glsl */ `
               attribute float aT;
               varying float vT;
@@ -430,12 +430,12 @@ export function InteractiveGlobe({
           line.visible = false
           line.frustumCulled = false
           const head = new THREE.Sprite(
-            new THREE.SpriteMaterial({ map: starTexture, color: 0xeedcb0, transparent: true, depthWrite: false }),
+            new THREE.SpriteMaterial({ map: starTexture, color: 0xfff0cb, transparent: true, depthWrite: false }),
           )
           head.scale.setScalar(0.1)
           head.visible = false
           const flash = new THREE.Sprite(
-            new THREE.SpriteMaterial({ map: starTexture, color: 0xc99a45, transparent: true, depthWrite: false }),
+            new THREE.SpriteMaterial({ map: starTexture, color: 0xd6a445, transparent: true, depthWrite: false }),
           )
           flash.visible = false
           globeGroup.add(line, head, flash)

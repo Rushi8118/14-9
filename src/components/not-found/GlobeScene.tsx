@@ -440,7 +440,7 @@ function Starfield({ count, animate }: { count: number; animate: boolean }) {
         map={texture}
         color="#c9d8ff"
         transparent
-        opacity={0.7}
+        opacity={0.85}
         depthWrite={false}
         blending={THREE.AdditiveBlending}
         toneMapped={false}
