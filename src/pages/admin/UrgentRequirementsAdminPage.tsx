@@ -602,16 +602,16 @@ export default function UrgentRequirementsAdminPage() {
       </div>
 
       <div className="rounded-2xl border border-border/70 bg-card overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full table-fixed text-left text-xs">
             <thead className="bg-muted/30 border-b border-border/60 text-muted-foreground uppercase font-semibold text-[11px]">
               <tr>
-                <th className="py-3 px-4 min-w-[360px]">Title & Country</th>
-                <th className="py-3 px-4 whitespace-nowrap">Vacancies</th>
-                <th className="py-3 px-4 whitespace-nowrap">Salary Package</th>
-                <th className="py-3 px-4 whitespace-nowrap">Timeline / Status</th>
-                <th className="py-3 px-4 text-center whitespace-nowrap">Active Toggle</th>
-                <th className="py-3 px-4 text-right whitespace-nowrap">Actions</th>
+                <th className="py-2.5 px-3 w-[36%] lg:w-[38%]">Title & Country</th>
+                <th className="py-2.5 px-2 w-[10%] lg:w-[8%] text-center">Vacancies</th>
+                <th className="py-2.5 px-2 w-[16%] lg:w-[15%]">Salary Package</th>
+                <th className="py-2.5 px-2 w-[16%] lg:w-[16%]">Timeline / Status</th>
+                <th className="py-2.5 px-2 w-[11%] lg:w-[11%] text-center">Status</th>
+                <th className="py-2.5 px-3 w-[11%] lg:w-[12%] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
@@ -628,28 +628,32 @@ export default function UrgentRequirementsAdminPage() {
 
                   return (
                     <tr key={req.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="py-3.5 px-4 min-w-[360px]">
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center p-1 bg-muted/40 rounded-lg border border-border/50 shrink-0 w-11 h-9">
-                            <FlagIcon country={req.country} code={req.country_code} className="text-2xl rounded-xs shadow-xs" />
+                      <td className="py-2.5 px-3 min-w-0">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="flex items-center justify-center p-0.5 bg-muted/40 rounded-lg border border-border/50 shrink-0 w-8 h-7">
+                            <FlagIcon country={req.country} code={req.country_code} className="text-lg rounded-xs shadow-xs" />
                           </div>
                           <div className="min-w-0 flex-1">
                             {isDraft ? (
-                              <span className="font-bold text-foreground text-sm line-clamp-1 flex items-center gap-1.5">
-                                <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <span className="font-bold text-foreground text-xs sm:text-sm truncate flex items-center gap-1.5" title={req.title}>
+                                <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
                                 <span className="truncate">{req.title}</span>
                               </span>
                             ) : (
-                              <Link to={`/urgent-requirements/${req.slug}`} target="_blank" className="font-bold text-foreground hover:text-primary transition-colors text-sm line-clamp-1 inline-flex items-center gap-1.5 group max-w-full">
+                              <Link
+                                to={`/urgent-requirements/${req.slug}`}
+                                target="_blank"
+                                className="font-bold text-foreground hover:text-primary transition-colors text-xs sm:text-sm truncate block group max-w-full"
+                                title={req.title}
+                              >
                                 <span className="truncate group-hover:underline">{req.title}</span>
-                                <ExternalLink className="h-3 w-3 opacity-50 shrink-0 group-hover:opacity-100" />
                               </Link>
                             )}
-                            <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                              <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap shrink-0">{req.country}</span>
-                              <span className="text-[11px] text-primary/90 bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md font-medium whitespace-nowrap shrink-0">{req.category}</span>
+                            <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                              <span className="text-[10px] sm:text-[11px] font-medium text-muted-foreground whitespace-nowrap shrink-0">{req.country}</span>
+                              <span className="text-[10px] sm:text-[11px] text-primary/90 bg-primary/10 border border-primary/20 px-1.5 py-0.2 rounded-md font-medium whitespace-nowrap shrink-0 truncate max-w-[130px]">{req.category}</span>
                               {(req.admin_input_required?.length || 0) > 0 && (
-                                <span className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-100/90 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700/60 px-2 py-0.5 rounded-md font-medium inline-flex items-center gap-1 whitespace-nowrap shrink-0">
+                                <span className="text-[10px] sm:text-[11px] text-amber-700 dark:text-amber-300 bg-amber-100/90 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700/60 px-1.5 py-0.2 rounded-md font-medium inline-flex items-center gap-0.5 whitespace-nowrap shrink-0">
                                   <AlertTriangle className="h-2.5 w-2.5 shrink-0" /> {req.admin_input_required!.length} to fill
                                 </span>
                               )}
@@ -657,61 +661,61 @@ export default function UrgentRequirementsAdminPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1 font-bold text-foreground bg-muted/40 px-2 py-1 rounded-md">
-                          <Users className="h-3 w-3 text-primary" />{req.vacancies}
+                      <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                        <span className="inline-flex items-center justify-center gap-1 font-bold text-foreground bg-muted/40 px-2 py-0.5 rounded-md text-xs">
+                          <Users className="h-3 w-3 text-primary shrink-0" />{req.vacancies}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 font-semibold text-emerald-400 whitespace-nowrap">
-                        {fieldFlag('salary', req.salary) ? <span className="text-muted-foreground italic">{ADMIN_INPUT_REQUIRED}</span> : req.salary}
+                      <td className="py-2.5 px-2 font-semibold text-emerald-400 whitespace-nowrap text-xs min-w-0">
+                        <span className="truncate block" title={req.salary}>
+                          {fieldFlag('salary', req.salary) ? <span className="text-muted-foreground italic text-[11px]">{ADMIN_INPUT_REQUIRED}</span> : req.salary}
+                        </span>
                       </td>
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="space-y-1">
+                      <td className="py-2.5 px-2 whitespace-nowrap min-w-0">
+                        <div className="space-y-0.5">
                           {isDraft ? (
-                            <span className="inline-flex items-center text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">Draft — not published</span>
+                            <span className="inline-flex items-center text-[10px] font-semibold text-slate-400 bg-slate-500/10 px-2 py-0.5 rounded-full border border-slate-500/20">Draft</span>
                           ) : isActive ? (
-                            <div className="flex items-center gap-1.5">
-                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                                <Clock className="h-3 w-3" />
-                                {remainingDays !== null && remainingDays > 0 ? `${remainingDays}d remaining` : 'Ends today'}
+                            <div className="flex items-center gap-1">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                                <Clock className="h-2.5 w-2.5 shrink-0" />
+                                {remainingDays !== null && remainingDays > 0 ? `${remainingDays}d left` : 'Ends today'}
                               </span>
-                              <button type="button" onClick={() => extendDuration(req.id, 7)} className="text-[10px] text-primary hover:underline font-medium" title="Extend deadline by +7 days">+7d</button>
+                              <button type="button" onClick={() => extendDuration(req.id, 7)} className="text-[10px] text-primary hover:underline font-bold px-1 py-0.5 rounded hover:bg-primary/10 transition" title="Extend deadline by +7 days">+7d</button>
                             </div>
                           ) : (
-                            <span className="inline-flex items-center text-[11px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Closed / Completed</span>
+                            <span className="inline-flex items-center text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border/50">Closed</span>
                           )}
-                          {req.expires_at && <p className="text-[10px] text-muted-foreground">Deadline: {new Date(req.expires_at).toLocaleDateString('en-GB')}</p>}
+                          {req.expires_at && <p className="text-[10px] text-muted-foreground font-mono">Deadline: {new Date(req.expires_at).toLocaleDateString('en-GB')}</p>}
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                      <td className="py-2.5 px-2 text-center whitespace-nowrap">
                         <button
                           type="button"
                           onClick={() => toggleStatus(req.id, isActive ? 'closed' : 'active')}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition ${isActive ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25' : 'bg-muted text-muted-foreground border border-border/70 hover:bg-muted/80'}`}
+                          className={`inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold transition shadow-2xs ${isActive ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25' : 'bg-muted text-muted-foreground border border-border/70 hover:bg-muted/80'}`}
+                          title={isActive ? 'Click to deactivate / stop' : 'Click to activate'}
                         >
-                          {isActive ? <><CheckCircle2 className="h-3 w-3" /> Active</> : <><XCircle className="h-3 w-3" /> {isDraft ? 'Publish' : 'Stopped'}</>}
+                          {isActive ? <><CheckCircle2 className="h-3 w-3 shrink-0" /> Active</> : <><XCircle className="h-3 w-3 shrink-0" /> {isDraft ? 'Publish' : 'Stopped'}</>}
                         </button>
                       </td>
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                      <td className="py-2.5 px-3 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => toggleStatus(req.id, isActive ? 'closed' : 'active')} className={`h-8 w-8 p-0 rounded-lg transition ${isActive ? 'text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`} title={isActive ? 'Active on website (click to hide)' : 'Hidden (click to show)'}>
-                            {isActive ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                          </Button>
                           {!isDraft && (
-                            <Button asChild variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground" title="View Public Details Page">
-                              <Link to={`/urgent-requirements/${req.slug}`} target="_blank"><ExternalLink className="h-4 w-4" /></Link>
+                            <Button asChild variant="ghost" size="sm" className="h-7 w-7 p-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted" title="View Public Details Page">
+                              <Link to={`/urgent-requirements/${req.slug}`} target="_blank"><ExternalLink className="h-3.5 w-3.5" /></Link>
                             </Button>
                           )}
-                          <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(req)} className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-primary" title="Edit Requirement"><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(req)} className="h-7 w-7 p-0 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10" title="Edit Requirement"><Pencil className="h-3.5 w-3.5" /></Button>
                           <Button
                             variant="ghost" size="icon"
                             onClick={() => {
                               if (confirm(`Delete urgent requirement "${req.title}"?`)) removeRequirement(req.id)
                             }}
-                            className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            className="h-7 w-7 p-0 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                             title="Delete Requirement"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </td>

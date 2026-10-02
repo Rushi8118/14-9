@@ -117,40 +117,121 @@ export function ContactSection() {
 
     const enteredPhone = type === "work" ? workPhone : studyPhone
     const enteredWhatsapp = type === "work" ? workWhatsapp : studyWhatsapp
-    if (!isValidPhoneNumber(enteredPhone)) {
+
+    const formData = new FormData(e.currentTarget)
+    const data = Object.fromEntries(formData.entries())
+
+    const name = data.name?.toString().trim()
+    if (!name) {
+      toast.error("Please enter your full name")
+      document.getElementById(type === "work" ? "w-name" : "s-name")?.focus()
+      return
+    }
+
+    const email = data.email?.toString().trim()
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Please enter a valid email address")
+      document.getElementById(type === "work" ? "w-email" : "s-email")?.focus()
+      return
+    }
+
+    if (!enteredPhone || !isValidPhoneNumber(enteredPhone)) {
       toast.error("Please enter a valid phone number", {
         description: "Enter the country code first (e.g. 91), then the full mobile number — 10 digits for India.",
       })
       document.getElementById(type === "work" ? "w-phone" : "s-phone")?.focus()
       return
     }
-    if (enteredWhatsapp && !isValidPhoneNumber(enteredWhatsapp)) {
-      toast.error("Please check the WhatsApp number", {
-        description: "Enter the country code first, then the full mobile number, or leave it empty.",
+
+    if (!enteredWhatsapp || !isValidPhoneNumber(enteredWhatsapp)) {
+      toast.error("Please enter a valid WhatsApp number", {
+        description: "WhatsApp number is required. Click 'Same as Phone Number' if your WhatsApp is on the same number.",
       })
       document.getElementById(type === "work" ? "w-whatsapp" : "s-whatsapp")?.focus()
       return
     }
 
+    // Logic for "Other" values
+    const finalCountry = (data.country === "Other / Not sure" && data.other_country) 
+      ? data.other_country.toString().trim() 
+      : (data.country?.toString().trim() || (type === "work" ? workCountry.trim() : studyCountry.trim()))
+
+    if (!finalCountry || finalCountry === "Other / Not sure") {
+      toast.error("Please choose a preferred country, or type one in if it is not listed.")
+      document.getElementById(type === "work" ? "w-country" : "s-country")?.focus()
+      return
+    }
+
+    let finalCategory = ""
+    if (type === "work") {
+      finalCategory = (data.category === "Not sure — please advise" && data.other_category)
+        ? data.other_category.toString().trim()
+        : (data.category?.toString().trim() || workCategory.trim())
+
+      if (!finalCategory || finalCategory === "Not sure — please advise") {
+        toast.error("Please select a visa category, or describe your requirement.")
+        document.getElementById("w-category")?.focus()
+        return
+      }
+
+      const experience = data.experience?.toString().trim()
+      if (experience === undefined || experience === "" || isNaN(Number(experience)) || Number(experience) < 0) {
+        toast.error("Please enter your years of experience (0 or more).")
+        document.getElementById("w-experience")?.focus()
+        return
+      }
+
+      const role = data.role?.toString().trim()
+      if (!role) {
+        toast.error("Please enter your current role or industry.")
+        document.getElementById("w-role")?.focus()
+        return
+      }
+
+      const message = data.message?.toString().trim()
+      if (!message || message.length < 5) {
+        toast.error("Please tell us more about your background and requirements (at least 5 characters).")
+        document.getElementById("w-message")?.focus()
+        return
+      }
+    } else {
+      const level = data.level?.toString().trim()
+      if (!level) {
+        toast.error("Please select your study level.")
+        document.getElementById("s-level")?.focus()
+        return
+      }
+      finalCategory = level
+
+      const intake = data.intake?.toString().trim()
+      if (!intake) {
+        toast.error("Please enter your target intake (e.g. Sep 2026).")
+        document.getElementById("s-intake")?.focus()
+        return
+      }
+
+      const field = data.field?.toString().trim()
+      if (!field) {
+        toast.error("Please enter your field of study.")
+        document.getElementById("s-field")?.focus()
+        return
+      }
+
+      const message = data.message?.toString().trim()
+      if (!message || message.length < 5) {
+        toast.error("Please tell us about your academic goals and background (at least 5 characters).")
+        document.getElementById("s-message")?.focus()
+        return
+      }
+    }
+
     setter("loading")
     
     try {
-      const formData = new FormData(e.currentTarget)
-      const data = Object.fromEntries(formData.entries())
-      
       const { data: { session } } = await supabase.auth.getSession()
       
-      const phone = type === "work" ? workPhone : studyPhone
-      const whatsapp = type === "work" ? workWhatsapp : studyWhatsapp
-
-      // Logic for "Other" values
-      const finalCountry = (data.country === "Other / Not sure" && data.other_country) 
-        ? data.other_country.toString() 
-        : data.country?.toString()
-
-      const finalCategory = (data.category === "Not sure — please advise" && data.other_category)
-        ? data.other_category.toString()
-        : data.category?.toString()
+      const phone = enteredPhone
+      const whatsapp = enteredWhatsapp
 
       const insertData: any = {
         consultation_type: type === "work" ? "work_visa" : "study_visa",
@@ -459,17 +540,19 @@ export function ContactSection() {
                           name="experience"
                           type="number"
                           min={0}
+                          required
                           placeholder="e.g. 4"
                         />
                       </Field>
                       <Field id="w-role" label="Current role / industry">
-                        <Input id="w-role" name="role" placeholder="e.g. Nurse, Welder, IT" />
+                        <Input id="w-role" name="role" required placeholder="e.g. Nurse, Welder, IT" />
                       </Field>
                       <Field id="w-message" label="Tell us more" full>
                         <Textarea
                           id="w-message"
                           name="message"
                           rows={3}
+                          required
                           placeholder="English proficiency, qualifications, target role, timeline..."
                         />
                       </Field>
@@ -575,6 +658,7 @@ export function ContactSection() {
                         <Input
                           id="s-intake"
                           name="intake"
+                          required
                           placeholder="e.g. Sep 2026 / Jan 2027"
                         />
                       </Field>
@@ -582,6 +666,7 @@ export function ContactSection() {
                         <Input
                           id="s-field"
                           name="field"
+                          required
                           placeholder="e.g. Data Science, Nursing"
                         />
                       </Field>
@@ -590,6 +675,7 @@ export function ContactSection() {
                           id="s-message"
                           name="message"
                           rows={3}
+                          required
                           placeholder="Academic background, IELTS / TOEFL scores, scholarship interest..."
                         />
                       </Field>
@@ -616,16 +702,19 @@ function Field({
   label,
   children,
   full,
+  required = true,
 }: {
   id: string
   label: string
   children: React.ReactNode
   full?: boolean
+  required?: boolean
 }) {
   return (
     <div className={full ? "md:col-span-2" : ""}>
-      <Label htmlFor={id} className="text-sm">
-        {label}
+      <Label htmlFor={id} className="text-sm flex items-center gap-1 font-medium">
+        <span>{label}</span>
+        {required && <span className="text-destructive font-bold text-xs" title="Required field">*</span>}
       </Label>
       <div className="mt-2 form-field-glow rounded-md [&_input]:border-border/70 [&_input]:bg-background/50 [&_textarea]:border-border/70 [&_textarea]:bg-background/50">
         {children}

@@ -1,11 +1,97 @@
 -- ============================================================
--- ADMIN NOTIFICATIONS & BROADCASTS
--- Enables staff/admins to view system-wide notifications, broadcast
--- announcements to all or specific users, and manage alert history.
--- Safe to re-run.
+-- FIX NOTIFICATIONS & BROADCAST RPC FOR ADMIN
+-- Run this in the Supabase SQL Editor
+--
+-- This script:
+-- 1. Ensures staff access works via role check and permissions
+-- 2. Sets correct RLS policies on public.notifications
+-- 3. Installs/updates public.admin_send_notification (broadcast engine)
+-- 4. Installs/updates public.get_admin_notifications (enriched list with profiles)
+-- 5. Installs/updates public.admin_delete_notification
+-- Safe and idempotent to run multiple times.
 -- ============================================================
 
--- ─── List notifications for the admin notification page ──────
+-- ── 1) Ensure is_staff() helper exists ───────────────────────
+CREATE OR REPLACE FUNCTION public.is_staff()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.user_profiles up
+    WHERE up.id = auth.uid()
+      AND up.user_role IN (
+        'super_admin','superadmin','admin','manager',
+        'hr','visa_officer','counselor','consultant'
+      )
+  );
+$$;
+
+GRANT EXECUTE ON FUNCTION public.is_staff() TO authenticated;
+
+-- ── 2) RLS Policies on public.notifications ───────────────────
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "notifications_select" ON public.notifications;
+DROP POLICY IF EXISTS "notifications_insert" ON public.notifications;
+DROP POLICY IF EXISTS "notifications_update" ON public.notifications;
+DROP POLICY IF EXISTS "notifications_delete" ON public.notifications;
+DROP POLICY IF EXISTS "Users can manage own notifications" ON public.notifications;
+DROP POLICY IF EXISTS "View notifications" ON public.notifications;
+DROP POLICY IF EXISTS "Insert notifications" ON public.notifications;
+DROP POLICY IF EXISTS "Update notifications" ON public.notifications;
+
+-- Select: staff see all; users see their own
+CREATE POLICY "notifications_select" ON public.notifications
+  FOR SELECT TO authenticated
+  USING (
+    public.is_staff()
+    OR auth.uid() = user_id
+    OR (
+      EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'user_has_permission')
+      AND public.user_has_permission(ARRAY['notifications.read', 'notifications.manage', 'crm.read'])
+    )
+  );
+
+-- Insert: staff can create for any user; users can insert for own user_id
+CREATE POLICY "notifications_insert" ON public.notifications
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    public.is_staff()
+    OR auth.uid() = user_id
+    OR (
+      EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'user_has_permission')
+      AND public.user_has_permission(ARRAY['notifications.create', 'notifications.manage', 'crm.create'])
+    )
+  );
+
+-- Update: staff can update any; users can mark their own as read
+CREATE POLICY "notifications_update" ON public.notifications
+  FOR UPDATE TO authenticated
+  USING (
+    public.is_staff()
+    OR auth.uid() = user_id
+    OR (
+      EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'user_has_permission')
+      AND public.user_has_permission(ARRAY['notifications.manage', 'crm.update'])
+    )
+  );
+
+-- Delete: staff can delete notifications
+CREATE POLICY "notifications_delete" ON public.notifications
+  FOR DELETE TO authenticated
+  USING (
+    public.is_staff()
+    OR (
+      EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'user_has_permission')
+      AND public.user_has_permission(ARRAY['notifications.manage'])
+    )
+  );
+
+-- ── 3) List Notifications with Recipient Profiles ────────────
 CREATE OR REPLACE FUNCTION public.get_admin_notifications(
   p_type TEXT DEFAULT NULL,
   p_unread_only BOOLEAN DEFAULT FALSE,
@@ -76,7 +162,7 @@ $$;
 REVOKE ALL ON FUNCTION public.get_admin_notifications(TEXT, BOOLEAN, TEXT, INTEGER) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_admin_notifications(TEXT, BOOLEAN, TEXT, INTEGER) TO authenticated;
 
--- ─── Admin Send / Broadcast Notification ─────────────────────
+-- ── 4) Admin Broadcast / Send Notification ───────────────────
 CREATE OR REPLACE FUNCTION public.admin_send_notification(
   p_target TEXT,                -- 'all', 'customers', 'staff', 'user'
   p_target_id UUID DEFAULT NULL,
@@ -163,7 +249,7 @@ $$;
 REVOKE ALL ON FUNCTION public.admin_send_notification(TEXT, UUID, TEXT, TEXT, TEXT, TEXT, TEXT) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_send_notification(TEXT, UUID, TEXT, TEXT, TEXT, TEXT, TEXT) TO authenticated;
 
--- ─── Admin Delete Notification ───────────────────────────────
+-- ── 5) Admin Delete Notification ─────────────────────────────
 CREATE OR REPLACE FUNCTION public.admin_delete_notification(p_id UUID)
 RETURNS VOID
 LANGUAGE plpgsql
@@ -192,7 +278,7 @@ $$;
 REVOKE ALL ON FUNCTION public.admin_delete_notification(UUID) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_delete_notification(UUID) TO authenticated;
 
--- ─── Admin Mark Notifications Read ────────────────────────────
+-- ── 6) Admin Mark Notifications Read ──────────────────────────
 CREATE OR REPLACE FUNCTION public.admin_mark_notifications_read(
   p_ids UUID[] DEFAULT NULL
 )
@@ -246,7 +332,7 @@ $$;
 REVOKE ALL ON FUNCTION public.admin_mark_notifications_read(UUID[]) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_mark_notifications_read(UUID[]) TO authenticated;
 
--- Alias
+-- Alias for convenience
 CREATE OR REPLACE FUNCTION public.admin_mark_all_read(p_ids UUID[] DEFAULT NULL)
 RETURNS INTEGER
 LANGUAGE plpgsql

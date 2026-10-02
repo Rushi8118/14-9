@@ -98,6 +98,7 @@ export function useNotifications() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications', userId] })
+      queryClient.invalidateQueries({ queryKey: ['admin-notifications-list'] })
     },
   })
 
@@ -130,6 +131,7 @@ export function useNotifications() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications', userId] })
+      queryClient.invalidateQueries({ queryKey: ['admin-notifications-list'] })
       toast.success('All notifications marked as read.')
     },
   })

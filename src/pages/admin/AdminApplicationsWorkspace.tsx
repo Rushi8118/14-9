@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { subscribePostgresChanges } from '@/lib/supabase/realtime'
@@ -24,8 +24,8 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
 import {
-  Archive, Briefcase, Check, ChevronLeft, ChevronRight, Download, FileText,
-  Filter, MoreHorizontal, RefreshCw, Search, ShieldAlert, Trash2, X, Zap,
+  Archive, Briefcase, Check, ChevronLeft, ChevronRight, Clock, Download, FileText,
+  Filter, MoreHorizontal, MoveHorizontal, RefreshCw, Search, ShieldAlert, Trash2, UserPlus, X, Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeDatePicker } from '@/components/ui/theme-date-picker'
@@ -33,7 +33,7 @@ import { writeAuditLog } from '@/lib/audit-log'
 import {
   type AppRow, type DetailData, type Officer,
   STATUSES, TYPES, PRIORITIES, PAGE_SIZES,
-  statusVariant, pretty, dateText, daysPending,
+  statusVariant, pretty, dateText, formatDateOnly, formatTimeOnly, formatFullDateTime, daysPending,
 } from '@/pages/admin/applications.types'
 
 function StatCard({ label, value, active, onClick, variant }: { label: string; value: number; active?: boolean; onClick: () => void; variant?: string }) {
@@ -109,14 +109,170 @@ export default function AdminApplicationsWorkspace() {
     }, enabled: canRead,
   })
   const { data: countries = [] } = useQuery<{ id: string; name: string }[]>({ queryKey: ['admin-countries'], queryFn: async () => { const { data, error: queryError } = await supabase.from('countries').select('id,name').order('name'); if (queryError) throw queryError; return data ?? [] }, enabled: canRead })
-  const { data: officers = [] } = useQuery<Officer[]>({ queryKey: ['admin-application-officers'], enabled: canRead, queryFn: async () => {
-    const rpc = await supabase.rpc('get_application_officers')
-    if (!rpc.error) return (typeof rpc.data === 'string' ? JSON.parse(rpc.data) : rpc.data ?? []) as Officer[]
-    if (!/schema cache|could not find the function|PGRST202/i.test(rpc.error.message)) throw rpc.error
-    const { data, error: officerError } = await supabase.from('user_profiles').select('id,full_name,email').in('user_role', ['hr', 'visa_officer', 'counselor', 'consultant', 'manager', 'admin', 'super_admin', 'superadmin']).eq('status', 'active').order('full_name')
-    if (officerError) throw officerError
-    return (data ?? []) as Officer[]
-  } })
+  const { data: officers = [] } = useQuery<Officer[]>({
+    queryKey: ['admin-application-officers'],
+    enabled: canRead,
+    queryFn: async () => {
+      try {
+        const rpc = await supabase.rpc('get_application_officers')
+        if (!rpc.error && rpc.data) {
+          const list = (typeof rpc.data === 'string' ? JSON.parse(rpc.data) : rpc.data) as Officer[]
+          if (Array.isArray(list) && list.length > 0) return list
+        }
+      } catch {
+        // Fall back below
+      }
+
+      const { data: staffProfiles, error: staffErr } = await supabase
+        .from('user_profiles')
+        .select('id,full_name,email')
+        .in('user_role', ['super_admin', 'superadmin', 'admin', 'manager', 'hr', 'visa_officer', 'counselor', 'consultant'])
+        .order('full_name')
+
+      if (!staffErr && staffProfiles && staffProfiles.length > 0) {
+        return staffProfiles as Officer[]
+      }
+
+      const { data: allProfiles } = await supabase
+        .from('user_profiles')
+        .select('id,full_name,email')
+        .order('full_name')
+        .limit(100)
+
+      return (allProfiles ?? []) as Officer[]
+    },
+  })
+
+  const officersMap = useMemo(() => new Map(officers.map(o => [o.id, o])), [officers])
+
+  const handleAssignOfficer = async (rowId: string, officerId: string | null) => {
+    if (!canUpdate) {
+      toast.error('You do not have permission to assign officers.')
+      return
+    }
+    const isEnquiry = rowId.startsWith('ENQ-') || rawData.find(r => r.id === rowId)?.application_id?.startsWith('ENQ-') || rawData.find(r => r.id === rowId)?.meta?.source === 'consultations'
+    const targetOfficer = officerId ? officersMap.get(officerId) : null
+    const officerName = targetOfficer?.full_name || targetOfficer?.email || 'Officer'
+
+    try {
+      const { error: rpcErr } = await supabase.rpc('admin_assign_officer', {
+        p_id: rowId,
+        p_officer_id: officerId || null,
+      })
+
+      if (rpcErr) {
+        if (isEnquiry) {
+          const { error: directErr } = await supabase
+            .from('consultations')
+            .update({ assigned_consultant: officerId || null, updated_at: new Date().toISOString() })
+            .eq('id', rowId)
+          if (directErr) throw directErr
+        } else {
+          const { error: directErr } = await supabase
+            .from('applications')
+            .update({ assigned_consultant: officerId || null, updated_at: new Date().toISOString() })
+            .eq('id', rowId)
+          if (directErr) throw directErr
+        }
+      }
+
+      toast.success(officerId ? `Assigned to ${officerName}` : 'Officer unassigned')
+      await queryClient.invalidateQueries({ queryKey: ['admin-applications'] })
+      if (selectedApp?.id === rowId) {
+        void detailQuery.refetch()
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Could not assign officer.')
+    }
+  }
+
+  const handleUpdateStatus = async (rowId: string, newStatus: string) => {
+    if (!canProcess && !canUpdate) {
+      toast.error('You do not have permission to update status.')
+      return
+    }
+    const isEnquiry = rowId.startsWith('ENQ-') || rawData.find(r => r.id === rowId)?.application_id?.startsWith('ENQ-') || rawData.find(r => r.id === rowId)?.meta?.source === 'consultations'
+
+    try {
+      const { error: rpcErr } = await supabase.rpc('admin_quick_update_application', {
+        p_id: rowId,
+        p_field: 'status',
+        p_value: newStatus,
+      })
+
+      if (rpcErr) {
+        if (isEnquiry) {
+          const consultationStatus = newStatus === 'approved' ? 'confirmed' : newStatus === 'rejected' ? 'cancelled' : newStatus === 'under_review' ? 'scheduled' : newStatus === 'withdrawn' ? 'no_show' : 'requested'
+          const { error: directErr } = await supabase
+            .from('consultations')
+            .update({ status: consultationStatus, updated_at: new Date().toISOString() })
+            .eq('id', rowId)
+          if (directErr) throw directErr
+        } else {
+          const updatePayload: Record<string, unknown> = {
+            status: newStatus,
+            updated_at: new Date().toISOString(),
+          }
+          if (newStatus === 'approved') {
+            updatePayload.decision_at = new Date().toISOString()
+          }
+          const { error: directErr } = await supabase
+            .from('applications')
+            .update(updatePayload)
+            .eq('id', rowId)
+          if (directErr) throw directErr
+        }
+      }
+
+      toast.success(`Status updated to ${pretty(newStatus)}`)
+      await queryClient.invalidateQueries({ queryKey: ['admin-applications'] })
+      if (selectedApp?.id === rowId) {
+        void detailQuery.refetch()
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Could not update status.')
+    }
+  }
+
+  const handleUpdatePriority = async (rowId: string, newPriority: string) => {
+    if (!canUpdate) {
+      toast.error('You do not have permission to update priority.')
+      return
+    }
+    const isEnquiry = rowId.startsWith('ENQ-') || rawData.find(r => r.id === rowId)?.application_id?.startsWith('ENQ-') || rawData.find(r => r.id === rowId)?.meta?.source === 'consultations'
+
+    try {
+      const { error: rpcErr } = await supabase.rpc('admin_quick_update_application', {
+        p_id: rowId,
+        p_field: 'priority',
+        p_value: newPriority,
+      })
+
+      if (rpcErr) {
+        if (isEnquiry) {
+          const { error: directErr } = await supabase
+            .from('consultations')
+            .update({ priority: newPriority, updated_at: new Date().toISOString() })
+            .eq('id', rowId)
+          if (directErr) throw directErr
+        } else {
+          const { error: directErr } = await supabase
+            .from('applications')
+            .update({ priority: newPriority, updated_at: new Date().toISOString() })
+            .eq('id', rowId)
+          if (directErr) throw directErr
+        }
+      }
+
+      toast.success(`Priority updated to ${pretty(newPriority)}`)
+      await queryClient.invalidateQueries({ queryKey: ['admin-applications'] })
+      if (selectedApp?.id === rowId) {
+        void detailQuery.refetch()
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Could not update priority.')
+    }
+  }
   const detailQuery = useQuery<DetailData>({ queryKey: ['admin-application-detail', selectedApp?.id], enabled: !!selectedApp && canRead, queryFn: async () => {
     const { data, error: queryError } = await supabase.rpc('get_application_management_data', { p_application_id: selectedApp!.id })
     if (!queryError && data) return data as DetailData
@@ -181,6 +337,68 @@ export default function AdminApplicationsWorkspace() {
   const sorted = useMemo(() => [...filtered].sort((a, b) => { const av = String((a as any)[sortKey] ?? ''), bv = String((b as any)[sortKey] ?? ''); return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av) }), [filtered, sortKey, sortDir])
   const kpis = useMemo(() => Object.fromEntries(['total', ...STATUSES, 'urgent'].map(key => [key, key === 'total' ? rawData.length : key === 'urgent' ? rawData.filter(row => row.priority === 'urgent').length : rawData.filter(row => row.status === key).length])), [rawData])
 
+  const tableContainerRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  const updateScrollIndicators = useCallback(() => {
+    const el = tableContainerRef.current
+    if (!el) return
+    const maxScroll = el.scrollWidth - el.clientWidth
+    setCanScrollLeft(el.scrollLeft > 6)
+    setCanScrollRight(maxScroll > 6 && el.scrollLeft < maxScroll - 6)
+  }, [])
+
+  const scrollHorizontally = useCallback((direction: 'left' | 'right') => {
+    const el = tableContainerRef.current
+    if (!el) return
+    const distance = Math.min(el.clientWidth * 0.75, 420)
+    el.scrollBy({
+      left: direction === 'right' ? distance : -distance,
+      behavior: 'smooth',
+    })
+  }, [])
+
+  useEffect(() => {
+    const el = tableContainerRef.current
+    if (!el) return
+
+    const onWheel = (e: WheelEvent) => {
+      // Allow trackpad or horizontal scroll wheels that emit deltaX natively
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        return
+      }
+
+      const maxScroll = el.scrollWidth - el.clientWidth
+      if (maxScroll <= 0) return
+
+      const scrollingRight = e.deltaY > 0
+      const scrollingLeft = e.deltaY < 0
+
+      const atRightEdge = el.scrollLeft >= maxScroll - 4
+      const atLeftEdge = el.scrollLeft <= 4
+
+      // When pointing at any application row in the table, translate vertical mouse wheel to horizontal scroll
+      if ((scrollingRight && !atRightEdge) || (scrollingLeft && !atLeftEdge)) {
+        e.preventDefault()
+        el.scrollLeft += e.deltaY * 1.2
+        updateScrollIndicators()
+      }
+    }
+
+    el.addEventListener('wheel', onWheel, { passive: false })
+    el.addEventListener('scroll', updateScrollIndicators, { passive: true })
+    window.addEventListener('resize', updateScrollIndicators, { passive: true })
+
+    updateScrollIndicators()
+
+    return () => {
+      el.removeEventListener('wheel', onWheel)
+      el.removeEventListener('scroll', updateScrollIndicators)
+      window.removeEventListener('resize', updateScrollIndicators)
+    }
+  }, [updateScrollIndicators, sorted.length])
+
   const runAction = async () => {
     if (!action || actionPending) return
     const ids = action.row ? [action.row.id] : selected
@@ -206,6 +424,13 @@ export default function AdminApplicationsWorkspace() {
     setActionPending(true)
     try {
       for (const id of ids) {
+        if (rpcAction === 'assign') {
+          const { error: assignRpcErr } = await supabase.rpc('admin_assign_officer', {
+            p_id: id,
+            p_officer_id: rpcValue || null,
+          })
+          if (!assignRpcErr) continue
+        }
         const isEnquiry = isEnquiryRow(id)
         // Skip the RPC for enquiries: it only knows the applications table.
         const rpcResult = isEnquiry
@@ -408,12 +633,72 @@ export default function AdminApplicationsWorkspace() {
       </div>
     </div>
 
-    {selected.length > 0 && <div className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 p-3"><span className="text-sm font-medium">{selected.length} selected</span><Select onValueChange={value => setAction({ name: 'change_status', value })}><SelectTrigger className="w-40"><SelectValue placeholder="Change status" /></SelectTrigger><SelectContent>{STATUSES.map(value => <SelectItem key={value} value={value}>{pretty(value)}</SelectItem>)}</SelectContent></Select><Select onValueChange={value => setAction({ name: 'change_priority', value })}><SelectTrigger className="w-36"><SelectValue placeholder="Priority" /></SelectTrigger><SelectContent>{PRIORITIES.map(value => <SelectItem key={value} value={value}>{pretty(value)}</SelectItem>)}</SelectContent></Select><Button variant="outline" size="sm" onClick={() => exportRows(sorted.filter(row => selected.includes(row.id)))}><Download className="mr-1 h-4 w-4" />Export selected</Button>{canDelete && <Button variant="destructive" size="sm" onClick={() => setAction({ name: 'delete' })}><Trash2 className="mr-1 h-4 w-4" />Delete</Button>}</div>}
+    {selected.length > 0 && (
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 p-3">
+        <span className="text-sm font-medium">{selected.length} selected</span>
+        <Select onValueChange={value => setAction({ name: 'change_status', value })}>
+          <SelectTrigger className="w-40"><SelectValue placeholder="Change status" /></SelectTrigger>
+          <SelectContent>{STATUSES.map(value => <SelectItem key={value} value={value}>{pretty(value)}</SelectItem>)}</SelectContent>
+        </Select>
+        <Select onValueChange={value => setAction({ name: 'change_priority', value })}>
+          <SelectTrigger className="w-36"><SelectValue placeholder="Priority" /></SelectTrigger>
+          <SelectContent>{PRIORITIES.map(value => <SelectItem key={value} value={value}>{pretty(value)}</SelectItem>)}</SelectContent>
+        </Select>
+        {canUpdate && (
+          <Select onValueChange={value => setAction({ name: 'assign', value: value === 'unassigned' ? '' : value })}>
+            <SelectTrigger className="w-40"><SelectValue placeholder="Assign officer" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unassigned">Unassign</SelectItem>
+              {officers.map(o => (
+                <SelectItem key={o.id} value={o.id}>{o.full_name || o.email}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        <Button variant="outline" size="sm" onClick={() => exportRows(sorted.filter(row => selected.includes(row.id)))}>
+          <Download className="mr-1 h-4 w-4" />Export selected
+        </Button>
+        {canDelete && (
+          <Button variant="destructive" size="sm" onClick={() => setAction({ name: 'delete' })}>
+            <Trash2 className="mr-1 h-4 w-4" />Delete
+          </Button>
+        )}
+      </div>
+    )}
 
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <span className="text-xs text-muted-foreground">
-        {sorted.length} application{sorted.length === 1 ? '' : 's'} found{hasFilters && ' (filtered)'}
-      </span>
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-muted-foreground">
+          {sorted.length} application{sorted.length === 1 ? '' : 's'} found{hasFilters && ' (filtered)'}
+        </span>
+        <div className="hidden sm:flex items-center gap-1 rounded-lg border border-border/60 bg-muted/20 px-1.5 py-0.5 text-xs text-muted-foreground">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 rounded-md disabled:opacity-30 hover:bg-muted"
+            onClick={() => scrollHorizontally('left')}
+            disabled={!canScrollLeft}
+            title="Scroll table left (or roll mouse wheel)"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </Button>
+          <span className="text-[11px] font-medium px-1 flex items-center gap-1 select-none">
+            <MoveHorizontal className="h-3 w-3 text-primary" /> Scroll
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 rounded-md disabled:opacity-30 hover:bg-muted"
+            onClick={() => scrollHorizontally('right')}
+            disabled={!canScrollRight}
+            title="Scroll table right (or roll mouse wheel)"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-2.5 py-1">
           <span className="text-xs font-medium text-muted-foreground">Columns:</span>
@@ -454,8 +739,38 @@ export default function AdminApplicationsWorkspace() {
         </div>
       </div>
     ) : (
-      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-xs">
-        <table className="w-full text-left text-xs">
+      <div className="relative group/table rounded-xl">
+        {/* Floating Quick Scroll Left Button */}
+        {canScrollLeft && (
+          <button
+            type="button"
+            onClick={() => scrollHorizontally('left')}
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-background/95 text-foreground shadow-xl border border-border backdrop-blur-md hover:bg-primary hover:text-primary-foreground hover:scale-105 transition-all duration-200"
+            title="Scroll left"
+            aria-label="Scroll left"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+        )}
+
+        {/* Floating Quick Scroll Right Button */}
+        {canScrollRight && (
+          <button
+            type="button"
+            onClick={() => scrollHorizontally('right')}
+            className="absolute right-14 top-1/2 -translate-y-1/2 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-background/95 text-foreground shadow-xl border border-border backdrop-blur-md hover:bg-primary hover:text-primary-foreground hover:scale-105 transition-all duration-200"
+            title="Scroll right"
+            aria-label="Scroll right"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        )}
+
+        <div
+          ref={tableContainerRef}
+          className="overflow-x-auto rounded-xl border border-border bg-card shadow-xs custom-horizontal-scrollbar scroll-smooth"
+        >
+          <table className="w-full text-left text-xs min-w-[1250px]">
           <thead>
             <tr className="border-b border-border bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               <th className="w-10 px-3.5 py-3 text-center">
@@ -485,7 +800,11 @@ export default function AdminApplicationsWorkspace() {
                     key={key}
                     scope="col"
                     tabIndex={0}
-                    className="cursor-pointer px-3.5 py-3 text-left hover:bg-muted/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition-colors whitespace-nowrap"
+                    className={cn(
+                      'cursor-pointer px-3.5 py-3 text-left hover:bg-muted/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition-colors whitespace-nowrap',
+                      key === 'created_at' || key === 'updated_at' ? 'min-w-[115px]' : '',
+                      key === 'assigned_officer_name' ? 'min-w-[145px]' : ''
+                    )}
                     onClick={() => sort(key)}
                     onKeyDown={event => {
                       if (event.key === 'Enter' || event.key === ' ') {
@@ -499,7 +818,7 @@ export default function AdminApplicationsWorkspace() {
                   </th>
                 )
               )}
-              <th className="sticky right-0 bg-muted/95 backdrop-blur-xs px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.15)] z-10 whitespace-nowrap">
+              <th className="sticky right-0 bg-muted/95 backdrop-blur-xs px-3.5 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground border-l border-border/40 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.15)] z-10 whitespace-nowrap">
                 Actions
               </th>
             </tr>
@@ -535,30 +854,164 @@ export default function AdminApplicationsWorkspace() {
                     {row.country_flag_emoji} {row.country_name || 'Not set'}
                   </td>
                 )}
-                <td className="px-3.5 py-3 whitespace-nowrap">
-                  <StatusBadge status={row.status} variant={statusVariant(row.status)} />
+                <td className="px-3.5 py-3 whitespace-nowrap min-w-[130px]" onClick={event => event.stopPropagation()}>
+                  {canProcess || canUpdate ? (
+                    <Select
+                      value={row.status}
+                      onValueChange={val => void handleUpdateStatus(row.id, val)}
+                    >
+                      <SelectTrigger
+                        size="sm"
+                        className={cn(
+                          'h-7 text-[11px] font-medium rounded-full px-2.5 py-0 gap-1.5 shadow-none border transition-colors w-auto min-w-[115px]',
+                          row.status === 'approved' && 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25',
+                          row.status === 'under_review' && 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/25',
+                          row.status === 'submitted' && 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30 hover:bg-blue-500/25',
+                          row.status === 'rejected' && 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/25',
+                          row.status === 'withdrawn' && 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30 hover:bg-purple-500/25',
+                          row.status === 'draft' && 'bg-muted/70 text-muted-foreground border-border/60 hover:bg-muted'
+                        )}
+                      >
+                        <SelectValue>
+                          <span className="flex items-center gap-1.5 font-medium">
+                            <span className={cn(
+                              'h-1.5 w-1.5 rounded-full shrink-0',
+                              row.status === 'approved' && 'bg-emerald-500',
+                              row.status === 'under_review' && 'bg-amber-500',
+                              row.status === 'submitted' && 'bg-blue-500',
+                              row.status === 'rejected' && 'bg-rose-500',
+                              row.status === 'withdrawn' && 'bg-purple-500',
+                              row.status === 'draft' && 'bg-muted-foreground'
+                            )} />
+                            <span>{pretty(row.status)}</span>
+                          </span>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent align="start">
+                        {STATUSES.map(st => (
+                          <SelectItem key={st} value={st}>
+                            <span className="flex items-center gap-2 text-xs">
+                              <span className={cn(
+                                'h-2 w-2 rounded-full',
+                                st === 'approved' && 'bg-emerald-500',
+                                st === 'under_review' && 'bg-amber-500',
+                                st === 'submitted' && 'bg-blue-500',
+                                st === 'rejected' && 'bg-rose-500',
+                                st === 'withdrawn' && 'bg-purple-500',
+                                st === 'draft' && 'bg-muted-foreground'
+                              )} />
+                              <span>{pretty(st)}</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <StatusBadge status={row.status} variant={statusVariant(row.status)} />
+                  )}
                 </td>
-                <td className="px-3.5 py-3 whitespace-nowrap">
-                  <span className={cn(
-                    'rounded-full px-2.5 py-0.5 text-[11px] font-medium',
-                    row.priority === 'urgent' ? 'bg-amber-100 text-amber-700' :
-                    row.priority === 'high' ? 'bg-red-100 text-red-700' :
-                    'bg-muted text-muted-foreground'
-                  )}>
-                    {pretty(row.priority)}
-                  </span>
+                <td className="px-3.5 py-3 whitespace-nowrap min-w-[110px]" onClick={event => event.stopPropagation()}>
+                  {canUpdate ? (
+                    <Select
+                      value={row.priority || 'normal'}
+                      onValueChange={val => void handleUpdatePriority(row.id, val)}
+                    >
+                      <SelectTrigger
+                        size="sm"
+                        className={cn(
+                          'h-7 text-[11px] font-medium rounded-full px-2.5 py-0 gap-1.5 shadow-none border transition-colors w-auto min-w-[95px]',
+                          row.priority === 'urgent' && 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/25',
+                          row.priority === 'high' && 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/25',
+                          row.priority === 'low' && 'bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-400/20 hover:bg-slate-500/20',
+                          (!row.priority || row.priority === 'normal') && 'bg-muted/70 text-muted-foreground border-border/50 hover:bg-muted'
+                        )}
+                      >
+                        <SelectValue>
+                          <span className="capitalize font-medium">{pretty(row.priority || 'normal')}</span>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent align="start">
+                        {PRIORITIES.map(pr => (
+                          <SelectItem key={pr} value={pr}>
+                            <span className="flex items-center gap-2 text-xs">
+                              <span className={cn(
+                                'h-2 w-2 rounded-full',
+                                pr === 'urgent' && 'bg-amber-500',
+                                pr === 'high' && 'bg-rose-500',
+                                pr === 'low' && 'bg-slate-400',
+                                pr === 'normal' && 'bg-muted-foreground'
+                              )} />
+                              <span className="capitalize">{pretty(pr)}</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className={cn(
+                      'rounded-full px-2.5 py-0.5 text-[11px] font-medium',
+                      row.priority === 'urgent' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                      row.priority === 'high' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                      'bg-muted text-muted-foreground'
+                    )}>
+                      {pretty(row.priority)}
+                    </span>
+                  )}
                 </td>
                 {visible.officer && (
-                  <td className="px-3.5 py-3 text-xs whitespace-nowrap">
-                    {row.assigned_officer_name || 'Unassigned'}
+                  <td className="px-3.5 py-3 text-xs whitespace-nowrap min-w-[145px]" onClick={event => event.stopPropagation()}>
+                    {canUpdate ? (
+                      <Select
+                        value={row.assigned_consultant || 'unassigned'}
+                        onValueChange={val => void handleAssignOfficer(row.id, val === 'unassigned' ? null : val)}
+                      >
+                        <SelectTrigger className="h-7 text-xs border-dashed border-border/80 bg-background/50 hover:bg-muted/40 w-[145px] px-2 py-0">
+                          <SelectValue>
+                            {row.assigned_consultant && officersMap.has(row.assigned_consultant) ? (
+                              <span className="font-medium text-foreground truncate max-w-[115px] block">
+                                {officersMap.get(row.assigned_consultant)?.full_name || officersMap.get(row.assigned_consultant)?.email}
+                              </span>
+                            ) : row.assigned_officer_name ? (
+                              <span className="font-medium text-foreground truncate max-w-[115px] block">
+                                {row.assigned_officer_name}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground italic flex items-center gap-1 text-[11px]">
+                                <UserPlus className="h-3 w-3 text-primary/70" /> Unassigned
+                              </span>
+                            )}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent align="start">
+                          <SelectItem value="unassigned">
+                            <span className="text-muted-foreground italic">Unassigned</span>
+                          </SelectItem>
+                          {officers.map(o => (
+                            <SelectItem key={o.id} value={o.id}>
+                              {o.full_name || o.email}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {row.assigned_consultant ? officersMap.get(row.assigned_consultant)?.full_name || row.assigned_officer_name || 'Assigned' : 'Unassigned'}
+                      </span>
+                    )}
                   </td>
                 )}
-                <td className="whitespace-nowrap px-3.5 py-3 text-xs text-muted-foreground">
-                  {dateText(row.created_at)}
+                <td className="whitespace-nowrap px-3.5 py-3 min-w-[115px]">
+                  <div className="flex flex-col leading-snug">
+                    <span className="font-medium text-foreground text-xs">{formatDateOnly(row.created_at)}</span>
+                    <span className="text-[11px] text-muted-foreground">{formatTimeOnly(row.created_at)}</span>
+                  </div>
                 </td>
                 {visible.updated && (
-                  <td className="whitespace-nowrap px-3.5 py-3 text-xs text-muted-foreground">
-                    {dateText(row.updated_at || row.created_at)}
+                  <td className="whitespace-nowrap px-3.5 py-3 min-w-[115px]">
+                    <div className="flex flex-col leading-snug">
+                      <span className="font-medium text-foreground text-xs">{formatDateOnly(row.updated_at || row.created_at)}</span>
+                      <span className="text-[11px] text-muted-foreground">{formatTimeOnly(row.updated_at || row.created_at)}</span>
+                    </div>
                   </td>
                 )}
                 {visible.sla && (
@@ -573,7 +1026,7 @@ export default function AdminApplicationsWorkspace() {
                   </td>
                 )}
                 <td
-                  className="sticky right-0 bg-card group-hover:bg-muted/40 px-4 py-3 text-center shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.15)] z-10 transition-colors"
+                  className="sticky right-0 bg-card group-hover:bg-muted/40 px-3.5 py-3 text-center border-l border-border/40 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.15)] z-10 transition-colors"
                   onClick={event => event.stopPropagation()}
                 >
                   <DropdownMenu>
@@ -586,6 +1039,11 @@ export default function AdminApplicationsWorkspace() {
                       <DropdownMenuItem onClick={() => setSelectedApp(row)}>
                         <FileText className="h-4 w-4" />Open application
                       </DropdownMenuItem>
+                      {canUpdate && (
+                        <DropdownMenuItem onClick={() => setAction({ name: 'assign', row, value: row.assigned_consultant || '' })}>
+                          <UserPlus className="h-4 w-4" />Assign officer
+                        </DropdownMenuItem>
+                      )}
                       {canProcess && (
                         <DropdownMenuItem onClick={() => setAction({ name: 'under_review', row })}>
                           <Zap className="h-4 w-4" />Move to Under Review
@@ -621,6 +1079,7 @@ export default function AdminApplicationsWorkspace() {
             ))}
           </tbody>
         </table>
+      </div>
       </div>
     )}
     <div className="flex items-center justify-between px-2"><span className="text-xs text-muted-foreground">Page {page}</span><div className="flex items-center gap-1"><Button variant="outline" size="sm" onClick={() => setPage(current => Math.max(1, current - 1))} disabled={page === 1}><ChevronLeft className="h-3 w-3" /></Button><Button variant="outline" size="sm" onClick={() => setPage(current => current + 1)} disabled={sorted.length < pageSize}><ChevronRight className="h-3 w-3" /></Button></div></div>

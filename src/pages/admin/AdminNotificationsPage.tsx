@@ -21,6 +21,7 @@ import {
   Trash2,
   User,
   ExternalLink,
+  Users,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase/client'
@@ -91,45 +92,56 @@ const TYPE_CONFIG: Record<
     label: 'Announcement',
     icon: Megaphone,
     badgeBg: 'bg-amber-500/15',
-    textCol: 'text-amber-800',
-    borderCol: 'border-amber-300/80',
+    textCol: 'text-amber-700 dark:text-amber-300',
+    borderCol: 'border-amber-300/80 dark:border-amber-500/30',
   },
   application_update: {
     label: 'Application',
     icon: Clipboard,
     badgeBg: 'bg-purple-500/15',
-    textCol: 'text-purple-800',
-    borderCol: 'border-purple-300/80',
+    textCol: 'text-purple-700 dark:text-purple-300',
+    borderCol: 'border-purple-300/80 dark:border-purple-500/30',
   },
   consultation_reminder: {
     label: 'Appointment',
     icon: CalendarRange,
     badgeBg: 'bg-emerald-500/15',
-    textCol: 'text-emerald-800',
-    borderCol: 'border-emerald-300/80',
+    textCol: 'text-emerald-700 dark:text-emerald-300',
+    borderCol: 'border-emerald-300/80 dark:border-emerald-500/30',
   },
   document_request: {
     label: 'Document Request',
     icon: FileText,
     badgeBg: 'bg-blue-500/15',
-    textCol: 'text-blue-800',
-    borderCol: 'border-blue-300/80',
+    textCol: 'text-blue-700 dark:text-blue-300',
+    borderCol: 'border-blue-300/80 dark:border-blue-500/30',
   },
   payment_due: {
     label: 'Payment Due',
     icon: Landmark,
     badgeBg: 'bg-red-500/15',
-    textCol: 'text-red-800',
-    borderCol: 'border-red-300/80',
+    textCol: 'text-red-700 dark:text-red-300',
+    borderCol: 'border-red-300/80 dark:border-red-500/30',
   },
   promotion: {
     label: 'Promotion',
     icon: Info,
     badgeBg: 'bg-teal-500/15',
-    textCol: 'text-teal-800',
-    borderCol: 'border-teal-300/80',
+    textCol: 'text-teal-700 dark:text-teal-300',
+    borderCol: 'border-teal-300/80 dark:border-teal-500/30',
   },
 }
+
+const STAFF_ROLES = new Set([
+  'super_admin',
+  'superadmin',
+  'admin',
+  'manager',
+  'hr',
+  'visa_officer',
+  'counselor',
+  'consultant',
+])
 
 export default function AdminNotificationsPage() {
   const queryClient = useQueryClient()
@@ -140,10 +152,12 @@ export default function AdminNotificationsPage() {
   const [isSendOpen, setIsSendOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<AdminNotification | null>(null)
   const [isSending, setIsSending] = useState(false)
+  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false)
 
   // Send form state
   const [sendTarget, setSendTarget] = useState<'all' | 'customers' | 'staff' | 'user'>('all')
   const [selectedUserId, setSelectedUserId] = useState<string>('')
+  const [recipientSearch, setRecipientSearch] = useState<string>('')
   const [sendType, setSendType] = useState<AdminNotification['type']>('general')
   const [sendTitle, setSendTitle] = useState('')
   const [sendMessage, setSendMessage] = useState('')
@@ -162,14 +176,37 @@ export default function AdminNotificationsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('id, full_name, email, user_role')
-        .order('full_name')
-        .limit(300)
-      if (error) return []
+        .select('id, full_name, email, user_role, status')
+        .order('created_at', { ascending: false })
+        .limit(500)
+      if (error) {
+        console.warn('Failed to load user profiles for notification dialog:', error.message)
+        return []
+      }
       return data || []
     },
     enabled: isSendOpen,
   })
+
+  // Filter users by search query
+  const filteredUsers = useMemo(() => {
+    if (!recipientSearch.trim()) return userOptions
+    const q = recipientSearch.toLowerCase()
+    return userOptions.filter(
+      (u) =>
+        u.full_name?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.user_role?.toLowerCase().includes(q),
+    )
+  }, [userOptions, recipientSearch])
+
+  // Audience size indicators
+  const audienceSummary = useMemo(() => {
+    const total = userOptions.length
+    const staff = userOptions.filter((u) => u.user_role && STAFF_ROLES.has(u.user_role)).length
+    const customers = total - staff
+    return { total, staff, customers }
+  }, [userOptions])
 
   // Fetch notifications
   const queryKey = ['admin-notifications-list', activeTab, search]
@@ -215,7 +252,33 @@ export default function AdminNotificationsPage() {
       if (directErr) {
         throw directErr
       }
-      return (rows ?? []) as AdminNotification[]
+
+      const notificationRows = (rows ?? []) as AdminNotification[]
+      if (notificationRows.length === 0) return []
+
+      // Enrich with recipient details from user_profiles
+      const recipientIds = Array.from(new Set(notificationRows.map((n) => n.user_id).filter(Boolean)))
+      if (recipientIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('user_profiles')
+          .select('id, full_name, email, user_role')
+          .in('id', recipientIds)
+
+        if (profiles && profiles.length > 0) {
+          const profileMap = new Map(profiles.map((p) => [p.id, p]))
+          return notificationRows.map((n) => {
+            const p = profileMap.get(n.user_id)
+            return {
+              ...n,
+              recipient_name: p?.full_name || null,
+              recipient_email: p?.email || null,
+              recipient_role: p?.user_role || null,
+            }
+          })
+        }
+      }
+
+      return notificationRows
     },
     refetchInterval: 45_000,
   })
@@ -248,42 +311,131 @@ export default function AdminNotificationsPage() {
 
   // Toggle read/unread status
   const handleToggleRead = async (notif: AdminNotification) => {
+    const nextRead = !notif.is_read
+    const nowIso = new Date().toISOString()
+    const previousData = queryClient.getQueryData<AdminNotification[]>(queryKey)
+
+    // Optimistic UI update
+    queryClient.setQueryData<AdminNotification[]>(queryKey, (old) => {
+      if (!old) return []
+      return old.map((n) =>
+        n.id === notif.id
+          ? { ...n, is_read: nextRead, read_at: nextRead ? nowIso : null }
+          : n,
+      )
+    })
+
     try {
-      const nextRead = !notif.is_read
+      if (nextRead) {
+        // Try admin RPC first
+        const { error: rpcErr } = await supabase.rpc('admin_mark_notifications_read', {
+          p_ids: [notif.id],
+        })
+        if (!rpcErr) {
+          toast.success('Marked as read')
+          void queryClient.invalidateQueries({ queryKey: ['admin-notifications-list'] })
+          void queryClient.invalidateQueries({ queryKey: ['notifications'] })
+          return
+        }
+      }
+
+      // Direct fallback update
       const { error } = await supabase
         .from('notifications')
         .update({
           is_read: nextRead,
-          read_at: nextRead ? new Date().toISOString() : null,
+          read_at: nextRead ? nowIso : null,
         })
         .eq('id', notif.id)
 
       if (error) throw error
       toast.success(nextRead ? 'Marked as read' : 'Marked as unread')
       void queryClient.invalidateQueries({ queryKey: ['admin-notifications-list'] })
+      void queryClient.invalidateQueries({ queryKey: ['notifications'] })
     } catch (err: unknown) {
+      if (previousData) {
+        queryClient.setQueryData(queryKey, previousData)
+      }
       toast.error(err instanceof Error ? err.message : 'Failed to update status')
     }
   }
 
-  // Mark all notifications read
+  // Mark all unread notifications read in admin dashboard
   const handleMarkAllRead = async () => {
-    try {
-      if (!user) return
-      const { error } = await supabase
-        .from('notifications')
-        .update({
-          is_read: true,
-          read_at: new Date().toISOString(),
-        })
-        .eq('user_id', user.id)
-        .eq('is_read', false)
+    const unreadList = data.filter((n) => !n.is_read)
+    if (unreadList.length === 0) {
+      toast.info('No unread notifications to mark')
+      return
+    }
 
-      if (error) throw error
-      toast.success('All notifications marked as read')
+    const unreadIds = unreadList.map((n) => n.id)
+    setIsMarkingAllRead(true)
+
+    // Snapshot previous data for rollback
+    const previousData = queryClient.getQueryData<AdminNotification[]>(queryKey)
+
+    // Optimistically mark all in query cache as read immediately
+    const nowIso = new Date().toISOString()
+    queryClient.setQueryData<AdminNotification[]>(queryKey, (old) => {
+      if (!old) return []
+      return old.map((n) => (n.is_read ? n : { ...n, is_read: true, read_at: n.read_at || nowIso }))
+    })
+
+    try {
+      let markedCount = unreadIds.length
+
+      // 1. Try RPC: admin_mark_notifications_read with IDs
+      const { data: rpcCount, error: rpcErr } = await supabase.rpc('admin_mark_notifications_read', {
+        p_ids: unreadIds,
+      })
+
+      if (!rpcErr && typeof rpcCount === 'number') {
+        markedCount = rpcCount > 0 ? rpcCount : unreadIds.length
+      } else {
+        // 2. Try alias admin_mark_all_read
+        const { data: aliasCount, error: aliasErr } = await supabase.rpc('admin_mark_all_read', {
+          p_ids: unreadIds,
+        })
+
+        if (!aliasErr && typeof aliasCount === 'number') {
+          markedCount = aliasCount > 0 ? aliasCount : unreadIds.length
+        } else {
+          // 3. Fallback: Direct table update in chunks of 50
+          for (let i = 0; i < unreadIds.length; i += 50) {
+            const batch = unreadIds.slice(i, i + 50)
+            const { error: directErr } = await supabase
+              .from('notifications')
+              .update({
+                is_read: true,
+                read_at: nowIso,
+              })
+              .in('id', batch)
+              .eq('is_read', false)
+
+            if (directErr) {
+              console.error('Direct update error when marking notifications as read:', directErr)
+              throw directErr
+            }
+          }
+        }
+      }
+
+      toast.success(
+        markedCount === 1
+          ? 'Notification marked as read'
+          : `All ${markedCount} notifications marked as read`,
+      )
+
       void queryClient.invalidateQueries({ queryKey: ['admin-notifications-list'] })
+      void queryClient.invalidateQueries({ queryKey: ['notifications'] })
     } catch (err: unknown) {
+      if (previousData) {
+        queryClient.setQueryData(queryKey, previousData)
+      }
+      console.error('Failed to mark all as read:', err)
       toast.error(err instanceof Error ? err.message : 'Failed to mark all as read')
+    } finally {
+      setIsMarkingAllRead(false)
     }
   }
 
@@ -317,72 +469,119 @@ export default function AdminNotificationsPage() {
   // Send / Broadcast notification
   const handleSendNotification = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!sendTitle.trim()) {
+    const cleanTitle = sendTitle.trim()
+    const cleanMessage = sendMessage.trim() || null
+    const cleanActionUrl = sendActionUrl.trim() || null
+    const cleanActionLabel = sendActionLabel.trim() || null
+
+    if (!cleanTitle) {
       toast.error('Please enter a notification title')
       return
     }
 
     if (sendTarget === 'user' && !selectedUserId) {
-      toast.error('Please select a recipient')
+      toast.error('Please select a recipient user')
       return
     }
 
     setIsSending(true)
     try {
+      let sentCount = 0
+
       // 1. Try RPC first
       const { data: count, error: rpcErr } = await supabase.rpc('admin_send_notification', {
         p_target: sendTarget,
         p_target_id: sendTarget === 'user' ? selectedUserId : null,
         p_type: sendType,
-        p_title: sendTitle.trim(),
-        p_message: sendMessage.trim() || null,
-        p_action_url: sendActionUrl.trim() || null,
-        p_action_label: sendActionLabel.trim() || null,
+        p_title: cleanTitle,
+        p_message: cleanMessage,
+        p_action_url: cleanActionUrl,
+        p_action_label: cleanActionLabel,
       })
 
-      if (!rpcErr) {
-        toast.success(`Sent successfully! (${count || 1} recipient${count === 1 ? '' : 's'})`)
+      if (!rpcErr && typeof count === 'number') {
+        sentCount = count
       } else {
-        // Fallback: single user insert
-        if (sendTarget === 'user' && selectedUserId) {
-          const { error: insertErr } = await supabase.from('notifications').insert({
-            user_id: selectedUserId,
+        if (rpcErr) {
+          console.warn('admin_send_notification RPC unavailable or failed, switching to client direct broadcast:', rpcErr.message)
+        }
+
+        // Direct batch insert fallback to guarantee broadcast delivery
+        let targetUserIds: string[] = []
+
+        if (sendTarget === 'user') {
+          if (selectedUserId) targetUserIds = [selectedUserId]
+        } else if (sendTarget === 'customers') {
+          const { data: profiles, error: pErr } = await supabase
+            .from('user_profiles')
+            .select('id, user_role, status')
+          if (pErr) throw pErr
+          targetUserIds = (profiles || [])
+            .filter((p) => (!p.status || p.status.toLowerCase() === 'active') && (!p.user_role || !STAFF_ROLES.has(p.user_role)))
+            .map((p) => p.id)
+        } else if (sendTarget === 'staff') {
+          const { data: profiles, error: pErr } = await supabase
+            .from('user_profiles')
+            .select('id, user_role, status')
+          if (pErr) throw pErr
+          targetUserIds = (profiles || [])
+            .filter((p) => (!p.status || p.status.toLowerCase() === 'active') && p.user_role && STAFF_ROLES.has(p.user_role))
+            .map((p) => p.id)
+        } else {
+          // 'all'
+          const { data: profiles, error: pErr } = await supabase
+            .from('user_profiles')
+            .select('id, status')
+          if (pErr) throw pErr
+          targetUserIds = (profiles || [])
+            .filter((p) => !p.status || p.status.toLowerCase() === 'active')
+            .map((p) => p.id)
+        }
+
+        if (targetUserIds.length === 0) {
+          toast.error('No registered recipients found matching the chosen audience.')
+          return
+        }
+
+        // Chunk insertions into batches of 50 to avoid request body limits
+        const chunkSize = 50
+        for (let i = 0; i < targetUserIds.length; i += chunkSize) {
+          const chunk = targetUserIds.slice(i, i + chunkSize)
+          const rows = chunk.map((uid) => ({
+            user_id: uid,
             type: sendType,
-            title: sendTitle.trim(),
-            message: sendMessage.trim() || null,
-            action_url: sendActionUrl.trim() || null,
-            action_label: sendActionLabel.trim() || null,
-          })
+            title: cleanTitle,
+            message: cleanMessage,
+            action_url: cleanActionUrl,
+            action_label: cleanActionLabel,
+            is_read: false,
+          }))
+
+          const { error: insertErr } = await supabase.from('notifications').insert(rows)
           if (insertErr) throw insertErr
-          toast.success('Notification sent to user')
-        } else if (user) {
-          // If broadcast RPC is not installed yet, insert for current admin user
-          const { error: insertErr } = await supabase.from('notifications').insert({
-            user_id: user.id,
-            type: sendType,
-            title: sendTitle.trim(),
-            message: sendMessage.trim() || null,
-            action_url: sendActionUrl.trim() || null,
-            action_label: sendActionLabel.trim() || null,
-          })
-          if (insertErr) throw insertErr
-          toast.success('Notification created')
+          sentCount += chunk.length
         }
       }
 
+      toast.success(`Broadcast sent successfully! (${sentCount} recipient${sentCount === 1 ? '' : 's'})`)
       setIsSendOpen(false)
       setSendTitle('')
       setSendMessage('')
       setSendActionUrl('')
       setSendActionLabel('')
       setSelectedUserId('')
+      setRecipientSearch('')
       void queryClient.invalidateQueries({ queryKey: ['admin-notifications-list'] })
     } catch (err: unknown) {
+      console.error('Failed to broadcast notification:', err)
       toast.error(err instanceof Error ? err.message : 'Failed to send notification')
     } finally {
       setIsSending(false)
     }
   }
+
+  const previewConfig = TYPE_CONFIG[sendType] || TYPE_CONFIG.general
+  const PreviewTypeIcon = previewConfig.icon
 
   return (
     <div className="space-y-6">
@@ -390,7 +589,7 @@ export default function AdminNotificationsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="desk-display flex items-center gap-2.5 text-2xl font-semibold text-[var(--desk-navy)]">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-amber-300/60 bg-amber-500/15 text-amber-700 shadow-2xs">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-amber-300/60 bg-amber-500/15 text-amber-700 dark:text-amber-400 shadow-2xs">
               <Bell className="h-5 w-5" aria-hidden="true" />
             </div>
             Notifications & Broadcasts
@@ -405,7 +604,7 @@ export default function AdminNotificationsPage() {
             variant="outline"
             onClick={() => void refetch()}
             disabled={isFetching}
-            className="gap-2 rounded-xl"
+            className="gap-2 rounded-xl border-[var(--desk-line)]"
           >
             <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />
             Refresh
@@ -415,10 +614,15 @@ export default function AdminNotificationsPage() {
             <Button
               variant="outline"
               onClick={() => void handleMarkAllRead()}
-              className="gap-2 rounded-xl"
+              disabled={isMarkingAllRead || isFetching}
+              className="gap-2 rounded-xl border-[var(--desk-line)]"
             >
-              <CheckCheck className="h-4 w-4 text-[var(--desk-gold)]" aria-hidden="true" />
-              Mark all read
+              {isMarkingAllRead ? (
+                <Loader2 className="h-4 w-4 animate-spin text-[var(--desk-gold)]" aria-hidden="true" />
+              ) : (
+                <CheckCheck className="h-4 w-4 text-[var(--desk-gold)]" aria-hidden="true" />
+              )}
+              {isMarkingAllRead ? 'Marking read...' : 'Mark all read'}
             </Button>
           )}
 
@@ -440,28 +644,28 @@ export default function AdminNotificationsPage() {
             value: stats.total,
             desc: 'System-wide activity',
             icon: Bell,
-            color: 'from-indigo-500/15 to-blue-500/10 text-indigo-700 border-indigo-200/60',
+            color: 'from-indigo-500/15 to-blue-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-200/60 dark:border-indigo-500/30',
           },
           {
             label: 'Unread Alerts',
             value: stats.unread,
             desc: 'Pending acknowledgement',
             icon: BellRing,
-            color: 'from-amber-500/15 to-yellow-500/10 text-amber-800 border-amber-200/60',
+            color: 'from-amber-500/15 to-yellow-500/10 text-amber-800 dark:text-amber-300 border-amber-200/60 dark:border-amber-500/30',
           },
           {
             label: 'Delivered Today',
             value: stats.today,
             desc: 'Created in last 24h',
             icon: Send,
-            color: 'from-emerald-500/15 to-teal-500/10 text-emerald-800 border-emerald-200/60',
+            color: 'from-emerald-500/15 to-teal-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-500/30',
           },
           {
             label: 'Announcements',
             value: stats.announcements,
             desc: 'Broadcasts & general notes',
             icon: Megaphone,
-            color: 'from-purple-500/15 to-pink-500/10 text-purple-800 border-purple-200/60',
+            color: 'from-purple-500/15 to-pink-500/10 text-purple-800 dark:text-purple-300 border-purple-200/60 dark:border-purple-500/30',
           },
         ].map((stat) => {
           const StatIcon = stat.icon
@@ -501,14 +705,14 @@ export default function AdminNotificationsPage() {
                 className={`group inline-flex items-center gap-2 min-h-9 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
                   isSelected
                     ? 'border-[var(--desk-gold)] bg-gradient-to-r from-[var(--desk-gold)]/20 to-[var(--desk-gold)]/10 text-[var(--desk-navy)] shadow-xs ring-1 ring-[var(--desk-gold)]/30'
-                    : 'border-[var(--desk-line)] bg-white/60 text-[var(--desk-muted)] hover:bg-white hover:text-[var(--desk-navy)] hover:border-[var(--desk-gold)]/30 hover:shadow-2xs'
+                    : 'border-[var(--desk-line)] bg-white/60 dark:bg-white/[0.04] text-[var(--desk-muted)] hover:bg-white dark:hover:bg-white/[0.08] hover:text-[var(--desk-navy)] hover:border-[var(--desk-gold)]/30 hover:shadow-2xs'
                 }`}
               >
                 <div
                   className={`flex items-center justify-center w-5 h-5 rounded-md transition-all duration-200 group-hover:scale-110 ${
                     isSelected
                       ? 'bg-[var(--desk-gold)] text-[var(--desk-navy)] shadow-2xs'
-                      : 'bg-black/[0.04] text-[var(--desk-muted)] group-hover:bg-[var(--desk-gold)]/15 group-hover:text-[var(--desk-navy)]'
+                      : 'bg-black/[0.04] dark:bg-white/[0.06] text-[var(--desk-muted)] group-hover:bg-[var(--desk-gold)]/15 group-hover:text-[var(--desk-navy)]'
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5" aria-hidden="true" />
@@ -529,7 +733,7 @@ export default function AdminNotificationsPage() {
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search title, message, user…"
             aria-label="Search notifications"
-            className="pl-9 rounded-xl"
+            className="pl-9 rounded-xl border-[var(--desk-line)] bg-white/70 dark:bg-black/30"
           />
         </div>
       </div>
@@ -542,16 +746,16 @@ export default function AdminNotificationsPage() {
       ) : isError ? (
         <div
           role="alert"
-          className="desk-panel rounded-2xl border border-amber-300 bg-amber-50 p-6 text-sm text-amber-900"
+          className="desk-panel rounded-2xl border border-amber-300 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-950/20 p-6 text-sm text-amber-900 dark:text-amber-200"
         >
-          Notifications could not be loaded. Please check your permissions or run the latest database migration.
-          <Button variant="outline" size="sm" className="ml-3 rounded-lg" onClick={() => void refetch()}>
+          Notifications could not be loaded. Please check your permissions or execute the latest database script.
+          <Button variant="outline" size="sm" className="ml-3 rounded-lg border-[var(--desk-line)]" onClick={() => void refetch()}>
             Retry
           </Button>
         </div>
       ) : data.length === 0 ? (
         <div className="desk-panel rounded-2xl border border-[var(--desk-line)] p-12 text-center text-sm text-[var(--desk-muted)]">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--desk-line)] bg-white/70 text-[var(--desk-muted)] shadow-2xs">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--desk-line)] bg-white/70 dark:bg-white/[0.05] text-[var(--desk-muted)] shadow-2xs">
             <Bell className="h-6 w-6" aria-hidden="true" />
           </div>
           <p className="font-medium text-[var(--desk-navy)]">No notifications found</p>
@@ -568,8 +772,8 @@ export default function AdminNotificationsPage() {
                 key={notif.id}
                 className={`desk-panel group rounded-2xl border p-4 sm:p-5 transition-all duration-200 hover:shadow-sm ${
                   !notif.is_read
-                    ? 'border-[var(--desk-gold)]/40 bg-white/95 shadow-xs'
-                    : 'border-[var(--desk-line)] bg-[var(--desk-surface)] hover:border-[var(--desk-gold)]/30'
+                    ? 'border-[var(--desk-gold)]/50 bg-white dark:bg-[#0a0a0a] ring-1 ring-[var(--desk-gold)]/20 shadow-xs'
+                    : 'border-[var(--desk-line)] bg-white dark:bg-[#0a0a0a] hover:border-[var(--desk-gold)]/30'
                 }`}
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -581,7 +785,7 @@ export default function AdminNotificationsPage() {
                       <TypeIcon className="w-4 h-4" aria-hidden="true" />
                       {!notif.is_read && (
                         <span
-                          className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-600 ring-2 ring-white"
+                          className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-600 ring-2 ring-white dark:ring-neutral-900"
                           title="Unread notification"
                         />
                       )}
@@ -596,7 +800,7 @@ export default function AdminNotificationsPage() {
                         </span>
 
                         {notif.recipient_name && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--desk-navy)] bg-black/[0.04] px-2 py-0.5 rounded-full">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--desk-navy)] bg-black/[0.04] dark:bg-white/[0.06] px-2 py-0.5 rounded-full">
                             <User className="h-3 w-3 text-[var(--desk-muted)]" />
                             {notif.recipient_name}
                           </span>
@@ -653,7 +857,7 @@ export default function AdminNotificationsPage() {
                       variant="ghost"
                       onClick={() => setDeleteTarget(notif)}
                       title="Delete notification"
-                      className="h-8 rounded-lg px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                      className="h-8 rounded-lg px-2 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -667,7 +871,7 @@ export default function AdminNotificationsPage() {
 
       {/* Broadcast / Send Notification Modal */}
       <Dialog open={isSendOpen} onOpenChange={setIsSendOpen}>
-        <DialogContent className="max-w-xl rounded-2xl p-6">
+        <DialogContent className="premium-desk max-w-xl rounded-2xl p-6 border border-gray-200 dark:border-white/15 bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white shadow-2xl">
           <DialogHeader>
             <DialogTitle className="desk-display flex items-center gap-2 text-xl text-[var(--desk-navy)]">
               <Megaphone className="h-5 w-5 text-[var(--desk-gold)]" />
@@ -679,15 +883,23 @@ export default function AdminNotificationsPage() {
           </DialogHeader>
 
           <form onSubmit={handleSendNotification} className="space-y-4 pt-2">
-            {/* Target Audience */}
+            {/* Target Audience & Type */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[var(--desk-navy)]">Target Audience</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[var(--desk-navy)]">Target Audience</label>
+                  <span className="text-[11px] text-[var(--desk-muted)]">
+                    {sendTarget === 'all' && `~${audienceSummary.total} users`}
+                    {sendTarget === 'customers' && `~${audienceSummary.customers} applicants`}
+                    {sendTarget === 'staff' && `~${audienceSummary.staff} staff`}
+                    {sendTarget === 'user' && (selectedUserId ? '1 user' : 'Select user')}
+                  </span>
+                </div>
                 <Select value={sendTarget} onValueChange={(val: 'all' | 'customers' | 'staff' | 'user') => setSendTarget(val)}>
-                  <SelectTrigger className="rounded-xl">
+                  <SelectTrigger className="rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-[#121212] text-gray-900 dark:text-white shadow-xs focus:ring-2 focus:ring-[var(--desk-gold)]/40">
                     <SelectValue placeholder="Select target" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="border border-gray-200 dark:border-white/15 bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white shadow-2xl">
                     <SelectItem value="all">All Active Users (Broadcast)</SelectItem>
                     <SelectItem value="customers">All Applicants / Customers</SelectItem>
                     <SelectItem value="staff">Staff & Case Officers</SelectItem>
@@ -699,10 +911,10 @@ export default function AdminNotificationsPage() {
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-[var(--desk-navy)]">Notification Type</label>
                 <Select value={sendType} onValueChange={(val: AdminNotification['type']) => setSendType(val)}>
-                  <SelectTrigger className="rounded-xl">
+                  <SelectTrigger className="rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-[#121212] text-gray-900 dark:text-white shadow-xs focus:ring-2 focus:ring-[var(--desk-gold)]/40">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="border border-gray-200 dark:border-white/15 bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white shadow-2xl">
                     <SelectItem value="general">Announcement / General</SelectItem>
                     <SelectItem value="application_update">Application Update</SelectItem>
                     <SelectItem value="document_request">Document Request</SelectItem>
@@ -714,20 +926,36 @@ export default function AdminNotificationsPage() {
               </div>
             </div>
 
-            {/* If Specific User selected */}
+            {/* If Specific User selected: Searchable Filter */}
             {sendTarget === 'user' && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[var(--desk-navy)]">Select Recipient User</label>
+              <div className="space-y-1.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#121212] p-3 shadow-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-[var(--desk-navy)]">Select Recipient User</label>
+                  <span className="text-[11px] text-[var(--desk-muted)]">{filteredUsers.length} available</span>
+                </div>
+                <div className="relative mb-2">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--desk-muted)]" />
+                  <Input
+                    value={recipientSearch}
+                    onChange={(e) => setRecipientSearch(e.target.value)}
+                    placeholder="Filter by name, email, or role..."
+                    className="h-8 pl-8 text-xs rounded-lg border border-gray-300 dark:border-white/15 bg-white dark:bg-[#000000] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-neutral-500"
+                  />
+                </div>
                 <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                  <SelectTrigger className="rounded-xl">
+                  <SelectTrigger className="rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-[#000000] text-gray-900 dark:text-white shadow-xs">
                     <SelectValue placeholder="Choose a registered user" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-56">
-                    {userOptions.map((u: { id: string; full_name?: string | null; email?: string | null }) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.full_name || 'Unnamed'} ({u.email})
-                      </SelectItem>
-                    ))}
+                  <SelectContent className="max-h-56 border border-gray-200 dark:border-white/15 bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white shadow-2xl">
+                    {filteredUsers.length === 0 ? (
+                      <div className="p-3 text-center text-xs text-[var(--desk-muted)]">No users found</div>
+                    ) : (
+                      filteredUsers.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.full_name ? `${u.full_name} (${u.email})` : u.email || 'Unnamed User'}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -741,7 +969,7 @@ export default function AdminNotificationsPage() {
                 onChange={(e) => setSendTitle(e.target.value)}
                 placeholder="e.g. System Maintenance Notice or Visa Policy Update"
                 required
-                className="rounded-xl"
+                className="rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-[#121212] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-neutral-500 shadow-xs focus:ring-2 focus:ring-[var(--desk-gold)]/40"
               />
             </div>
 
@@ -753,7 +981,7 @@ export default function AdminNotificationsPage() {
                 onChange={(e) => setSendMessage(e.target.value)}
                 placeholder="Enter the notification message details..."
                 rows={3}
-                className="rounded-xl resize-none"
+                className="rounded-xl resize-none border border-gray-300 dark:border-white/15 bg-white dark:bg-[#121212] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-neutral-500 shadow-xs focus:ring-2 focus:ring-[var(--desk-gold)]/40"
               />
             </div>
 
@@ -765,7 +993,7 @@ export default function AdminNotificationsPage() {
                   value={sendActionUrl}
                   onChange={(e) => setSendActionUrl(e.target.value)}
                   placeholder="e.g. /dashboard/applications"
-                  className="rounded-xl"
+                  className="rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-[#121212] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-neutral-500 shadow-xs focus:ring-2 focus:ring-[var(--desk-gold)]/40"
                 />
               </div>
 
@@ -775,40 +1003,64 @@ export default function AdminNotificationsPage() {
                   value={sendActionLabel}
                   onChange={(e) => setSendActionLabel(e.target.value)}
                   placeholder="e.g. View Application"
-                  className="rounded-xl"
+                  className="rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-[#121212] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-neutral-500 shadow-xs focus:ring-2 focus:ring-[var(--desk-gold)]/40"
                 />
               </div>
             </div>
 
-            {/* Live Preview */}
-            <div className="rounded-xl border border-[var(--desk-line)] bg-[var(--desk-ivory)]/70 p-3.5">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--desk-muted)]">Live Preview</p>
-              <div className="mt-2 flex items-start gap-3 rounded-lg bg-white p-3 shadow-2xs border border-black/5">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-800 shrink-0">
-                  <Bell className="h-4 w-4" />
+            {/* Live Preview (Black according to theme) */}
+            <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#121212] p-3.5 shadow-xs">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--desk-muted)]">
+                  Live Preview (Recipient View)
+                </p>
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${previewConfig.badgeBg} ${previewConfig.textCol} ${previewConfig.borderCol}`}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  {previewConfig.label}
+                </span>
+              </div>
+
+              <div className="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-white/15 bg-white dark:bg-[#000000] p-3.5 shadow-sm transition-all">
+                <div
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg border shrink-0 ${previewConfig.badgeBg} ${previewConfig.textCol} ${previewConfig.borderCol}`}
+                >
+                  <PreviewTypeIcon className="h-4 w-4" aria-hidden="true" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-[var(--desk-navy)]">{sendTitle.trim() || 'Notification Title'}</p>
-                  <p className="text-[11px] text-[var(--desk-navy)]/70 line-clamp-2 mt-0.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                      {sendTitle.trim() || 'Notification Title'}
+                    </p>
+                    <span className="text-[10px] text-[var(--desk-muted)] shrink-0">Just now</span>
+                  </div>
+                  <p className="text-[11px] text-gray-600 dark:text-neutral-300 line-clamp-2 mt-1 leading-relaxed">
                     {sendMessage.trim() || 'Your message will appear here in the user notification centre.'}
                   </p>
-                  {sendActionLabel && (
-                    <span className="mt-1.5 inline-block text-[11px] font-semibold text-[var(--desk-gold)]">
-                      {sendActionLabel} →
-                    </span>
+                  {(sendActionLabel.trim() || sendActionUrl.trim()) && (
+                    <div className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-[var(--desk-gold)] hover:underline">
+                      <span>{sendActionLabel.trim() || 'View Details'}</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </div>
                   )}
                 </div>
               </div>
             </div>
 
             <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" onClick={() => setIsSendOpen(false)} className="rounded-xl">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsSendOpen(false)}
+                className="rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-[#121212] text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
+              >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isSending}
-                className="gap-2 rounded-xl bg-gradient-to-r from-[var(--desk-gold)] to-amber-600 text-white shadow-sm hover:brightness-105"
+                className="gap-2 rounded-xl bg-gradient-to-r from-[var(--desk-gold)] to-amber-600 text-white font-semibold shadow-sm hover:brightness-105"
               >
                 {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 Send Notification
@@ -820,7 +1072,7 @@ export default function AdminNotificationsPage() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}>
-        <AlertDialogContent className="rounded-2xl">
+        <AlertDialogContent className="premium-desk rounded-2xl border border-gray-200 dark:border-white/15 bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white shadow-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="desk-display text-[var(--desk-navy)]">Delete notification?</AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-[var(--desk-muted)]">
@@ -828,7 +1080,9 @@ export default function AdminNotificationsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-[#121212] text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#1a1a1a]">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => void handleDelete()}
               className="rounded-xl bg-red-600 text-white hover:bg-red-700"

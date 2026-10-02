@@ -89,7 +89,46 @@ export const dateText = (value?: string | null) =>
     ? new Date(value).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })
     : 'Not available'
 
-export const daysPending = (row: AppRow) =>
+export const formatDateOnly = (value?: string | null) => {
+  if (!value) return '—'
+  const d = new Date(value)
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+export const formatTimeOnly = (value?: string | null) => {
+  if (!value) return ''
+  const d = new Date(value)
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit', hour12: true })
+}
+
+export const formatFullDateTime = (value?: string | null) => {
+  if (!value) return 'Not available'
+  const d = new Date(value)
+  if (isNaN(d.getTime())) return 'Not available'
+  const dateStr = d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' })
+  const timeStr = d.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit', hour12: true })
+  return `${dateStr}, ${timeStr}`
+}
+
+export const formatRelativeTime = (value?: string | null) => {
+  if (!value) return ''
+  const d = new Date(value)
+  if (isNaN(d.getTime())) return ''
+  const diffMs = Date.now() - d.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) return `${diffHours}h ago`
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 30) return `${diffDays}d ago`
+  return `${Math.floor(diffDays / 30)}mo ago`
+}
+
+export const daysPending = (row: { created_at: string }) =>
   Math.max(0, Math.floor((Date.now() - new Date(row.created_at).getTime()) / 86400000))
 
 const MESSAGE_KEYS = [
