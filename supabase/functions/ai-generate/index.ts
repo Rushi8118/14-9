@@ -22,7 +22,62 @@ const CORS_HEADERS = {
 
 type ChatMessage = { role: "system" | "user" | "assistant"; content: string }
 
-const ALLOWED_FEATURES = new Set(["blog", "urgent_requirement", "country_eligibility", "keyword_trends"])
+/** An image the model must read (a job poster, flyer or WhatsApp screenshot). */
+type ImageInput = { mimeType: string; dataBase64: string }
+
+const ALLOWED_FEATURES = new Set([
+  "blog",
+  "urgent_requirement",
+  "urgent_requirement_vision",
+  "country_eligibility",
+  "keyword_trends",
+])
+
+const ALLOWED_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp"])
+const MAX_IMAGES = 4
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024
+const MAX_IMAGE_BYTES_TOTAL = 12 * 1024 * 1024
+
+/** Base64 decodes to 3 bytes per 4 characters, minus any '=' padding. */
+function base64Bytes(data: string): number {
+  const length = data.length
+  if (length === 0) return 0
+  const padding = data.endsWith("==") ? 2 : data.endsWith("=") ? 1 : 0
+  return Math.floor((length * 3) / 4) - padding
+}
+
+/**
+ * Validates client-supplied images before a single byte reaches the provider.
+ * Returns an error string to send back as 400, or null when the batch is fine.
+ */
+function validateImages(images: unknown): { images: ImageInput[]; error: string | null } {
+  if (images === undefined || images === null) return { images: [], error: null }
+  if (!Array.isArray(images)) return { images: [], error: "images must be an array" }
+  if (images.length > MAX_IMAGES) {
+    return { images: [], error: `Too many images — ${MAX_IMAGES} at most.` }
+  }
+
+  const parsed: ImageInput[] = []
+  let total = 0
+  for (const raw of images) {
+    const mimeType = String((raw as ImageInput)?.mimeType || "").toLowerCase()
+    const dataBase64 = String((raw as ImageInput)?.dataBase64 || "")
+    if (!ALLOWED_IMAGE_TYPES.has(mimeType)) {
+      return { images: [], error: `Unsupported image type "${mimeType || "unknown"}". Use PNG, JPEG or WebP.` }
+    }
+    if (!dataBase64) return { images: [], error: "An image was empty." }
+    const bytes = base64Bytes(dataBase64)
+    if (bytes > MAX_IMAGE_BYTES) {
+      return { images: [], error: "Each image must be under 4 MB." }
+    }
+    total += bytes
+    if (total > MAX_IMAGE_BYTES_TOTAL) {
+      return { images: [], error: "The images are too large in total — keep them under 12 MB." }
+    }
+    parsed.push({ mimeType: mimeType === "image/jpg" ? "image/jpeg" : mimeType, dataBase64 })
+  }
+  return { images: parsed, error: null }
+}
 
 /**
  * Popular search phrases for a seed keyword, from Google's public autocomplete
@@ -76,11 +131,26 @@ async function fetchWithTimeout(input: string, init: RequestInit, timeoutMs: num
   }
 }
 
-async function callGemini(apiKey: string, model: string, messages: ChatMessage[]): Promise<string> {
+async function callGemini(
+  apiKey: string,
+  model: string,
+  messages: ChatMessage[],
+  images: ImageInput[] = [],
+): Promise<string> {
   const system = messages.filter((m) => m.role === "system").map((m) => m.content).join("\n\n")
-  const contents = messages
+  const contents: Array<{ role: string; parts: Array<Record<string, unknown>> }> = messages
     .filter((m) => m.role !== "system")
     .map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }))
+
+  // Images ride along with the last user turn, which is the instruction that
+  // asks for them to be read.
+  if (images.length > 0) {
+    const lastUser = [...contents].reverse().find((c) => c.role === "user")
+    const target = lastUser ?? (contents[contents.push({ role: "user", parts: [] }) - 1])
+    for (const image of images) {
+      target.parts.push({ inline_data: { mime_type: image.mimeType, data: image.dataBase64 } })
+    }
+  }
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`
   const response = await fetchWithTimeout(
@@ -105,7 +175,20 @@ async function callGemini(apiKey: string, model: string, messages: ChatMessage[]
   return text.trim()
 }
 
-async function callOpenRouter(apiKey: string, model: string, messages: ChatMessage[]): Promise<string> {
+async function callOpenRouter(
+  apiKey: string,
+  model: string,
+  messages: ChatMessage[],
+  images: ImageInput[] = [],
+): Promise<string> {
+  // Refuse rather than drop: answering an "extract this poster" prompt with no
+  // poster attached produces a confident, entirely invented vacancy.
+  if (images.length > 0) {
+    throw new Error(
+      "Image extraction currently requires the Gemini provider. Switch the active provider under Admin → Settings and try again.",
+    )
+  }
+
   const response = await fetchWithTimeout(
     "https://openrouter.ai/api/v1/chat/completions",
     {
@@ -140,17 +223,18 @@ async function generateWithRetry(
   apiKey: string,
   model: string,
   messages: ChatMessage[],
+  images: ImageInput[] = [],
 ): Promise<string> {
   const call = provider === "gemini" ? callGemini : callOpenRouter
   try {
-    return await call(apiKey, model, messages)
+    return await call(apiKey, model, messages, images)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     // One retry for transient/high-demand failures only — never for auth or
     // bad-request errors, which would just fail identically again.
     if (isHighDemandError(message)) {
       await new Promise((resolve) => setTimeout(resolve, 1500))
-      return await call(apiKey, model, messages)
+      return await call(apiKey, model, messages, images)
     }
     throw error
   }
@@ -174,6 +258,12 @@ serve(async (req) => {
     }
     if (feature !== "keyword_trends" && (!Array.isArray(messages) || messages.length === 0)) {
       return json({ error: "messages are required" }, 400)
+    }
+
+    const { images, error: imageError } = validateImages(body?.images)
+    if (imageError) return json({ error: imageError }, 400)
+    if (feature === "urgent_requirement_vision" && images.length === 0) {
+      return json({ error: "Attach at least one image to extract from." }, 400)
     }
 
     const callerClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
@@ -201,7 +291,7 @@ serve(async (req) => {
       })
       authorized = Boolean(canBlog)
     }
-    if (!authorized && feature === "urgent_requirement") {
+    if (!authorized && (feature === "urgent_requirement" || feature === "urgent_requirement_vision")) {
       authorized = role === "manager"
     }
     if (!authorized && feature === "country_eligibility") {
@@ -245,13 +335,16 @@ serve(async (req) => {
     }
 
     try {
-      const text = await generateWithRetry(provider, apiKey.trim(), model, messages)
+      const text = await generateWithRetry(provider, apiKey.trim(), model, messages, images)
       return json({ text, provider, model })
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
 
       // Auto-fallback to OpenRouter when Gemini is overloaded and a key exists.
-      if (provider === "gemini" && isHighDemandError(message) && settingsRow?.openrouter_api_key) {
+      // Never for an image request: OpenRouter is not given the images here, so
+      // falling back would answer "extract this poster" with no poster — an
+      // invented vacancy that looks exactly like a real extraction.
+      if (images.length === 0 && provider === "gemini" && isHighDemandError(message) && settingsRow?.openrouter_api_key) {
         try {
           const fallbackModel = settingsRow.openrouter_model || "google/gemini-2.0-flash-001"
           const text = await generateWithRetry("openrouter", settingsRow.openrouter_api_key, fallbackModel, messages)

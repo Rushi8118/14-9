@@ -91,7 +91,7 @@ function getMatchingImage(category: string, title: string): string {
   return FALLBACK_IMAGES.general
 }
 
-function getCountryCode(country: string): string {
+export function getCountryCode(country: string): string {
   const c = country.toLowerCase()
   if (c.includes('uk') || c.includes('united kingdom') || c.includes('britain')) return 'GB'
   if (c.includes('japan')) return 'JP'

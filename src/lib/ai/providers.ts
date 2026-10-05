@@ -16,7 +16,17 @@ export type AiChatMessage = {
   content: string
 }
 
-export type AiFeature = 'blog' | 'urgent_requirement' | 'country_eligibility'
+export type AiFeature =
+  | 'blog'
+  | 'urgent_requirement'
+  | 'urgent_requirement_vision'
+  | 'country_eligibility'
+
+/** An image for the model to read, base64 encoded without a data: prefix. */
+export type AiImageInput = {
+  mimeType: string
+  dataBase64: string
+}
 
 const DEFAULT_GEMINI_MODEL = 'gemini-2.0-flash'
 const DEFAULT_OPENROUTER_MODEL = 'google/gemini-2.0-flash-001'
@@ -48,6 +58,7 @@ export async function generateAiText(
   config: AiProviderConfig,
   messages: AiChatMessage[],
   feature: AiFeature,
+  images?: AiImageInput[],
 ): Promise<string> {
   // Single choke point for every AI generation call in the app, so this is
   // also the one place that needs to audit-log "AI generation requests".
@@ -56,6 +67,7 @@ export async function generateAiText(
       feature,
       provider: config.activeProvider,
       messages,
+      ...(images && images.length > 0 ? { images } : {}),
     },
   })
 
@@ -90,7 +102,15 @@ export async function generateAiText(
     void writeAuditLog({ action: 'ai.generate_content', resource: feature, severity: 'warning', success: false, errorReason: 'Empty response' })
     throw new Error('The AI provider returned an empty response.')
   }
-  void writeAuditLog({ action: 'ai.generate_content', resource: feature, newValue: { provider: data?.provider || config.activeProvider, model: data?.model } })
+  void writeAuditLog({
+    action: 'ai.generate_content',
+    resource: feature,
+    newValue: {
+      provider: data?.provider || config.activeProvider,
+      model: data?.model,
+      ...(images && images.length > 0 ? { imageCount: images.length } : {}),
+    },
+  })
   return text
 }
 

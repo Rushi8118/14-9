@@ -4,6 +4,7 @@ import {
   Flame, Plus, Sparkles, Pencil, Trash2, Eye, EyeOff, Clock, Users,
   CheckCircle2, XCircle, Search, RefreshCw, Calendar, Loader2,
   ExternalLink, Image as ImageIcon, AlertTriangle, Undo2, X, Lock,
+  ScanLine,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -46,6 +47,11 @@ import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase/client'
 import { MEDIA_BUCKET } from '@/hooks/useFileManager'
 import { validateImageFile } from '@/lib/security/sanitizeHtml'
+import {
+  MAX_VISION_IMAGES,
+  extractUrgentRequirementFromImages,
+  validateVisionImage,
+} from '@/lib/ai/urgent-requirement-vision'
 import { ADMIN_INPUT_REQUIRED } from '@/lib/ai/guardrails'
 
 function getFlagEmoji(countryCode: string): string {
@@ -221,6 +227,51 @@ function fieldFlag(name: string, value: string) {
   return value.trim() === '' || value.trim() === ADMIN_INPUT_REQUIRED
 }
 
+/**
+ * An AI draft that has not been saved yet, kept in this browser only.
+ *
+ * Extraction deliberately writes nothing to the database, which means a refresh
+ * or an accidental close would otherwise lose the work. This keeps the text
+ * safe without a server write. The attached poster is a File and cannot be
+ * serialised, so only its name is remembered, and the admin is told to attach
+ * it again.
+ */
+const AI_DRAFT_CACHE_KEY = 'svo_urgent_requirement_ai_draft_v1'
+
+type CachedAiDraft = {
+  form: FormState
+  flaggedClaims: string[]
+  pendingImageNames: string[]
+  savedAt: string
+}
+
+function readCachedAiDraft(): CachedAiDraft | null {
+  try {
+    const raw = localStorage.getItem(AI_DRAFT_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as CachedAiDraft
+    return parsed?.form?.title !== undefined ? parsed : null
+  } catch {
+    return null // private mode, blocked storage, or corrupt JSON
+  }
+}
+
+function writeCachedAiDraft(draft: CachedAiDraft): void {
+  try {
+    localStorage.setItem(AI_DRAFT_CACHE_KEY, JSON.stringify(draft))
+  } catch {
+    // storage full or unavailable — the draft simply is not cached
+  }
+}
+
+function clearCachedAiDraft(): void {
+  try {
+    localStorage.removeItem(AI_DRAFT_CACHE_KEY)
+  } catch {
+    // ignore
+  }
+}
+
 export default function UrgentRequirementsAdminPage() {
   const {
     requirements,
@@ -254,6 +305,35 @@ export default function UrgentRequirementsAdminPage() {
 
   const [aiPrompt, setAiPrompt] = useState('')
   const [isGeneratingAi, setIsGeneratingAi] = useState(false)
+
+  /** Posters/screenshots read by the AI but NOT yet uploaded — they go to
+   *  storage only when the admin saves, so nothing is stored on extraction. */
+  const [pendingImages, setPendingImages] = useState<File[]>([])
+  const [isExtracting, setIsExtracting] = useState(false)
+  const visionInputRef = useRef<HTMLInputElement>(null)
+
+  // Local thumbnails for the held posters. Revoked whenever the set changes and
+  // on unmount, so nothing is left dangling.
+  const pendingPreviews = useMemo(
+    () => pendingImages.map((file) => ({ name: file.name, url: URL.createObjectURL(file) })),
+    [pendingImages],
+  )
+  useEffect(
+    () => () => { pendingPreviews.forEach((preview) => URL.revokeObjectURL(preview.url)) },
+    [pendingPreviews],
+  )
+
+  // Keep an unsaved AI draft for a new listing in this browser only. Editing an
+  // existing row is not cached — that content already lives in the database.
+  useEffect(() => {
+    if (!isOpen || editingId || !form.aiGenerated) return
+    writeCachedAiDraft({
+      form,
+      flaggedClaims,
+      pendingImageNames: pendingImages.map((file) => file.name),
+      savedAt: new Date().toISOString(),
+    })
+  }, [isOpen, editingId, form, flaggedClaims, pendingImages])
 
   const updateForm = (patch: Partial<FormState>) => {
     setForm((current) => {
@@ -339,14 +419,25 @@ export default function UrgentRequirementsAdminPage() {
   }
 
   const handleOpenCreate = () => {
+    const cached = readCachedAiDraft()
     setEditingId(null)
-    setForm(emptyForm())
+    setForm(cached?.form ?? emptyForm())
     setHistory([])
-    setFlaggedClaims([])
+    setFlaggedClaims(cached?.flaggedClaims ?? [])
+    setPendingImages([])
     setAiPrompt('')
     setActiveTab('edit')
-    setDirty(false)
+    setDirty(Boolean(cached))
     setIsOpen(true)
+    if (cached) {
+      // A File cannot be cached, so a poster read before the refresh has to be
+      // attached again — say so rather than letting it publish without one.
+      toast.info(
+        cached.pendingImageNames.length
+          ? `Restored your unsaved AI draft. Attach ${cached.pendingImageNames.join(', ')} again to use it as the listing image, or press Clear to start over.`
+          : 'Restored your unsaved AI draft. Press Clear to start over.',
+      )
+    }
   }
 
   const handleOpenEdit = (req: UrgentRequirement) => {
@@ -354,6 +445,7 @@ export default function UrgentRequirementsAdminPage() {
     setForm(formFromRequirement(req))
     setHistory([])
     setFlaggedClaims([])
+    setPendingImages([])
     setActiveTab('edit')
     setDirty(false)
     setIsOpen(true)
@@ -361,6 +453,8 @@ export default function UrgentRequirementsAdminPage() {
 
   const applyGenerated = (generated: GeneratedUrgentRequirement) => {
     setHistory((h) => [...h.slice(-9), form])
+    // Any poster held from an earlier extraction no longer matches this draft.
+    setPendingImages([])
     setForm({
       title: generated.title, slug: generated.slug, employer: generated.employer,
       country: generated.country, countryCode: generated.country_code, city: generated.city,
@@ -406,6 +500,71 @@ export default function UrgentRequirementsAdminPage() {
     }
   }
 
+  /**
+   * Reads a vacancy poster / flyer / WhatsApp screenshot and fills this form
+   * from it. Deliberately side-effect free apart from form state: the image is
+   * held in memory and only uploaded when the admin saves, and no row is
+   * written until they press a save button.
+   */
+  const handleExtractFromImages = async (files: File[]) => {
+    if (files.length === 0) return
+    if (isExtracting) return // duplicate-submit guard
+    setIsExtracting(true)
+    try {
+      const extracted = await extractUrgentRequirementFromImages(files, form.country)
+      applyGenerated(extracted)
+      // The poster itself becomes the listing image, so keep the files for the
+      // save step rather than uploading them now.
+      setPendingImages(files)
+      autoAddKeywords.current = true
+      toast.success(
+        extracted.adminInputRequired.length
+          ? `Read ${extracted.sourceImageCount} image(s) — ${extracted.adminInputRequired.length} field(s) could not be read and need your input.`
+          : `Read ${extracted.sourceImageCount} image(s) into a draft. Check every figure against the original before publishing.`,
+      )
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Could not read that image')
+    } finally {
+      setIsExtracting(false)
+    }
+  }
+
+  const handleVisionFilesSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? [])
+    event.target.value = ''
+    if (files.length === 0) return
+    if (files.length > MAX_VISION_IMAGES) {
+      toast.error(`Attach at most ${MAX_VISION_IMAGES} images.`)
+      return
+    }
+    for (const file of files) {
+      const problem = validateVisionImage(file)
+      if (problem) { toast.error(problem); return }
+    }
+    void handleExtractFromImages(files)
+  }
+
+  /**
+   * Uploads the held poster at save time and returns its public URL.
+   * Returns undefined when there is nothing pending, so the form's own
+   * image_url is used instead.
+   */
+  const uploadPendingImage = async (): Promise<string | undefined> => {
+    const file = pendingImages[0]
+    if (!file) return undefined
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+    const path = `urgent-requirements/main-${Date.now()}-${safeName}`
+    const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file, {
+      cacheControl: '15552000',
+      upsert: false,
+    })
+    if (error) throw new Error(`Could not upload the vacancy image: ${error.message}`)
+    const { data } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(path)
+    setPendingImages([])
+    updateForm({ imageUrl: data.publicUrl })
+    return data.publicUrl
+  }
+
   const handleUndo = () => {
     setHistory((h) => {
       if (h.length === 0) return h
@@ -419,6 +578,8 @@ export default function UrgentRequirementsAdminPage() {
     setHistory((h) => [...h.slice(-9), form])
     setForm({ ...emptyForm(), status: form.status })
     setFlaggedClaims([])
+    setPendingImages([])
+    clearCachedAiDraft()
     setDirty(true)
   }
 
@@ -474,7 +635,12 @@ export default function UrgentRequirementsAdminPage() {
     return null
   }
 
-  const buildPayload = (status: 'draft' | 'active' | 'closed'): UrgentRequirementInput => ({
+  const buildPayload = (
+    status: 'draft' | 'active' | 'closed',
+    /** Set when a held poster was uploaded during this save — `form` has not
+     *  re-rendered with the new URL yet, so it is passed in explicitly. */
+    imageUrlOverride?: string,
+  ): UrgentRequirementInput => ({
     id: editingId || undefined,
     title: form.title.trim(),
     slug: form.slug.trim() || form.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
@@ -482,7 +648,8 @@ export default function UrgentRequirementsAdminPage() {
     visa_type: form.visaType, category: form.category, vacancies: Number(form.vacancies) || 1,
     salary: form.salary, currency: form.currency, experience_required: form.experienceRequired,
     education: form.education, skills: form.skills.filter(Boolean), benefits: form.benefits.filter(Boolean),
-    contract_type: form.contractType, working_hours: form.workingHours, image_url: form.imageUrl,
+    contract_type: form.contractType, working_hours: form.workingHours,
+    image_url: imageUrlOverride ?? form.imageUrl,
     detail_image_url: form.detailImageUrl, image_alt: form.imageAlt, summary: form.summary, content: form.content,
     application_instructions: form.applicationInstructions, eligibility: form.eligibility.filter(Boolean),
     required_documents: form.requiredDocuments.filter(Boolean), seo_title: form.seoTitle,
@@ -498,21 +665,31 @@ export default function UrgentRequirementsAdminPage() {
     const error = validate()
     if (error) { toast.error(error); return }
     try {
-      await saveRequirement(buildPayload('draft'))
+      // A held poster is uploaded here, at the first point the admin has
+      // actually asked for this listing to be stored.
+      const uploadedImageUrl = await uploadPendingImage()
+      await saveRequirement(buildPayload('draft', uploadedImageUrl))
+      clearCachedAiDraft()
       setDirty(false)
       setIsOpen(false)
-    } catch {}
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message.startsWith('Could not upload')) toast.error(err.message)
+    }
   }
 
   const handlePublish = async () => {
     const error = validate()
     if (error) { toast.error(error); return }
     try {
-      await saveRequirement(buildPayload('active'))
+      const uploadedImageUrl = await uploadPendingImage()
+      await saveRequirement(buildPayload('active', uploadedImageUrl))
+      clearCachedAiDraft()
       setDirty(false)
       setPublishConfirmOpen(false)
       setIsOpen(false)
-    } catch {}
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message.startsWith('Could not upload')) toast.error(err.message)
+    }
   }
 
   /** Saves edits to a live listing without unpublishing it (Save Draft would take it offline). */
@@ -520,20 +697,28 @@ export default function UrgentRequirementsAdminPage() {
     const error = validate()
     if (error) { toast.error(error); return }
     try {
-      await saveRequirement(buildPayload('active'))
+      const uploadedImageUrl = await uploadPendingImage()
+      await saveRequirement(buildPayload('active', uploadedImageUrl))
+      clearCachedAiDraft()
       setDirty(false)
       setIsOpen(false)
-    } catch {}
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message.startsWith('Could not upload')) toast.error(err.message)
+    }
   }
 
   const handleSaveClosed = async () => {
     const error = validate()
     if (error) { toast.error(error); return }
     try {
-      await saveRequirement(buildPayload('closed'))
+      const uploadedImageUrl = await uploadPendingImage()
+      await saveRequirement(buildPayload('closed', uploadedImageUrl))
+      clearCachedAiDraft()
       setDirty(false)
       setIsOpen(false)
-    } catch {}
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message.startsWith('Could not upload')) toast.error(err.message)
+    }
   }
 
   return (
@@ -763,6 +948,72 @@ export default function UrgentRequirementsAdminPage() {
             <p className="text-[10px] text-muted-foreground">
               AI never invents an employer, salary, deadline, or guaranteed visa/job outcome — anything it can't determine is marked "{ADMIN_INPUT_REQUIRED}" for you to fill in.
             </p>
+
+            {/* Read a vacancy poster / flyer / WhatsApp screenshot into this same form. */}
+            <div className="rounded-xl border border-dashed border-primary/40 bg-background/60 p-3 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  ref={visionInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  multiple
+                  className="hidden"
+                  onChange={handleVisionFilesSelected}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 px-3 text-xs shrink-0"
+                  disabled={isExtracting}
+                  onClick={() => visionInputRef.current?.click()}
+                >
+                  {isExtracting ? (
+                    <><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Reading image...</>
+                  ) : (
+                    <><ScanLine className="h-3.5 w-3.5 mr-1.5" />Read from image</>
+                  )}
+                </Button>
+                <span className="text-[10px] text-muted-foreground">
+                  Job poster, flyer or WhatsApp screenshot — JPG, PNG or WebP, up to {MAX_VISION_IMAGES}, 4 MB each.
+                </span>
+              </div>
+
+              {pendingPreviews.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    {pendingPreviews.map((preview) => (
+                      <figure key={preview.url} className="w-20 shrink-0">
+                        <img
+                          src={preview.url}
+                          alt={`Selected vacancy image: ${preview.name}`}
+                          className="h-20 w-20 rounded-lg border border-border object-cover"
+                        />
+                        <figcaption className="mt-1 truncate text-[9px] text-muted-foreground" title={preview.name}>
+                          {preview.name}
+                        </figcaption>
+                      </figure>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-[10px] text-muted-foreground">
+                      Not uploaded yet — the first image becomes the listing image when you save.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-6 px-2 text-[10px]"
+                      onClick={() => setPendingImages([])}
+                    >
+                      <X className="mr-1 h-3 w-3" />Remove
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <p className="text-[10px] text-amber-700 dark:text-amber-500">
+                Check the salary, vacancy count and deadline against the original before publishing — anything the image did not state clearly is left blank on purpose.
+              </p>
+            </div>
           </div>
 
           {flaggedClaims.length > 0 && (
