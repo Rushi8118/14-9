@@ -11,6 +11,12 @@ import {
   getSuperAdminRoleSlugs,
 } from '@/lib/rbac'
 import { writeAuditLog } from '@/lib/audit-log'
+import { type LogEnvironmentFilter } from '@/lib/runtime-env'
+import {
+  applyLogEnvironmentFilter,
+  isLogEnvironmentColumnAvailable,
+  withLogEnvironmentFallback,
+} from '@/lib/log-environment'
 
 // ---------------------------------------------------------------------------
 // Event types (must stay in sync with interactions_event_type_check)
@@ -97,6 +103,11 @@ export type AccessLogFilters = {
   to?: string
   /** Which log store to read: public visitor activity or the separate admin activity log. */
   source: AccessLogSource
+  /**
+   * Which environment's records to show. Defaults to `production` so the panel
+   * never presents localhost or build-time activity as real visitor activity.
+   */
+  environment: LogEnvironmentFilter
   /** When false, pause 60s polling. Default true. */
   live: boolean
 }
@@ -113,6 +124,7 @@ export type AccessLogRow = {
   browser: string | null
   metadata: Record<string, unknown> | null
   created_at: string
+  environment: string | null
   user_email: string | null
   user_name: string | null
   user_role: string | null
@@ -123,6 +135,7 @@ export const DEFAULT_ACCESS_LOG_FILTERS: AccessLogFilters = {
   eventTypes: [],
   timeRange: '7d',
   source: 'visitors',
+  environment: 'production',
   live: true,
 }
 
@@ -227,6 +240,10 @@ export function parseAccessLogSearchParams(params: URLSearchParams): AccessLogFi
   const live = params.get('live') !== '0'
   const source: AccessLogSource = params.get('source') === 'admins' ? 'admins' : 'visitors'
 
+  const envRaw = params.get('env')
+  const environment: LogEnvironmentFilter =
+    envRaw === 'local' || envRaw === 'all' ? envRaw : 'production'
+
   // Hydrate event types from tab preset when only ?tab= is present.
   let resolvedTypes = eventTypes
   if (resolvedTypes.length === 0 && tab !== 'all') {
@@ -251,6 +268,7 @@ export function parseAccessLogSearchParams(params: URLSearchParams): AccessLogFi
     from: params.get('from') || undefined,
     to: params.get('to') || undefined,
     source,
+    environment,
     live,
   }
 }
@@ -270,6 +288,7 @@ export function accessLogFiltersToSearchParams(filters: AccessLogFilters): URLSe
   if (filters.timeRange === 'custom' && filters.from) p.set('from', filters.from)
   if (filters.timeRange === 'custom' && filters.to) p.set('to', filters.to)
   if (filters.source === 'admins') p.set('source', 'admins')
+  if (filters.environment !== 'production') p.set('env', filters.environment)
   if (!filters.live) p.set('live', '0')
   return p
 }
@@ -297,6 +316,7 @@ type RawInteractionRow = {
   browser: string | null
   metadata: Record<string, unknown> | null
   created_at: string
+  environment?: string | null
   user_profiles?: ProfileEmbed | ProfileEmbed[]
 }
 
@@ -316,6 +336,7 @@ function mapRow(row: RawInteractionRow): AccessLogRow {
     browser: row.browser,
     metadata: row.metadata,
     created_at: row.created_at,
+    environment: row.environment ?? null,
     user_email: profile?.email ?? null,
     user_name: profile?.full_name ?? null,
     user_role: profile?.user_role ?? null,
@@ -350,14 +371,16 @@ export function buildAccessLogQuery(
     filters.role && filters.role !== 'guest',
   )
 
+  const envColumn = isLogEnvironmentColumnAvailable() ? ', environment' : ''
+
   let select: string
   if (options.head) {
     select = needsRoleJoin ? 'id, user_profiles!inner(user_role)' : 'id'
   } else if (needsRoleJoin) {
-    select = `id, user_id, session_id, event_type, page_path, page_title, referrer, device_type, browser, metadata, created_at,
+    select = `id, user_id, session_id, event_type, page_path, page_title, referrer, device_type, browser, metadata, created_at${envColumn},
        user_profiles!inner ( id, email, full_name, user_role )`
   } else {
-    select = `id, user_id, session_id, event_type, page_path, page_title, referrer, device_type, browser, metadata, created_at,
+    select = `id, user_id, session_id, event_type, page_path, page_title, referrer, device_type, browser, metadata, created_at${envColumn},
        user_profiles ( id, email, full_name, user_role )`
   }
 
@@ -409,6 +432,8 @@ export function buildAccessLogQuery(
     query = query.lte('created_at', filters.to)
   }
 
+  query = applyLogEnvironmentFilter(query, filters.environment)
+
   return query
 }
 
@@ -417,9 +442,8 @@ export async function fetchAccessLogPage(
   offset: number,
   limit: number,
 ): Promise<{ rows: AccessLogRow[]; total: number }> {
-  const { data, error, count } = await buildAccessLogQuery(filters).range(
-    offset,
-    offset + limit - 1,
+  const { data, error, count } = await withLogEnvironmentFallback(() =>
+    buildAccessLogQuery(filters).range(offset, offset + limit - 1),
   )
   if (error) throw error
   return {
@@ -439,7 +463,9 @@ export async function fetchEventTypeCounts(
         tab: 'all',
         eventTypes: [type],
       }
-      const { count, error } = await buildAccessLogQuery(filters, { head: true })
+      const { count, error } = await withLogEnvironmentFallback(() =>
+        buildAccessLogQuery(filters, { head: true }),
+      )
       if (error) return [type, 0] as const
       return [type, count ?? 0] as const
     }),
@@ -460,18 +486,26 @@ export async function searchAccessLogUsers(q: string, limit = 20) {
   return data || []
 }
 
-export async function searchAccessLogPaths(q: string, source: AccessLogSource = 'visitors', limit = 20) {
+export async function searchAccessLogPaths(
+  q: string,
+  source: AccessLogSource = 'visitors',
+  limit = 20,
+  environment: LogEnvironmentFilter = 'production',
+) {
   const term = q.trim()
-  let query = supabase
-    .from(accessLogTable(source))
-    .select('page_path')
-    .not('page_path', 'is', null)
-    .order('created_at', { ascending: false })
-    .limit(80)
+  const build = () => {
+    let query = supabase
+      .from(accessLogTable(source))
+      .select('page_path')
+      .not('page_path', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(80)
 
-  if (term) query = query.ilike('page_path', `%${term}%`)
+    if (term) query = query.ilike('page_path', `%${term}%`)
+    return applyLogEnvironmentFilter(query, environment)
+  }
 
-  const { data, error } = await query
+  const { data, error } = await withLogEnvironmentFallback(() => build())
   if (error) throw error
   const seen = new Set<string>()
   const paths: string[] = []
@@ -490,10 +524,17 @@ export async function exportAccessLogsCsv(filters: AccessLogFilters): Promise<Bl
   void writeAuditLog({
     action: 'export.csv',
     resource: accessLogTable(filters.source),
-    newValue: { source: filters.source, tab: filters.tab, rowCount: rows.length, timeRange: filters.timeRange },
+    newValue: {
+      source: filters.source,
+      environment: filters.environment,
+      tab: filters.tab,
+      rowCount: rows.length,
+      timeRange: filters.timeRange,
+    },
   })
   const header = [
     'Time',
+    'Environment',
     'Event',
     'Path',
     'User',
@@ -508,6 +549,7 @@ export async function exportAccessLogsCsv(filters: AccessLogFilters): Promise<Bl
   const lines = rows.map((r) =>
     [
       escape(r.created_at),
+      escape(r.environment || 'production'),
       escape(r.event_type),
       escape(r.page_path),
       escape(r.user_name || (r.user_id ? 'User' : 'Guest visitor')),

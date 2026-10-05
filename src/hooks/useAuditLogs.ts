@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { applyLogEnvironmentFilter, withLogEnvironmentFallback } from '@/lib/log-environment'
+import type { LogEnvironmentFilter } from '@/lib/runtime-env'
 
 export interface AuditLog {
   id: string
@@ -16,6 +18,7 @@ export interface AuditLog {
   fingerprint: string | null
   severity: 'info' | 'warning' | 'critical'
   created_at: string
+  environment?: string | null
 }
 
 export interface AuditLogFilters {
@@ -25,6 +28,11 @@ export interface AuditLogFilters {
   from?: string
   to?: string
   search?: string
+  /**
+   * Which environment's records to read. Defaults to the live site, so admin
+   * actions taken against localhost are not shown as real ones.
+   */
+  environment?: LogEnvironmentFilter
 }
 
 export function useAuditLogs(filters: AuditLogFilters = {}) {
@@ -52,7 +60,9 @@ export function useAuditLogs(filters: AuditLogFilters = {}) {
         `user_email.ilike.%${filters.search}%,action.ilike.%${filters.search}%,resource.ilike.%${filters.search}%`
       )
 
-      const { data, error: err, count } = await query
+      const { data, error: err, count } = await withLogEnvironmentFallback(() =>
+        applyLogEnvironmentFilter(query, filters.environment ?? 'production'),
+      )
       if (err) throw err
       setLogs(data ?? [])
       setTotal(count ?? 0)
@@ -63,7 +73,7 @@ export function useAuditLogs(filters: AuditLogFilters = {}) {
     } finally {
       setLoading(false)
     }
-  }, [filters.severity, filters.userId, filters.action, filters.from, filters.to, filters.search])
+  }, [filters.severity, filters.userId, filters.action, filters.from, filters.to, filters.search, filters.environment])
 
   useEffect(() => { fetchLogs() }, [fetchLogs])
 

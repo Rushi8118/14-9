@@ -22,6 +22,7 @@
  *      rendering happens, for the same reason.
  */
 import { spawn, execSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { mkdir, writeFile, access, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -30,6 +31,24 @@ import { getPublicRoutes, SITE_URL } from './seo-routes.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, '..')
+
+/**
+ * Path to vite's CLI. Node's own resolution cannot be used — vite's package
+ * exports do not expose bin/vite.js — so walk up from the project looking for
+ * an installed copy. A git worktree has no node_modules of its own and resolves
+ * packages from the main checkout, where this finds it instead of spawning a
+ * path that does not exist (which surfaced only as "preview server did not
+ * start").
+ */
+function resolveViteCli() {
+  for (let dir = root; ; dir = path.dirname(dir)) {
+    const candidate = path.join(dir, 'node_modules', 'vite', 'bin', 'vite.js')
+    if (existsSync(candidate)) return candidate
+    const parent = path.dirname(dir)
+    if (parent === dir) break
+  }
+  throw new Error('Could not find vite/bin/vite.js — run npm install')
+}
 const distDir = path.join(root, 'dist')
 const PORT = 4179
 const BASE = `http://127.0.0.1:${PORT}`
@@ -222,7 +241,7 @@ async function main() {
   await writeFile(path.join(distDir, 'app-shell.html'), shell, 'utf8')
 
   // Run vite via node directly — avoids shell wrappers and DEP0190 warning.
-  const viteCli = path.join(root, 'node_modules', 'vite', 'bin', 'vite.js')
+  const viteCli = resolveViteCli()
   const previewArgs = [viteCli, 'preview', '--host', '127.0.0.1', '--port', String(PORT), '--strictPort']
   const preview = spawn(
     process.execPath,
@@ -255,6 +274,15 @@ async function main() {
       browser = await chromium.launch({ headless: true })
     }
     const page = await browser.newPage()
+
+    // This browser loads every route for real, so the site's own trackers fire
+    // and write to Supabase — one page view per page, on every build. The flag
+    // runs before any application code and makes src/lib/runtime-env.ts stamp
+    // those rows `environment: 'build'`, so the admin access log can keep them
+    // out of real visitor activity instead of silently inflating it.
+    await page.addInitScript(() => {
+      Object.defineProperty(window, '__SVO_PRERENDER__', { value: true, configurable: false })
+    })
 
     // Abort heavy or stall-prone external media (images, videos) to prevent network hangs and speed up prerender
     await page.route('**/*', (route) => {

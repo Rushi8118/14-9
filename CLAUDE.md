@@ -62,6 +62,27 @@ fallback; the prerenderer strips that from written output.
 Do not write markup-looking text into `index.html` comments — they are copied into every
 prerendered page, and a comment mentioning `<title>` made every page parse as having two.
 
+## Logs: local vs live
+
+Every log row carries an `environment` column — `production` (the live site),
+`local` (localhost, a LAN IP, `*.localhost` / `*.local` / `*.test`) or `build` (the
+headless browser `scripts/prerender.mjs` drives during `npm run build`, which loads every
+route for real and so used to write a page view per page per build).
+
+`src/lib/runtime-env.ts` decides the value and every writer stamps it
+(`interactions`, `admin_access_logs`, `activity_logs`, `audit_logs`). A BEFORE INSERT
+trigger then re-derives it from the page URL the row already stores, so a stale client
+cannot label localhost traffic as production.
+
+Readers default to `production`: the Access Logs, Activity Logs and Audit Logs pages each
+have a **Live site / Local & test / All records** switch (URL `?env=local|all` on Access
+Logs), and the dashboard figures plus `get_dashboard_analytics()` count production only.
+Development activity is kept, never discarded — it is just not counted as real traffic.
+
+Both migrations are applied **by hand**, so the client is written to survive their absence:
+the first insert or read the database rejects for a missing column clears a flag and
+everything falls back to unseparated logging rather than failing.
+
 ## Publishing
 
 Publishing a blog post or urgent requirement in the admin panel makes it reachable for
@@ -100,6 +121,9 @@ test runner.
   `.env.local` has only the publishable key, so RLS blocks writing them from here.
 - 17 pages under 350 words; 5 indexable work-visa pages 82–92% identical (`belarus`,
   `italy`, `malta`, `israel`, `new-zealand`). Needs real facts.
+- `supabase/migrations/20261005000001_log_environment_separation.sql` and
+  `20261005000002_dashboard_analytics_production_only.sql` have not been run yet. Until they
+  are, logs stay mixed and every environment switch shows the same rows.
 - Unanswered business facts: opening hours, Google Business Profile URL, the Instagram
   handle discrepancy (`siddhivinyak` in schema vs `siddhivinayak` in the brand),
   author/reviewer names, registration numbers, evidence for "6+ years" and "500+ clients".

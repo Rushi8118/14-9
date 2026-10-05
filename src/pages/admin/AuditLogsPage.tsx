@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useAuditLogs, type AuditLog } from '@/hooks/useAuditLogs'
+import { LogEnvironmentSwitch } from '@/components/admin/LogEnvironmentSwitch'
+import type { LogEnvironmentFilter } from '@/lib/runtime-env'
 import { Shield, AlertTriangle, Info, Search, Download, RefreshCw, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -49,6 +51,7 @@ export default function AuditLogsPage() {
   const canExport = can('audit.export')
   const [search, setSearch] = useState('')
   const [severity, setSeverity] = useState('all')
+  const [environment, setEnvironment] = useState<LogEnvironmentFilter>('production')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [page, setPage] = useState(1)
@@ -59,6 +62,7 @@ export default function AuditLogsPage() {
     severity: severity === 'all' ? undefined : severity,
     from: from ? new Date(from).toISOString() : undefined,
     to: to ? new Date(to).toISOString() : undefined,
+    environment,
   })
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
@@ -155,6 +159,10 @@ export default function AuditLogsPage() {
           variant="admin"
           showShortcuts={false}
           className="h-10 text-xs w-36"
+        />
+        <LogEnvironmentSwitch
+          value={environment}
+          onChange={(value) => changeFilter(() => setEnvironment(value))}
         />
       </div>
 

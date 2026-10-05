@@ -12,6 +12,13 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { ChangeDiffViewer } from '@/components/admin/ChangeDiffViewer'
+import {
+  LogEnvironmentSwitch,
+  logEnvironmentBadgeClass,
+  logEnvironmentLabel,
+} from '@/components/admin/LogEnvironmentSwitch'
+import { applyLogEnvironmentFilter, withLogEnvironmentFallback } from '@/lib/log-environment'
+import type { LogEnvironmentFilter } from '@/lib/runtime-env'
 
 type ActivityLog = {
   id: number
@@ -32,6 +39,7 @@ type ActivityLog = {
   changes?: unknown
   old_value?: unknown
   new_value?: unknown
+  environment?: string | null
 }
 
 type Person = { id: string; full_name: string | null; email: string | null }
@@ -68,6 +76,7 @@ const RANGES = [
 
 export default function ActivityLogsPage() {
   const [category, setCategory] = useState('all')
+  const [environment, setEnvironment] = useState<LogEnvironmentFilter>('production')
   const [range, setRange] = useState('7')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
@@ -75,7 +84,7 @@ export default function ActivityLogsPage() {
   const deferredSearch = useDeferredValue(search.trim())
 
   const logs = useQuery({
-    queryKey: ['activity-logs', category, range, deferredSearch, page],
+    queryKey: ['activity-logs', category, range, deferredSearch, page, environment],
     placeholderData: keepPreviousData,
     refetchInterval: 30_000,
     queryFn: async () => {
@@ -102,7 +111,11 @@ export default function ActivityLogsPage() {
           ...(ids.length ? [`user_id.in.(${ids.join(',')})`] : []),
         ].join(','))
       }
-      const { data, error, count } = await query
+      // Localhost and build-time activity is recorded too; it is only shown
+      // when the environment switch asks for it.
+      const { data, error, count } = await withLogEnvironmentFallback(() =>
+        applyLogEnvironmentFilter(query, environment),
+      )
       if (error) throw new Error('Could not load activity logs.')
       const rows = (data ?? []) as ActivityLog[]
 
@@ -117,6 +130,7 @@ export default function ActivityLogsPage() {
   })
 
   const rows = logs.data?.rows ?? []
+  const columnCount = environment === 'production' ? 6 : 7
   const total = logs.data?.count ?? 0
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const personLabel = (id: string | null) => {
@@ -128,8 +142,8 @@ export default function ActivityLogsPage() {
   const exportCsv = () => {
     if (!rows.length) { toast.info('Nothing to export on this page.'); return }
     const csv = [
-      ['Time', 'User', 'Category', 'Action', 'Page', 'Target', 'Device', 'Browser', 'Session'],
-      ...rows.map((r) => [r.created_at, personLabel(r.user_id), r.category, r.action, r.page_path ?? '', r.target ?? '', r.device_type ?? '', r.browser ?? '', r.session_id ?? '']),
+      ['Time', 'Environment', 'User', 'Category', 'Action', 'Page', 'Target', 'Device', 'Browser', 'Session'],
+      ...rows.map((r) => [r.created_at, logEnvironmentLabel(r.environment), personLabel(r.user_id), r.category, r.action, r.page_path ?? '', r.target ?? '', r.device_type ?? '', r.browser ?? '', r.session_id ?? '']),
     ].map((row) => row.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(',')).join('\n')
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
     const a = document.createElement('a')
@@ -169,6 +183,10 @@ export default function ActivityLogsPage() {
           <SelectTrigger className="sm:w-40"><SelectValue /></SelectTrigger>
           <SelectContent>{RANGES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
         </Select>
+        <LogEnvironmentSwitch
+          value={environment}
+          onChange={(value) => { setEnvironment(value); setPage(0) }}
+        />
       </div>
 
       {logs.isError ? (
@@ -182,6 +200,7 @@ export default function ActivityLogsPage() {
               <tr className="border-b border-border bg-muted/30 text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <th className="px-4 py-3">Time</th>
                 <th className="px-4 py-3">User</th>
+                {environment !== 'production' && <th className="px-4 py-3">Env</th>}
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">Action</th>
                 <th className="px-4 py-3">Page</th>
@@ -190,9 +209,9 @@ export default function ActivityLogsPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {logs.isLoading ? Array.from({ length: 8 }).map((_, i) => (
-                <tr key={i}><td colSpan={6} className="px-4 py-2"><Skeleton className="h-6 w-full" /></td></tr>
+                <tr key={i}><td colSpan={columnCount} className="px-4 py-2"><Skeleton className="h-6 w-full" /></td></tr>
               )) : rows.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">No activity found for these filters.</td></tr>
+                <tr><td colSpan={columnCount} className="px-4 py-10 text-center text-muted-foreground">No activity found for these filters.</td></tr>
               ) : rows.map((r) => {
                 const style = CATEGORY_STYLE[r.category] ?? CATEGORY_STYLE.app
                 const Icon = style.icon
@@ -200,6 +219,13 @@ export default function ActivityLogsPage() {
                   <tr key={r.id} tabIndex={0} className="cursor-pointer hover:bg-muted/20" onClick={() => setSelected(r)} onKeyDown={(e) => { if (e.key === 'Enter') setSelected(r) }}>
                     <td className="whitespace-nowrap px-4 py-2.5 text-xs text-muted-foreground">{format(new Date(r.created_at), 'dd MMM, HH:mm:ss')}</td>
                     <td className="max-w-[160px] truncate px-4 py-2.5">{personLabel(r.user_id)}</td>
+                    {environment !== 'production' && (
+                      <td className="whitespace-nowrap px-4 py-2.5">
+                        <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', logEnvironmentBadgeClass(r.environment))}>
+                          {logEnvironmentLabel(r.environment)}
+                        </span>
+                      </td>
+                    )}
                     <td className="px-4 py-2.5">
                       <Badge variant="outline" className={cn('gap-1 font-normal', style.className)}><Icon className="h-3 w-3" />{CATEGORIES.find((c) => c.value === r.category)?.label ?? r.category}</Badge>
                     </td>
@@ -254,6 +280,7 @@ export default function ActivityLogsPage() {
                     ['Device', selected.device_type],
                     ['Browser', selected.browser],
                     ['Session', selected.session_id],
+                    ['Environment', logEnvironmentLabel(selected.environment)],
                   ] as const).map(([label, value]) => value ? (
                     <div key={label} className="flex justify-between gap-3 border-b border-border/50 pb-1.5">
                       <dt className="shrink-0 text-xs font-medium text-muted-foreground">{label}</dt>
