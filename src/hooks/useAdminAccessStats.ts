@@ -1,5 +1,19 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
+import {
+  applyLogEnvironmentFilter,
+  withLogEnvironmentFallbackAll,
+} from '@/lib/log-environment'
+
+/**
+ * These are the real visitor figures, so they exclude activity recorded on
+ * localhost and during `npm run build` (see the log-environment migration).
+ * Localhost and build activity is still kept — read it in Access Logs by
+ * switching that panel's environment to "Local & test".
+ */
+function productionOnly<T>(query: T): T {
+  return applyLogEnvironmentFilter(query, 'production')
+}
 
 export type AccessVisitRow = {
   id: string
@@ -94,20 +108,24 @@ export function useAdminAccessStats() {
       const todayIso = startOfDayIso(0)
       const weekIso = startOfDayIso(6)
 
-      const [todayViewsRes, weekViewsRes, usersRes, recentLoginsRes, recentEventsRes, recentAppsRes, appsTableRes] =
-        await Promise.all([
-          supabase
-            .from('interactions')
-            .select('id,session_id,page_path,event_type,created_at')
-            .eq('event_type', 'page_view')
-            .gte('created_at', todayIso)
-            .limit(5000),
-          supabase
-            .from('interactions')
-            .select('id,session_id,page_path,event_type,created_at')
-            .eq('event_type', 'page_view')
-            .gte('created_at', weekIso)
-            .limit(10000),
+      const runQueries = () =>
+        Promise.all([
+          productionOnly(
+            supabase
+              .from('interactions')
+              .select('id,session_id,page_path,event_type,created_at')
+              .eq('event_type', 'page_view')
+              .gte('created_at', todayIso)
+              .limit(5000),
+          ),
+          productionOnly(
+            supabase
+              .from('interactions')
+              .select('id,session_id,page_path,event_type,created_at')
+              .eq('event_type', 'page_view')
+              .gte('created_at', weekIso)
+              .limit(10000),
+          ),
           supabase
             .from('user_profiles')
             .select('id,email,full_name,user_role,last_login_at,created_at,status', {
@@ -122,28 +140,35 @@ export function useAdminAccessStats() {
             .gte('last_login_at', weekIso)
             .order('last_login_at', { ascending: false })
             .limit(20),
-          supabase
-            .from('interactions')
-            .select(
-              'id,user_id,session_id,event_type,page_path,page_title,referrer,device_type,browser,created_at',
-            )
-            .in('event_type', ['page_view', 'login', 'signup'])
-            .order('created_at', { ascending: false })
-            .limit(40),
-          supabase
-            .from('interactions')
-            .select(
-              'id,user_id,event_type,created_at,metadata',
-            )
-            .eq('event_type', 'application_submitted')
-            .order('created_at', { ascending: false })
-            .limit(10),
+          productionOnly(
+            supabase
+              .from('interactions')
+              .select(
+                'id,user_id,session_id,event_type,page_path,page_title,referrer,device_type,browser,created_at',
+              )
+              .in('event_type', ['page_view', 'login', 'signup'])
+              .order('created_at', { ascending: false })
+              .limit(40),
+          ),
+          productionOnly(
+            supabase
+              .from('interactions')
+              .select(
+                'id,user_id,event_type,created_at,metadata',
+              )
+              .eq('event_type', 'application_submitted')
+              .order('created_at', { ascending: false })
+              .limit(10),
+          ),
           supabase
             .from('applications')
             .select('*, user_profiles!left(full_name, email)')
             .order('created_at', { ascending: false })
             .limit(10),
         ])
+
+      const [todayViewsRes, weekViewsRes, usersRes, recentLoginsRes, recentEventsRes, recentAppsRes, appsTableRes] =
+        await withLogEnvironmentFallbackAll(runQueries)
 
       if (todayViewsRes.error) throw todayViewsRes.error
       if (weekViewsRes.error) throw weekViewsRes.error

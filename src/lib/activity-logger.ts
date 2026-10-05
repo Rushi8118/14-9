@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/client'
 import { detectBrowser, detectDeviceType, getVisitSessionId } from '@/lib/site-visit-tracker'
+import { detectLogEnvironment, isMissingEnvironmentColumn, type LogEnvironment } from '@/lib/runtime-env'
 import type { ChangeItem } from '@/lib/diff-utils'
 
 /**
@@ -30,6 +31,8 @@ export type ActivityEvent = {
   changes?: ChangeItem[] | unknown
   old_value?: unknown
   new_value?: unknown
+  /** Where the event happened: live site, localhost, or a prerender build. */
+  environment?: LogEnvironment
 }
 
 export type LogDataChangeParams = {
@@ -54,6 +57,8 @@ let started = false
 let flushing = false
 let minuteStart = Date.now()
 let minuteCount = 0
+/** Cleared the first time the database rejects `environment` (migration pending). */
+let environmentColumnAvailable = true
 
 const clip = (value: unknown, max: number) => (typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '')
 
@@ -84,6 +89,7 @@ export function logActivity(category: Category, action: string, target?: string 
     changes: details.changes ?? null,
     old_value: details.old_value ?? details.oldValue ?? null,
     new_value: details.new_value ?? details.newValue ?? null,
+    environment: detectLogEnvironment(),
   })
   if (queue.length >= MAX_BATCH) void flush()
 }
@@ -126,6 +132,7 @@ export async function logDataChange(params: LogDataChangeParams): Promise<void> 
     changes: params.changes,
     old_value: params.old_value,
     new_value: params.new_value,
+    environment: detectLogEnvironment(),
   }
 
   queue.push(event)
@@ -142,10 +149,23 @@ export async function flush() {
   flushing = true
   const batch = queue.splice(0, MAX_BATCH)
   try {
-    const { error } = await supabase.from('activity_logs').insert(batch)
+    const payload = environmentColumnAvailable
+      ? batch
+      : batch.map(({ environment, ...rest }) => rest)
+    let { error } = await supabase.from('activity_logs').insert(payload)
+
+    if (error && isMissingEnvironmentColumn(error)) {
+      // The log-environment migration is still pending: drop the column and
+      // keep logging rather than losing the batch.
+      environmentColumnAvailable = false
+      ;({ error } = await supabase
+        .from('activity_logs')
+        .insert(batch.map(({ environment, ...rest }) => rest)))
+    }
+
     if (error) {
       // Fallback: If extended columns don't exist yet in the database, insert base columns
-      const fallbackBatch = batch.map(({ table_name, record_id, action_type, changes, old_value, new_value, ...base }) => base)
+      const fallbackBatch = batch.map(({ table_name, record_id, action_type, changes, old_value, new_value, environment, ...base }) => base)
       const { error: fallbackError } = await supabase.from('activity_logs').insert(fallbackBatch)
       if (fallbackError && import.meta.env.DEV) {
         console.warn('[activity-logger] insert failed:', fallbackError.message)

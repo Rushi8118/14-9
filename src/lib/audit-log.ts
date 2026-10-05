@@ -145,6 +145,9 @@ export async function writeAuditLog(params: AuditLogParams): Promise<string | nu
           old_value: params.oldValue ?? null,
           new_value: params.newValue ?? null,
           severity: params.severity ?? 'info',
+          // The page URL lets the database classify this row as live-site or
+          // local activity, the same way the RPC path does.
+          url: typeof window !== 'undefined' ? window.location.href.slice(0, 500) : null,
         }).select('id').maybeSingle()
         return (insertData as any)?.id ?? null
       } catch {

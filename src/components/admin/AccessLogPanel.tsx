@@ -61,6 +61,11 @@ import {
   tabForEventTypes,
 } from '@/lib/access-log'
 import { getAccessLogRoleGroup } from '@/lib/rbac'
+import {
+  LogEnvironmentSwitch,
+  logEnvironmentBadgeClass,
+  logEnvironmentLabel,
+} from '@/components/admin/LogEnvironmentSwitch'
 
 const TABS: AccessLogTab[] = ['all', 'visits', 'logins', 'applications', 'admin', 'security']
 
@@ -132,11 +137,19 @@ export function AccessLogPanel() {
     [filters, setSearchParams],
   )
 
+  // "Clear all" clears filters, not the view itself: which log store and which
+  // environment you are looking at are deliberate choices, so they survive.
   const clearAll = useCallback(() => {
-    setSearchParams(accessLogFiltersToSearchParams(DEFAULT_ACCESS_LOG_FILTERS), {
-      replace: true,
-    })
-  }, [setSearchParams])
+    setSearchParams(
+      accessLogFiltersToSearchParams({
+        ...DEFAULT_ACCESS_LOG_FILTERS,
+        source: filters.source,
+        environment: filters.environment,
+        live: filters.live,
+      }),
+      { replace: true },
+    )
+  }, [setSearchParams, filters.source, filters.environment, filters.live])
 
   const {
     rows,
@@ -185,12 +198,12 @@ export function AccessLogPanel() {
   useEffect(() => {
     if (!pathOpen) return
     const t = window.setTimeout(() => {
-      void searchAccessLogPaths(pathQuery, filters.source)
+      void searchAccessLogPaths(pathQuery, filters.source, 20, filters.environment)
         .then(setPathOptions)
         .catch(() => setPathOptions([]))
     }, 250)
     return () => window.clearTimeout(t)
-  }, [pathQuery, pathOpen, filters.source])
+  }, [pathQuery, pathOpen, filters.source, filters.environment])
 
   const chips: Chip[] = useMemo(() => {
     const list: Chip[] = []
@@ -322,6 +335,10 @@ export function AccessLogPanel() {
             )}
             Export CSV
           </Button>
+          <LogEnvironmentSwitch
+            value={filters.environment}
+            onChange={(environment) => patchFilters({ environment })}
+          />
           <div
             role="radiogroup"
             aria-label="Log store"
@@ -718,6 +735,11 @@ export function AccessLogPanel() {
                 >
                   {formatAccessEventLabel(row.event_type)}
                 </span>
+                {filters.environment !== 'production' && (
+                  <span className={`rounded-full px-2 py-0.5 font-semibold ${logEnvironmentBadgeClass(row.environment)}`}>
+                    {logEnvironmentLabel(row.environment)}
+                  </span>
+                )}
                 <span className="text-muted-foreground">
                   {formatDistanceToNow(new Date(row.created_at), { addSuffix: true })}
                 </span>
@@ -777,6 +799,7 @@ export function AccessLogPanel() {
               <DetailRow label="User" value={selectedRow.user_name || selectedRow.user_email || (selectedRow.user_id ? 'User' : 'Guest visitor')} />
               <DetailRow label="Email" value={selectedRow.user_email} />
               <DetailRow label="Role" value={roleDisplayLabel(selectedRow)} />
+              <DetailRow label="Environment" value={logEnvironmentLabel(selectedRow.environment)} />
               <DetailRow label="Session" value={selectedRow.session_id} mono />
               <DetailRow label="Page path" value={selectedRow.page_path} />
               <DetailRow label="Page title" value={selectedRow.page_title} />

@@ -1,10 +1,15 @@
 import { supabase } from '@/lib/supabase/client'
+import { detectLogEnvironment, isMissingEnvironmentColumn } from '@/lib/runtime-env'
 
 const SESSION_KEY = 'svo_visit_session_id'
 const LAST_PATH_KEY = 'svo_last_tracked_path'
 const THROTTLE_MS = 1500
 
 let lastWriteAt = 0
+
+/** Cleared for the rest of the session the first time the database rejects
+ *  `environment`, i.e. while the log-environment migration is still pending. */
+let environmentColumnAvailable = true
 
 const COUNTRY_KEY = 'svo_visit_country'
 let countryPromise: Promise<string | null> | null = null
@@ -142,29 +147,42 @@ export async function trackSiteEvent(input: TrackEventInput): Promise<void> {
 
   const countryCode = await getVisitorCountry()
 
+  const table = input.admin && input.userId ? 'admin_access_logs' : 'interactions'
+  const row: Record<string, unknown> = {
+    event_type: input.eventType,
+    page_path: path.slice(0, 500),
+    page_title: (input.title || document.title || '').slice(0, 200) || null,
+    referrer: document.referrer ? document.referrer.slice(0, 500) : null,
+    session_id: sessionId,
+    user_id: input.userId || null,
+    device_type: detectDeviceType(),
+    browser: detectBrowser(),
+    request_id: requestId,
+    country_code: countryCode,
+    metadata: {
+      href: window.location.href,
+      language: navigator.language,
+      ...(input.metadata || {}),
+    },
+  }
+  // Keeps localhost and build-time page views out of the real visitor figures.
+  // The database re-derives this from metadata.href, so it cannot be faked.
+  if (environmentColumnAvailable) row.environment = detectLogEnvironment()
+
   try {
     // Plain insert, not upsert: `ON CONFLICT` makes Postgres also apply SELECT row-level
     // security, and visitors (anon) cannot read the log, so upserts were rejected with 401.
     // The unique request_id index still de-duplicates; a duplicate just returns 23505.
-    const { error } = await supabase.from(input.admin && input.userId ? 'admin_access_logs' : 'interactions').insert(
-      {
-        event_type: input.eventType,
-        page_path: path.slice(0, 500),
-        page_title: (input.title || document.title || '').slice(0, 200) || null,
-        referrer: document.referrer ? document.referrer.slice(0, 500) : null,
-        session_id: sessionId,
-        user_id: input.userId || null,
-        device_type: detectDeviceType(),
-        browser: detectBrowser(),
-        request_id: requestId,
-        country_code: countryCode,
-        metadata: {
-          href: window.location.href,
-          language: navigator.language,
-          ...(input.metadata || {}),
-        },
-      },
-    )
+    let { error } = await supabase.from(table).insert(row)
+
+    if (error && isMissingEnvironmentColumn(error)) {
+      // The environment migration has not been applied yet. Keep logging —
+      // an unseparated row beats no row — and stop sending the column.
+      environmentColumnAvailable = false
+      delete row.environment
+      ;({ error } = await supabase.from(table).insert(row))
+    }
+
     if (error && error.code !== '23505') {
       // Common cause: CHECK constraint missing application_submitted / logout / failed_login
       console.warn('[site-visit-tracker] insert failed:', error.message)

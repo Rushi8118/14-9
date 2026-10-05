@@ -45,6 +45,7 @@ function queryKeyFromFilters(filters: AccessLogFilters): string {
     from: filters.from ?? null,
     to: filters.to ?? null,
     source: filters.source,
+    environment: filters.environment,
   })
 }
 
