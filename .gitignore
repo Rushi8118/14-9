@@ -62,3 +62,8 @@ siddhivinayakoverseas.com-audit/*
 !siddhivinayakoverseas.com-audit/onpage.json
 !siddhivinayakoverseas.com-audit/audit-data.json
 !siddhivinayakoverseas.com-audit/findings/
+
+# Cloudflare Worker local secrets
+.dev.vars
+workers/**/.dev.vars
+.wrangler/

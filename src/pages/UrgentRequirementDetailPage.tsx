@@ -125,6 +125,24 @@ export default function UrgentRequirementDetailPage() {
   if (error || !requirement) {
     return (
       <div className="min-h-screen bg-background flex flex-col justify-between">
+        {/*
+          Same soft-404 as the blog detail page: .htaccess serves every
+          /urgent-requirements/* URL from app-shell.html with HTTP 200 because
+          only Supabase knows which slugs exist, so a missing or expired opening
+          renders this screen under a 200. noindex keeps it out of the index; the
+          correct 404 status needs the Cloudflare SEO Worker
+          (workers/seo-head/), which is not deployed yet.
+
+          This branch also catches a fetch error, where the row may well exist.
+          noindex is still right: a page that failed to load has no content worth
+          indexing, and the directive is reversed on the next successful crawl.
+        */}
+        <SeoHead
+          title="Requirement Not Found"
+          description="This urgent opening may have concluded or the link has expired."
+          path={`/urgent-requirements/${slug ?? ''}`}
+          noindex
+        />
         <SiteHeader />
         <div className="flex-1 flex items-center justify-center py-20 px-4 text-center">
           <div className="max-w-md space-y-4">

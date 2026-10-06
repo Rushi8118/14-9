@@ -62,9 +62,9 @@ export function SeoContentSection() {
             </span>
             <div className="h-px flex-1 bg-border/60" />
           </div>
-          <h2 className="mt-5 text-center font-serif text-2xl font-semibold text-foreground md:text-3xl">
+          <h3 className="mt-5 text-center font-serif text-2xl font-semibold text-foreground md:text-3xl">
             Why Choose Siddhivinayak Overseas?
-          </h2>
+          </h3>
           <p className="mx-auto mt-3 max-w-2xl text-center text-base text-muted-foreground">
             We assign a dedicated case officer who stays with you from your first consultation until you land on campus. Personalised attention, honest eligibility checks and transparent, itemised pricing.
           </p>
@@ -74,7 +74,7 @@ export function SeoContentSection() {
                 <div className="card-icon flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/30">
                   <f.icon className="h-5 w-5 text-primary" />
                 </div>
-                <h3 className="mt-4 font-serif text-lg font-semibold text-foreground">{f.title}</h3>
+                <h4 className="mt-4 font-serif text-lg font-semibold text-foreground">{f.title}</h4>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
               </div>
             ))}
@@ -90,9 +90,9 @@ export function SeoContentSection() {
             </span>
             <div className="h-px flex-1 bg-border/60" />
           </div>
-          <h2 className="mt-5 text-center font-serif text-2xl font-semibold text-foreground md:text-3xl">
+          <h3 className="mt-5 text-center font-serif text-2xl font-semibold text-foreground md:text-3xl">
             Destinations for Study & Work Visas
-          </h2>
+          </h3>
           <p className="mx-auto mt-3 max-w-2xl text-center text-base text-muted-foreground">
             As leading <strong>overseas education consultants in India</strong>, we offer study abroad guidance for top universities &amp; work visas for skilled professionals aged 18-34 across multiple countries.
           </p>
@@ -104,7 +104,7 @@ export function SeoContentSection() {
                 className="lift-card group relative overflow-hidden rounded-2xl border border-border/60 bg-card/60 p-6 backdrop-blur-sm transition hover:border-primary/40"
               >
                 <FlagIcon country={c.name} className="text-4xl" />
-                <h3 className="mt-3 font-serif text-lg font-semibold text-foreground transition-colors group-hover:text-primary">{c.name}</h3>
+                <h4 className="mt-3 font-serif text-lg font-semibold text-foreground transition-colors group-hover:text-primary">{c.name}</h4>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{c.desc}</p>
                 <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary">
                   Learn more <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
@@ -122,9 +122,9 @@ export function SeoContentSection() {
                 <Briefcase className="h-3.5 w-3.5" />
                 Strategic Overseas Pathways
               </span>
-              <h2 className="mt-3 font-serif text-2xl font-semibold text-foreground md:text-3xl">
+              <h3 className="mt-3 font-serif text-2xl font-semibold text-foreground md:text-3xl">
                 Finishing Studies Abroad or Want to Switch Countries?
-              </h2>
+              </h3>
               <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                 We specialize in helping international students from all 28 states &amp; 8 UTs in India, Bangladesh, Nepal, Pakistan, and Sri Lanka transition to lawful work visas with <strong>a written job contract, a salary that meets the destination’s statutory minimum, and company benefits</strong>.
               </p>
@@ -145,9 +145,9 @@ export function SeoContentSection() {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <GraduationCap className="h-5 w-5" />
               </div>
-              <h3 className="mt-3 font-serif text-base font-semibold text-foreground">
+              <h4 className="mt-3 font-serif text-base font-semibold text-foreground">
                 Study to Work Visa (Fixed Job &amp; Salary)
-              </h3>
+              </h4>
               <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
                 Nearing graduation in UK, Canada, Australia or Germany? Transition to an employer-sponsored work visa with a binding salary contract and health benefits.
               </p>
@@ -163,9 +163,9 @@ export function SeoContentSection() {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Globe2 className="h-5 w-5" />
               </div>
-              <h3 className="mt-3 font-serif text-base font-semibold text-foreground">
+              <h4 className="mt-3 font-serif text-base font-semibold text-foreground">
                 Switch Countries on Study Visa
-              </h3>
+              </h4>
               <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
                 Currently in UK, Canada, Australia or Europe and want to relocate? Move with secured sponsor employer offers, fixed salary, and relocation assistance.
               </p>
@@ -181,9 +181,9 @@ export function SeoContentSection() {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Building2 className="h-5 w-5" />
               </div>
-              <h3 className="mt-3 font-serif text-base font-semibold text-foreground">
+              <h4 className="mt-3 font-serif text-base font-semibold text-foreground">
                 Pan-India &amp; South Asia Hubs
-              </h3>
+              </h4>
               <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
                 Comprehensive document checklists, State Board / University verification, MEA Apostille, and RPO clearance for all 28 states &amp; UTs.
               </p>
@@ -199,9 +199,9 @@ export function SeoContentSection() {
 
         <div className="mt-16 rounded-3xl border border-primary/30 bg-primary/5 p-8 md:p-12">
           <div className="mx-auto max-w-3xl text-center">
-            <h2 className="font-serif text-2xl font-semibold text-foreground md:text-3xl">
+            <h3 className="font-serif text-2xl font-semibold text-foreground md:text-3xl">
               Your Journey Abroad, Simplified
-            </h2>
+            </h3>
             <p className="mt-4 text-base leading-relaxed text-muted-foreground">
               From profile assessment and university shortlisting to work visa filing, documentation, and pre-departure briefing &mdash; our <strong>overseas education services</strong> cover everything. Whether you want to study abroad or work overseas, we facilitate the entire process so you focus on what matters: your future.
             </p>

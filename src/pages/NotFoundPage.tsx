@@ -96,15 +96,23 @@ export default function NotFoundPage() {
         path="/404"
         noindex
       />
-      {/* This page uses a different display face from the rest of the site. React 19
-          hoists these into <head>; they stay here rather than in index.html so the
-          font is fetched only when someone actually lands on a 404. */}
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-      />
+      {/*
+        The Plus Jakarta Sans webfont this page used to load has been removed.
+
+        It was a render-blocking third-party stylesheet — the one an audit flagged,
+        and the only one left after index.html's fonts were made non-blocking. It
+        could not be fixed the same way: the preload/onload promotion trick relies
+        on a JS-assigned handler, and this page is served as a prerendered static
+        file (Apache's ErrorDocument), so a React onLoad handler attached at
+        hydration never fires for a preload that already finished.
+
+        It is not worth the machinery on a noindex error page. not-found.css
+        declares a complete fallback chain — ui-sans-serif, system-ui,
+        -apple-system, Segoe UI — so the page renders in the visitor's system sans
+        with every other custom style intact. The family name is left first in that
+        chain, so restoring the font is a one-line change if the distinct display
+        face is wanted back.
+      */}
 
       <a href="#lbb-main" className="lbb-skip">
         Skip to main content

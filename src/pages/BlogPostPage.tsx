@@ -35,6 +35,26 @@ export default function BlogPostPage() {
   if (!post) {
     return (
       <>
+        {/*
+          Apache cannot know whether a slug exists — it is a Supabase row — so
+          .htaccess hands every /blog/* URL to app-shell.html with HTTP 200.
+          A missing slug therefore renders this screen under a 200, which is a
+          soft 404: without the noindex below, Google is free to index "Post not
+          found" as a real page, titled with the shell's fallback because nothing
+          else set one.
+
+          noindex is the part that can be fixed from here. Returning a real 404
+          status needs something executing per request, which on this hosting
+          means the Cloudflare SEO Worker (workers/seo-head/) — it already
+          answers 404 for a slug that is missing or unpublished, and is not
+          deployed yet. Until then this keeps the URL out of the index.
+        */}
+        <SeoHead
+          title="Post Not Found"
+          description="This article is private, unpublished, or the link is incorrect."
+          path={`/blog/${slug ?? ''}`}
+          noindex
+        />
         <SiteHeader />
         <main className="mx-auto max-w-3xl px-4 py-20 text-center">
           <h1 className="text-2xl font-bold">Post not found</h1>

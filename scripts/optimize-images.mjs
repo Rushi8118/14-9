@@ -41,6 +41,95 @@ async function buildPoster() {
   }
 }
 
+/**
+ * Responsive variants for the `<img>` elements on public pages.
+ *
+ * WHY THESE EXIST
+ *
+ * A responsive-image audit failed the homepage: every image was served at one
+ * size regardless of how big it was actually drawn. The two offenders were
+ * concrete, not theoretical:
+ *
+ *   consultant-office  a 1024x1024 source drawn 588px wide on desktop and
+ *                      ~343px on a phone — and the markup declared
+ *                      width={800} height={533}, which is not even the right
+ *                      aspect ratio for a square image.
+ *   the brand logo     android-chrome-192x192.png (18KB) drawn at 24x24 in the
+ *                      header and 32x32 in the footer. 192px for a 24px box is
+ *                      8x linear, 64x the pixels.
+ *
+ * WIDTHS ARE CHOSEN FROM THE MEASURED LAYOUT, NOT A GENERIC LADDER
+ *
+ * why-us.tsx draws the photo inside `max-w-7xl` (1280) less 48px of padding,
+ * in a 12-column grid with a 56px gap, spanning 6 — so 588px on desktop and
+ * 100vw below the `lg` breakpoint. 400 covers a phone at 1x, 800 covers a phone
+ * at 2x and desktop at ~1.4x, and 1024 (the source's own width) covers desktop
+ * at close to 2x. Generating a 1600px variant would mean upscaling, which adds
+ * bytes and no detail.
+ *
+ * The logo is drawn at 24px and 32px, so 48 and 96 cover both at 2x and the
+ * 32px case at 3x. The `sizes` attribute in the markup is what tells the
+ * browser which to take.
+ */
+const RESPONSIVE = [
+  {
+    source: 'consultant-office.jpg',
+    widths: [400, 800, 1024],
+    // The source is square but why-us.tsx draws it in a 3:2 box and lets
+    // `object-cover` crop the top and bottom away. Cropping to 3:2 here instead
+    // ships only the pixels that are actually displayed, and lets the markup
+    // declare intrinsic dimensions that match the file rather than describing a
+    // 3:2 box around a square image. sharp's `cover` centres the crop, which is
+    // exactly what `object-cover` was already doing, so the framing is unchanged.
+    aspect: 3 / 2,
+    formats: [
+      { ext: 'webp', quality: 80 },
+      { ext: 'jpg', quality: 78 },
+    ],
+  },
+]
+
+/** The logo keeps PNG: it is a flat-colour mark with transparency and is already tiny. */
+const LOGO = {
+  source: path.join('favicon', 'android-chrome-512x512.png'),
+  widths: [48, 96],
+  name: 'logo',
+}
+
+async function buildResponsive() {
+  for (const { source, widths, formats, aspect } of RESPONSIVE) {
+    const stem = source.replace(/\.[^.]+$/, '')
+    console.log(`responsive: ${source} ${await sizeKb(source)}KB ->`)
+    for (const width of widths) {
+      const height = aspect ? Math.round(width / aspect) : null
+      for (const { ext, quality } of formats) {
+        const output = `${stem}-${width}.${ext}`
+        const pipeline = sharp(at(source)).resize(width, height, {
+          fit: height ? 'cover' : 'inside',
+          withoutEnlargement: true,
+        })
+        await (ext === 'webp'
+          ? pipeline.webp({ quality, effort: 6 })
+          : pipeline.jpeg({ quality, mozjpeg: true })
+        ).toFile(at(output))
+        console.log(`  ${output} ${await sizeKb(output)}KB`)
+      }
+    }
+  }
+
+  // Generated from the 512px master rather than the 192px file, so downscaling
+  // starts from the most detail available.
+  console.log(`responsive: ${LOGO.source} ${await sizeKb(LOGO.source)}KB ->`)
+  for (const width of LOGO.widths) {
+    const output = path.join('favicon', `${LOGO.name}-${width}.png`)
+    await sharp(at(LOGO.source))
+      .resize(width, width, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .png({ compressionLevel: 9, palette: true })
+      .toFile(at(output))
+    console.log(`  ${output} ${await sizeKb(output)}KB`)
+  }
+}
+
 async function buildTextures() {
   let before = 0
   let after = 0
@@ -60,4 +149,5 @@ async function buildTextures() {
 }
 
 await buildPoster()
+await buildResponsive()
 await buildTextures()

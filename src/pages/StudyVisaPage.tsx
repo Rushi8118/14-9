@@ -182,8 +182,21 @@ export default function StudyVisaPage() {
                 className="relative overflow-hidden rounded-3xl border border-border/60 shadow-2xl"
               >
                 <div className="relative h-[340px] sm:h-[440px] md:h-[520px] lg:h-[600px] w-full overflow-hidden rounded-3xl">
+                  {/*
+                    Unsplash resizes on its own CDN via the `w` parameter, so the
+                    responsive variants need no files in public/ — only a srcset
+                    that asks for them. Before this, every viewport downloaded
+                    the w=1200 file to fill a column that is ~592px on desktop
+                    (max-w-7xl, two columns, 48px gap) and 100vw on a phone.
+
+                    `auto=format` is already in each URL, so Unsplash serves
+                    WebP or AVIF to browsers that accept it and JPEG to the rest
+                    — which is why there is no <picture> element here.
+                  */}
                   <img
-                    src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=1200&q=80"
+                    src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=800&q=80"
+                    srcSet="https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=400&q=80 400w, https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=600&q=80 600w, https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=800&q=80 800w, https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=1200&q=80 1200w"
+                    sizes="(min-width: 1024px) 592px, 100vw"
                     alt="Students with passports and global study visa planning"
                     width={1200}
                     height={800}

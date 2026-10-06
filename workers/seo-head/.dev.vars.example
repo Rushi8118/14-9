@@ -1,0 +1,6 @@
+# Local Worker development only. Copy to workers/seo-head/.dev.vars, which is
+# gitignored. Never put SUPABASE_SERVICE_ROLE_KEY in here — the Worker is
+# read-only for public pages and must not hold write authority.
+SITE_URL=https://siddhivinayakoverseas.com
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_publishable_key

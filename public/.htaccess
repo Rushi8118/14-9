@@ -34,6 +34,18 @@ DirectorySlash Off
   # in the admin panel, because a redirect is a patch, not a correct link.
   RewriteRule ^contact-us/?$ /contact [R=301,L]
 
+  # /sitemap-content.xml is generated from the database by the sitemap Edge
+  # Function, so publishing a post reaches the sitemap without a build or an
+  # upload. This is a redirect and not a proxy because mod_proxy is not
+  # available on this hosting plan -- an [P] rule would 500. Google follows
+  # redirects when fetching a sitemap.
+  #
+  # 302, not 301: the target moves if a runtime is ever put in front of the
+  # domain, and crawlers cache a 301 hard. The origin is filled into dist/ at
+  # build time by scripts/generate-sitemap.mjs -- the committed file keeps the
+  # token so the Supabase project is not baked into git.
+  RewriteRule ^sitemap-content\.xml$ %%SITEMAP_FUNCTION_ORIGIN%%/functions/v1/sitemap/sitemap-content.xml [R=302,L]
+
   # 2. Canonical URLs have no trailing slash (root excepted)
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteRule ^(.+)/$ /$1 [R=301,L]
@@ -59,7 +71,13 @@ DirectorySlash Off
   # never tells Google it is a duplicate of the homepage. React sets the real canonical after rendering.
   # `countries` is not listed: /countries is prerendered (rule 3) and everything below it is
   # 301'd above, so nothing under it needs the shell any more.
-  RewriteRule ^(blog|urgent-requirements)(/.*)?$ /app-shell.html [L]
+  # E=APPSHELL:1 makes Apache emit X-App-Shell: 1 (see the mod_headers block
+  # below). That header is how the Cloudflare SEO Worker tells "this URL fell
+  # through to the shell and has no metadata" from "this URL was prerendered and
+  # already has real metadata" -- a response header it can read before touching
+  # the body, rather than sniffing the HTML. Rule 3 above never sets it, so a
+  # prerendered page is passed through untouched. See workers/seo-head/.
+  RewriteRule ^(blog|urgent-requirements)(/.*)?$ /app-shell.html [E=APPSHELL:1,L]
   # Private and account pages: never indexed
   RewriteRule ^(dashboard|admin|auth|login|register|forgot-password|reset-password|403)(/.*)?$ /app-shell.html [E=NOINDEX:1,L]
 
@@ -118,5 +136,26 @@ ErrorDocument 404 /404/index.html
   # Always revalidate HTML so a new deploy's chunk names are picked up immediately.
   <FilesMatch "\.(html)$">
     Header set Cache-Control "no-cache, must-revalidate"
+
+    # Internal signal for the Cloudflare SEO Worker; not a crawler directive and
+    # harmless when no Worker is deployed. Three states, deliberately:
+    #
+    #   0       this HTML is a prerendered page and already carries real
+    #           metadata -- the Worker returns it untouched and makes no
+    #           database call.
+    #   1       this URL fell through to app-shell.html and has no metadata --
+    #           the Worker looks the record up and injects it.
+    #   absent  the origin is not this Apache config (local `vite preview`, or
+    #           mod_headers unavailable) -- the Worker falls back to looking for
+    #           the <meta name="x-app-shell"> marker in the body.
+    #
+    # The default is set first and overridden second, because a later `Header
+    # set` replaces an earlier one. Stating 0 explicitly is what lets the Worker
+    # skip the lookup for prerendered pages instead of having to parse them to
+    # find out. REDIRECT_APPSHELL is the same flag seen after an internal
+    # rewrite, which is how rule 5 reaches app-shell.html.
+    Header set X-App-Shell "0"
+    Header set X-App-Shell "1" env=APPSHELL
+    Header set X-App-Shell "1" env=REDIRECT_APPSHELL
   </FilesMatch>
 </IfModule>

@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { JsonLd } from './JsonLd'
 import { absoluteUrl, DEFAULT_OG_IMAGE, SITE_NAME } from '@/lib/seo/site'
+import { claimServerRenderedMetadata } from '@/lib/seo/server-metadata'
 
 /**
  * The single place any page declares its metadata. No page should emit <title>,
@@ -79,6 +81,20 @@ export function SeoHead({
   const height = imageHeight ?? (isDefaultImage ? 1024 : undefined)
 
   const schemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : []
+
+  /**
+   * Takes metadata ownership back from the Cloudflare SEO Worker.
+   *
+   * On a page the Worker injected into, the document now holds both its tags and
+   * the ones React just hoisted. This drops the Worker's, leaving exactly one of
+   * each. It runs in an effect, after commit, so the document is never without
+   * metadata; it matches only elements carrying the Worker's marker, so on a
+   * prerendered page or in local development it does nothing at all. See
+   * src/lib/seo/server-metadata.ts.
+   */
+  useEffect(() => {
+    claimServerRenderedMetadata()
+  }, [])
 
   return (
     <>

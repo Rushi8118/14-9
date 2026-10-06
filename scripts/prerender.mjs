@@ -69,9 +69,51 @@ const BASE = `http://127.0.0.1:${PORT}`
 const DATA_BACKED = /^\/(blog|urgent-requirements)\//
 const isDataBacked = (route) => DATA_BACKED.test(route)
 
-// Google's tag must not load or be serialized during prerender; see page.route below.
+// Google's tag must not phone home during prerender; see the page.route handler.
+// The markup still has to survive into the written page — see verifyHtml.
 const ANALYTICS_HOST = /(?:googletagmanager|google-analytics)\.com/
-const ANALYTICS_SCRIPT = /<script[^>]*(?:googletagmanager|google-analytics)\.com[^>]*>\s*<\/script>/gi
+
+/**
+ * The Google Fonts stylesheet is aborted during prerender, and that is load-bearing
+ * rather than an optimisation.
+ *
+ * index.html loads it as `rel="preload"` with
+ * `onload="this.onload=null;this.rel='stylesheet'"` so it never blocks first paint.
+ * This prerenderer serialises the LIVE DOM, so if that onload fires the snapshot
+ * captures the link already promoted to `rel="stylesheet"` — and every written page
+ * ships a render-blocking third-party stylesheet again, silently undoing the fix.
+ *
+ * Aborting the request means onload never fires, so the attribute stays
+ * `rel="preload"` in the output and the real browser promotes it at runtime as
+ * intended. Nothing is lost here: the snapshot is HTML, not pixels, and
+ * `display=swap` already means layout is measured in the fallback face.
+ */
+const FONT_CSS_HOST = /fonts\.googleapis\.com/
+
+/**
+ * Restores a promoted font preload to `rel="preload"` in the written output.
+ *
+ * Aborting the request (above) stops the promotion for almost every route, but not
+ * reliably — /404 is the one page that still came through promoted, and chasing
+ * exactly why one route's load event differs is not worth the certainty it buys.
+ * Normalising the serialized attribute is deterministic and does not care.
+ *
+ * `as="style"` is what distinguishes the promoted preload from the deliberate
+ * <noscript> copy, which has no `as` attribute and does not block. Only the `rel`
+ * value changes, so the href, the onload attribute and the noscript fallback are
+ * all left exactly as index.html wrote them — this restores an attribute rather
+ * than deleting a tag, which is the mistake the analytics handling above made.
+ */
+const PROMOTED_FONT_LINK = /<link[^>]*>/gi
+function restoreFontPreload(html) {
+  return html.replace(PROMOTED_FONT_LINK, (tag) => {
+    if (!/fonts\.googleapis\.com/i.test(tag)) return tag
+    if (!/as=["']style["']/i.test(tag)) return tag
+    return tag.replace(/rel=["']stylesheet["']/i, 'rel="preload"')
+  })
+}
+/** Matches the GA4 loader script tag, used to count it rather than remove it. */
+const ANALYTICS_LOADER = /<script[^>]*(?:googletagmanager|google-analytics)\.com[^>]*>\s*<\/script>/gi
 
 /**
  * A page that rendered has at minimum this many words of text in <main>. The
@@ -196,6 +238,28 @@ function verifyHtml(rawHtml, route, shellTitle, wordCount, declaredCanonical) {
   const description = attr(html, 'meta', 'name="description"', 'content')
   if (!description) problems.push('no meta description')
 
+  /**
+   * Exactly one GA4 loader. Zero means analytics is dead on this page — which is
+   * what happened when the prerenderer stripped the tag it was meant to preserve,
+   * and it went unnoticed because nothing checked. Two means a double pageview.
+   * Checked against the comment-stripped HTML so a comment naming the host does
+   * not count as a tag.
+   */
+  const loaders = (html.match(ANALYTICS_LOADER) ?? []).length
+  if (loaders === 0) problems.push('no GA4 loader script — analytics would not load on this page')
+  else if (loaders > 1) problems.push(`${loaders} GA4 loader scripts — every pageview would be counted twice`)
+
+  /**
+   * The webfont CSS must not be serialized as a blocking stylesheet. A promoted
+   * preload looks identical to a hand-written blocking link once it is in the
+   * file, so this checks the written output rather than trusting index.html.
+   * The copy inside <noscript> is excluded: it does not block.
+   */
+  const withoutNoscript = html.replace(/<noscript>[\s\S]*?<\/noscript>/gi, '')
+  if (/<link[^>]*rel="stylesheet"[^>]*fonts\.googleapis\.com/i.test(withoutNoscript)) {
+    problems.push('Google Fonts is serialized as a render-blocking stylesheet')
+  }
+
   // /404 is intentionally noindex and does not self-canonicalise.
   if (route !== '/404') {
     const want = declaredCanonical ?? expectedCanonical(route)
@@ -234,10 +298,35 @@ async function main() {
 
   // Shell for client-rendered routes (see .htaccess): the untouched Vite index.html minus any
   // canonical, og:url and robots tags, so an un-prerendered URL never claims to be the homepage.
+  //
+  // The x-app-shell marker is a *fallback* identifier for the Cloudflare SEO
+  // Worker. Its primary signal is the X-App-Shell response header, which
+  // .htaccess sets on the rewrite to this file — a header can be read before the
+  // body is touched. The meta exists for the cases where no header survives:
+  // local testing against `vite preview`, and any origin or proxy that strips
+  // it. It sits immediately after <meta charset> so it is parsed long before
+  // <title> (line ~63), which matters because HTMLRewriter streams and cannot
+  // look ahead.
+  //
+  // It is not a crawler directive and is removed from the live DOM on hydration
+  // along with the Worker's injected tags.
   const shell = rawIndex
     .replace(/<link[^>]*rel="canonical"[^>]*>/gi, '')
     .replace(/<meta[^>]*property="og:url"[^>]*>/gi, '')
     .replace(/<meta[^>]*name="robots"[^>]*>/gi, '')
+    .replace(
+      /(<meta\s+charset="UTF-8"\s*\/?>)/i,
+      '$1\n    <meta name="x-app-shell" content="1" />',
+    )
+
+  if (!shell.includes('name="x-app-shell"')) {
+    throw new Error(
+      'Could not insert the x-app-shell marker into app-shell.html — the <meta charset> tag in ' +
+        'index.html did not match. The SEO Worker would then treat every shell response as an ' +
+        'already-prerendered page and inject no metadata, silently.',
+    )
+  }
+
   await writeFile(path.join(distDir, 'app-shell.html'), shell, 'utf8')
 
   // Run vite via node directly — avoids shell wrappers and DEP0190 warning.
@@ -289,6 +378,11 @@ async function main() {
       // This browser runs initAnalytics(), so letting the tag load would report one
       // visit per route to the GA property from the build machine on every build.
       if (ANALYTICS_HOST.test(route.request().url())) {
+        return route.abort()
+      }
+      // Keeps the font link serialized as a preload rather than a blocking
+      // stylesheet; see FONT_CSS_HOST.
+      if (FONT_CSS_HOST.test(route.request().url())) {
         return route.abort()
       }
       const type = route.request().resourceType()
@@ -344,12 +438,30 @@ async function main() {
           return (main?.innerText || '').trim().split(/\s+/).filter(Boolean).length
         })
 
-        // The inline GA4 tag is in index.html. Remove any runtime-injected duplicate
-        // that analytics.ts might add, to avoid a double pageview on first load.
-        const html = dropFallbackTitle(
-          (await page.content()).replace(ANALYTICS_SCRIPT, ''),
-          shellTitle,
-        )
+        /**
+         * The GA4 loader is NOT stripped from the output any more, and must not be.
+         *
+         * This used to run `.replace(ANALYTICS_SCRIPT, '')` with the stated intent
+         * of removing a runtime-injected duplicate. It removed the real one. The
+         * regex is global and matches any `<script ... googletagmanager.com ...>`,
+         * which is exactly the shape of the loader index.html ships — and no
+         * duplicate was ever being injected, because the inline tag sets
+         * `window.__analyticsReady` before the module bundle runs, so
+         * initAnalytics() returns early and appends nothing.
+         *
+         * The net effect was that every prerendered page shipped the inline
+         * `gtag('config', ...)` block with no loader behind it: window.gtag pushed
+         * into dataLayer and nothing ever sent it to Google, while
+         * `__analyticsReady` being true stopped analytics.ts from repairing it.
+         * Analytics was silently dead on the whole site, which is what an external
+         * audit reported as "no Google Analytics script detected".
+         *
+         * Build-time hits were never the strip's job anyway: the `page.route`
+         * handler above aborts every request to the analytics hosts, so this
+         * browser loads the tag markup without the tag ever phoning home.
+         * verifyHtml() now asserts exactly one loader survives.
+         */
+        const html = dropFallbackTitle(restoreFontPreload(await page.content()), shellTitle)
 
         const problems = verifyHtml(html, route, shellTitle, wordCount, entry.canonical)
         if (problems.length) {

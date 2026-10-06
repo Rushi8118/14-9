@@ -1,0 +1,53 @@
+# Cloudflare Worker: server-rendered SEO metadata for /blog/* and
+# /urgent-requirements/*. See workers/seo-head/README.md and
+# docs/cloudflare-dns-migration.md.
+#
+# NOT DEPLOYED. The routes below take effect only once the domain's nameservers
+# point at Cloudflare and the records are proxied, which has not happened — the
+# zone is still on Hostinger DNS (ns1/ns2.dns-parking.com). Deploying this before
+# that is harmless but does nothing, because a route cannot match a hostname
+# Cloudflare does not serve.
+
+name = "siddhivinayak-seo-head"
+main = "src/index.js"
+
+# Pinned rather than floating: the runtime behaviour this Worker depends on
+# (HTMLRewriter element handlers, the fetch/Response semantics in index.js) is
+# governed by this date, so a future runtime change cannot silently alter how
+# metadata is injected on a live site.
+compatibility_date = "2026-10-06"
+
+# Only the two database-driven route families. Everything else — every static
+# page, every asset, the admin app — never reaches the Worker, which keeps the
+# request count inside the Workers Free allowance (100,000/day) and means a
+# Worker fault cannot affect a page it has no business touching.
+#
+# Uncomment after the DNS migration in docs/cloudflare-dns-migration.md.
+# [[routes]]
+# pattern = "siddhivinayakoverseas.com/blog/*"
+# zone_name = "siddhivinayakoverseas.com"
+#
+# [[routes]]
+# pattern = "siddhivinayakoverseas.com/urgent-requirements/*"
+# zone_name = "siddhivinayakoverseas.com"
+
+[vars]
+# The production origin, used for every canonical and og:url. The Worker injects
+# nothing when this is unset rather than guessing a host.
+SITE_URL = "https://siddhivinayakoverseas.com"
+
+# Supabase REST endpoint and the PUBLISHABLE key. These are public values — the
+# browser bundle already ships both — and the Worker needs no more authority
+# than an anonymous visitor, so RLS stays the backstop.
+#
+# SUPABASE_SERVICE_ROLE_KEY MUST NEVER BE BOUND HERE. The Worker is read-only
+# for public pages; a service-role binding would turn it into an
+# unauthenticated read of every table in the database.
+#
+# Filled per environment. For local testing these come from .dev.vars, which is
+# gitignored — see .dev.vars.example.
+SUPABASE_URL = ""
+SUPABASE_PUBLISHABLE_KEY = ""
+
+[observability]
+enabled = true
