@@ -168,8 +168,26 @@ export function SiteHeader() {
             aria-label="Siddhivinayak Overseas – home page"
           >
             <span className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-background/90 ring-1 ring-primary/50 shadow-[0_0_0_3px_rgba(245,197,66,0.15)] transition group-hover:bg-primary/10 group-hover:ring-primary overflow-hidden">
+              {/*
+                Drawn at 24x24. This used to load android-chrome-192x192.png —
+                18KB and 8x the needed width, which is 64x the pixels — because
+                the only logo files in public/favicon were the 192 and 512
+                PWA icons and the 16/32 favicons. logo-48 and logo-96 are
+                generated from the 512 master by scripts/optimize-images.mjs and
+                are 2KB and 3KB.
+
+                `sizes="24px"` is what makes the choice correct rather than
+                lucky: it tells the browser the box is 24px, so a 1x screen
+                takes the 48 and a 3x screen takes the 96. Without it the
+                browser assumes 100vw and always picks the largest.
+
+                Deliberately NOT lazy-loaded: this is above the fold on every
+                page and lazy-loading it would delay LCP.
+              */}
               <img
-                src="/favicon/android-chrome-192x192.png"
+                src="/favicon/logo-48.png"
+                srcSet="/favicon/logo-48.png 48w, /favicon/logo-96.png 96w"
+                sizes="24px"
                 alt="Siddhivinayak Overseas logo"
                 width={24}
                 height={24}

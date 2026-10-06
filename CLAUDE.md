@@ -86,9 +86,18 @@ everything falls back to unseparated logging rather than failing.
 ## Publishing
 
 Publishing a blog post or urgent requirement in the admin panel makes it reachable for
-visitors immediately (Apache serves `app-shell.html`, React fetches from Supabase). It does
-**not** give it server-rendered metadata and does **not** put it in `sitemap.xml`. Both need
-`npm run build` and a manual upload of all of `dist/` to the web root.
+visitors immediately (Apache serves `app-shell.html`, React fetches from Supabase), and it
+now reaches `sitemap.xml` within 60 seconds with **no build and no upload**: `sitemap.xml`
+is an index over `sitemap-pages.xml` (built) and `sitemap-content.xml` (served from the
+database by the `sitemap` Edge Function). See `docs/dynamic-sitemap.md`.
+
+It still does **not** give the page server-rendered metadata. That needs `npm run build`
+and a manual upload of all of `dist/`, because per-request HTML needs a runtime in front of
+the domain and Hostinger shared hosting has none.
+
+The two sitemap halves must stay disjoint, and the split is derived from `CONTENT_SOURCES`
+in `supabase/functions/_shared/sitemap-sources.mjs`. Add a content type there — never to
+only one side — or a URL lands in both halves or neither.
 
 `npm run publish` runs the chain and prints what to upload. It uploads nothing — no FTP,
 SFTP, SSH, rsync or hosting-API code exists, because hosting access has not been supplied.

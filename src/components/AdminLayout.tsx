@@ -283,7 +283,9 @@ const SidebarContent = React.memo(function SidebarContent({
           title="Go to home page"
         >
           <img
-            src="/favicon/android-chrome-192x192.png"
+            src="/favicon/logo-48.png"
+            srcSet="/favicon/logo-48.png 48w, /favicon/logo-96.png 96w"
+            sizes="26px"
             alt=""
             width={26}
             height={26}

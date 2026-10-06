@@ -30,15 +30,39 @@ export function WhyUs() {
         <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-14">
           <div className="lg:col-span-6">
             <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-card/40 shadow-xl">
-              <img
-                src="/consultant-office.jpg"
-                alt="Siddhivinayak Overseas consultant guiding a client through visa documentation"
-                width={800}
-                height={533}
-                loading="lazy"
-                decoding="async"
-                className="h-auto w-full object-cover"
-              />
+              {/*
+                Drawn 588px wide on desktop (max-w-7xl less 48px padding, half of
+                a 12-column grid with a 56px gap) and full-viewport below `lg`,
+                which is what `sizes` describes. Before this it served one
+                1024x1024 file to every viewport and relied on `object-cover` to
+                crop it to 3:2 — so a phone downloaded 93KB to display roughly a
+                tenth of those pixels. The variants are pre-cropped to 3:2 by
+                scripts/optimize-images.mjs, so the intrinsic dimensions below
+                now describe the actual file and `object-cover` has nothing left
+                to crop.
+
+                WebP first, JPEG second: the WebP is a little over half the size
+                and every browser that cannot read it falls through to the JPEG
+                srcset rather than to a single large file.
+              */}
+              <picture>
+                <source
+                  type="image/webp"
+                  srcSet="/consultant-office-400.webp 400w, /consultant-office-800.webp 800w, /consultant-office-1024.webp 1024w"
+                  sizes="(min-width: 1024px) 588px, 100vw"
+                />
+                <img
+                  src="/consultant-office-800.jpg"
+                  srcSet="/consultant-office-400.jpg 400w, /consultant-office-800.jpg 800w, /consultant-office-1024.jpg 1024w"
+                  sizes="(min-width: 1024px) 588px, 100vw"
+                  alt="Siddhivinayak Overseas consultant guiding a client through visa documentation"
+                  width={800}
+                  height={533}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-auto w-full"
+                />
+              </picture>
               <div
                 aria-hidden="true"
                 className="absolute inset-0 bg-gradient-to-tr from-background/50 via-transparent to-primary/10"

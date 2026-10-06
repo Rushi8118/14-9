@@ -35,13 +35,13 @@ function GlobePoster() {
 
 /**
  * The 3D globe is decorative and costs a three.js bundle plus texture downloads.
- * Desktop loads it immediately; phones paint the poster first and upgrade to the
- * globe when the browser goes idle. Data-saver and 2g users keep the poster.
+ * Every viewport paints the poster first and upgrades to the globe when the
+ * browser goes idle. Data-saver and 2g users keep the poster for good.
  */
 function useGlobeEnabled() {
   const [enabled, setEnabled] = useState(false)
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return
+    if (typeof window === 'undefined') return
 
     const connection = (navigator as Navigator & {
       connection?: { saveData?: boolean; effectiveType?: string }
@@ -53,21 +53,25 @@ function useGlobeEnabled() {
     // Same for a connection that genuinely cannot carry it.
     if (connection?.effectiveType === 'slow-2g' || connection?.effectiveType === '2g') return
 
-    // Desktop: start immediately, as before.
-    if (window.matchMedia('(min-width: 1024px)').matches) {
-      setEnabled(true)
-      return
-    }
-
     /**
-     * Phones now get the real rotating globe too, but not at the cost of first
-     * paint. The scene is three.js (~732KB) plus react-three-fiber (~157KB) plus
-     * four textures (~159KB as WebP) -- starting that during load would push out
-     * LCP on exactly the devices least able to absorb it.
+     * Every viewport waits for idle, desktop included.
      *
-     * So the poster image paints first and remains the LCP element, and the 3D
-     * globe replaces it once the browser reports it is idle. The swap happens in
-     * the same box at the same size, so nothing moves and CLS stays at zero.
+     * Desktop used to call setEnabled(true) here synchronously. Measured on a
+     * 1280px viewport, that started the three.js chunk 439ms into the load with
+     * DOMContentLoaded at 73ms — so roughly 900KB of parse and execute landed
+     * inside the window an audit measures as "JavaScript execution time", for
+     * decoration that has a poster image standing in for it. That is what an
+     * external audit flagged as JS executing for more than 3.5 seconds.
+     *
+     * The scene is three.js (~732KB) plus react-three-fiber (~157KB) plus four
+     * textures (~159KB as WebP). The poster paints first and remains the LCP
+     * element; the globe replaces it once the browser reports it is idle. The
+     * swap happens in the same box at the same size, so nothing moves and CLS
+     * stays at zero.
+     *
+     * On a fast desktop idle arrives within a frame or two, so the globe still
+     * appears essentially straight away — the change only matters when the main
+     * thread is actually busy, which is exactly when deferring is worth it.
      */
     // Typed locally rather than through `window`, because narrowing on
     // `'requestIdleCallback' in window` collapses the else-branch to never.

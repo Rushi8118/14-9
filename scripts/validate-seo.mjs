@@ -17,6 +17,14 @@ import { readFile, readdir, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { SITE_URL } from './seo-routes.mjs'
+import { CONTENT_SOURCES } from '../supabase/functions/_shared/sitemap-sources.mjs'
+
+/**
+ * Route prefixes served live by the sitemap Edge Function rather than written
+ * at build time. Derived from the function's own source list so the validator
+ * and the function cannot disagree about which URLs are build-time.
+ */
+const DYNAMIC_PREFIXES = CONTENT_SOURCES.map((source) => `${source.prefix}/`)
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const distDir = path.join(root, 'dist')
@@ -327,24 +335,47 @@ try {
 }
 
 if (manifest) {
-  const sitemapXml = await readFile(path.join(distDir, 'sitemap.xml'), 'utf8').catch(() => '')
+  // sitemap.xml is an index now, so the URLs to cross-check live in the pages
+  // shard. The other half (sitemap-content.xml) is generated from the database
+  // on request and has no build-time file to read — by design, since that is
+  // what lets publishing reach the sitemap without a build. Its URLs are
+  // verified by the Edge Function's own tests, not here.
+  const sitemapXml = await readFile(path.join(distDir, 'sitemap-pages.xml'), 'utf8').catch(() => '')
+  if (!sitemapXml) {
+    error('build', 'dist/sitemap-pages.xml is missing — the sitemap step did not run')
+  }
   const sitemapUrls = new Set([...sitemapXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(([, u]) => u))
   const byRoute = new Map(manifest.routes.map((r) => [r.route, r]))
+
+  // The index itself must name both halves, or one of them is unreachable.
+  const indexXml = await readFile(path.join(distDir, 'sitemap.xml'), 'utf8').catch(() => '')
+  if (!indexXml.includes('<sitemapindex')) {
+    error('build', 'dist/sitemap.xml is not a sitemap index — the sitemap step did not run')
+  } else {
+    for (const shard of ['sitemap-pages.xml', 'sitemap-content.xml']) {
+      if (!indexXml.includes(`${SITE_URL}/${shard}`)) {
+        error('build', `dist/sitemap.xml does not list ${shard}`)
+      }
+    }
+  }
 
   for (const url of sitemapUrls) {
     const route = url === `${SITE_URL}/` ? '/' : url.replace(SITE_URL, '')
     const record = byRoute.get(route)
-    if (!record) error(route, 'is in sitemap.xml but not in the prerender manifest')
-    else if (!record.prerendered) error(route, `is in sitemap.xml but was not prerendered (${record.reason ?? 'no reason recorded'})`)
-    else if (record.noindex) error(route, 'is in sitemap.xml but declares noindex')
-    if (!pages.has(route)) error(route, 'is in sitemap.xml but no HTML file was generated for it')
+    if (!record) error(route, 'is in sitemap-pages.xml but not in the prerender manifest')
+    else if (!record.prerendered) error(route, `is in sitemap-pages.xml but was not prerendered (${record.reason ?? 'no reason recorded'})`)
+    else if (record.noindex) error(route, 'is in sitemap-pages.xml but declares noindex')
+    if (!pages.has(route)) error(route, 'is in sitemap-pages.xml but no HTML file was generated for it')
   }
 
   for (const record of manifest.routes) {
     if (record.route === '/404') continue
+    // A database-driven route belongs to the live shard; its absence from the
+    // build-time file is correct and must not fail the build.
+    if (DYNAMIC_PREFIXES.some((prefix) => record.route.startsWith(prefix))) continue
     const url = record.route === '/' ? `${SITE_URL}/` : `${SITE_URL}${record.route}`
     if (record.prerendered && !record.noindex && record.selfCanonical && !sitemapUrls.has(url)) {
-      error(record.route, 'was prerendered and is indexable but is missing from sitemap.xml')
+      error(record.route, 'was prerendered and is indexable but is missing from sitemap-pages.xml')
     }
     // A published page that did not render is a real problem, but it still works
     // for visitors through app-shell.html, so it does not fail the build unless

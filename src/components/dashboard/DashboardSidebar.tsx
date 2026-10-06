@@ -68,7 +68,9 @@ export default function DashboardSidebar({
         >
           <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-white ring-1 ring-[var(--desk-gold)]/40 shadow-[0_8px_18px_-10px_rgba(196,154,43,0.9)]">
             <img
-              src="/favicon/android-chrome-192x192.png"
+              src="/favicon/logo-48.png"
+              srcSet="/favicon/logo-48.png 48w, /favicon/logo-96.png 96w"
+              sizes="28px"
               alt=""
               width={28}
               height={28}
