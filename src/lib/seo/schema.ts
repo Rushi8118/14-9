@@ -321,3 +321,84 @@ export function webpageSchema(input: {
     about: { '@id': localBusinessId() },
   }
 }
+
+/**
+ * Entity nodes that other nodes refer to by `@id` alone.
+ *
+ * WHY THIS EXISTS
+ *
+ * Several builders point at a shared entity instead of restating it:
+ * `serviceSchema` sets `provider: { '@id': localBusinessId() }`, `articleSchema`
+ * sets `author: { '@id': organizationId() }` when no named reviewer is shown, and
+ * `localBusinessSchema` sets `parentOrganization: { '@id': organizationId() }`.
+ *
+ * That is the correct way to model it — but a bare `{"@id": "..."}` is only
+ * meaningful if the node it names is somewhere in the same graph. It was not. The
+ * pages that call `serviceSchema` or `articleSchema` built their graph from the
+ * entities they knew about, so 19 indexable pages shipped a reference to a node
+ * that no consumer could resolve: 11 blog Articles pointed `author` at an
+ * `#organization` that was absent, and /services, /pathways,
+ * /post-study-work-visa and /reviews pointed `provider` at an absent
+ * `#localbusiness`. A dangling reference is not a parse error, so nothing failed —
+ * the entity simply had no author or provider as far as a crawler was concerned.
+ *
+ * Resolving it here rather than at 19 call sites means adding a reference in a
+ * future builder cannot reintroduce the bug.
+ */
+const NODE_REGISTRY: Record<string, () => Record<string, unknown>> = {
+  [organizationId()]: organizationSchema,
+  [localBusinessId()]: localBusinessSchema,
+  [educationalOrganizationId()]: educationalOrganizationSchema,
+}
+
+/** Collects every `{ '@id': ... }`-only reference reachable from `value`. */
+function collectIdReferences(value: unknown, into: Set<string>) {
+  if (value == null || typeof value !== 'object') return
+
+  if (Array.isArray(value)) {
+    for (const entry of value) collectIdReferences(entry, into)
+    return
+  }
+
+  const record = value as Record<string, unknown>
+  const keys = Object.keys(record)
+  if (keys.length === 1 && keys[0] === '@id' && typeof record['@id'] === 'string') {
+    into.add(record['@id'])
+    return
+  }
+
+  for (const key of keys) collectIdReferences(record[key], into)
+}
+
+/**
+ * Appends any registered entity that the graph references by `@id` but does not
+ * define. Runs to a fixpoint, because a node pulled in this way can itself carry
+ * a reference — `localBusinessSchema` names `#organization` as its parent.
+ *
+ * Nodes already present are never replaced or duplicated, so the build-time rule
+ * that each entity appears exactly once per page still holds.
+ */
+export function completeGraph(nodes: Array<Record<string, unknown>>) {
+  const resolved = [...nodes]
+  const defined = new Set(
+    resolved.map((node) => node['@id']).filter((id): id is string => typeof id === 'string'),
+  )
+
+  // One pass per registry entry is enough to reach the fixpoint: each iteration
+  // either adds a node or stops, and nothing outside the registry can be added.
+  for (let pass = 0; pass < Object.keys(NODE_REGISTRY).length; pass++) {
+    const references = new Set<string>()
+    collectIdReferences(resolved, references)
+
+    const missing = [...references].filter((id) => !defined.has(id) && id in NODE_REGISTRY)
+    if (!missing.length) break
+
+    // Sorted so the emitted graph is byte-identical between builds.
+    for (const id of missing.sort()) {
+      resolved.push(NODE_REGISTRY[id]())
+      defined.add(id)
+    }
+  }
+
+  return resolved
+}
