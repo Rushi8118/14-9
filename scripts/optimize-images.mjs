@@ -89,6 +89,40 @@ const RESPONSIVE = [
   },
 ]
 
+/**
+ * The social preview card.
+ *
+ * Facebook, WhatsApp, LinkedIn and X all lay a shared link out at 1.91:1, and
+ * SeoHead declares `twitter:card: summary_large_image`, so a square image is
+ * letterboxed or centre-cropped by each platform differently. `consultant-office.jpg`
+ * is 1024x1024 and was being served as the default og:image with
+ * `og:image:width/height` of 1024 — truthful, but the wrong shape for every
+ * consumer of it.
+ *
+ * NOTE ON RESOLUTION: the only source available is the 1024px square, so a 1.91:1
+ * crop of it holds 1024x536 real pixels and this output is enlarged ~1.17x to reach
+ * the 1200x630 Facebook recommends. That is why `withoutEnlargement` is absent here
+ * and present everywhere else in this file. Replacing the source with a wider
+ * original and re-running `npm run images` removes the upscale with no other change.
+ */
+const SOCIAL = {
+  source: 'consultant-office.jpg',
+  output: 'og-default.jpg',
+  width: 1200,
+  height: 630,
+}
+
+async function buildSocial() {
+  await sharp(at(SOCIAL.source))
+    .resize(SOCIAL.width, SOCIAL.height, { fit: 'cover', kernel: 'lanczos3' })
+    .jpeg({ quality: 82, mozjpeg: true })
+    .toFile(at(SOCIAL.output))
+  console.log(
+    `social: ${SOCIAL.source} ${await sizeKb(SOCIAL.source)}KB -> ` +
+      `${SOCIAL.output} ${await sizeKb(SOCIAL.output)}KB (${SOCIAL.width}x${SOCIAL.height})`,
+  )
+}
+
 /** The logo keeps PNG: it is a flat-colour mark with transparency and is already tiny. */
 const LOGO = {
   source: path.join('favicon', 'android-chrome-512x512.png'),
@@ -149,5 +183,6 @@ async function buildTextures() {
 }
 
 await buildPoster()
+await buildSocial()
 await buildResponsive()
 await buildTextures()

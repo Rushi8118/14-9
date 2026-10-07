@@ -132,6 +132,40 @@ async function findHtmlFiles(dir, acc = []) {
   return acc
 }
 
+/** Every file in dist/, so a link to an asset (a PDF, an image) is not called broken. */
+async function findAllFiles(dir, acc = []) {
+  for (const entry of await readdir(dir)) {
+    const full = path.join(dir, entry)
+    if ((await stat(full)).isDirectory()) await findAllFiles(full, acc)
+    else acc.push(full)
+  }
+  return acc
+}
+
+/**
+ * Collects every `{ "@id": "..." }`-only reference reachable from a JSON-LD graph.
+ *
+ * Deliberately a copy of completeGraph()'s walker in src/lib/seo/schema.ts rather
+ * than an import: this script validates the *generated output* and must not share
+ * code with the thing that produced it, or a bug in the walker would hide itself.
+ */
+function collectIdReferences(value, into) {
+  if (value == null || typeof value !== 'object') return
+
+  if (Array.isArray(value)) {
+    for (const entry of value) collectIdReferences(entry, into)
+    return
+  }
+
+  const keys = Object.keys(value)
+  if (keys.length === 1 && keys[0] === '@id' && typeof value['@id'] === 'string') {
+    into.add(value['@id'])
+    return
+  }
+
+  for (const key of keys) collectIdReferences(value[key], into)
+}
+
 function routeForFile(file) {
   const rel = path.relative(distDir, file).replace(/\\/g, '/').replace(/\/?index\.html$/, '')
   return rel === '' ? '/' : `/${rel}`
@@ -196,6 +230,7 @@ function checkPage(route, rawHtml, claimPatterns) {
   // --- JSON-LD
   const blocks = [...html.matchAll(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi)]
   const ids = new Map()
+  const jsonLdReferences = new Set()
   let faqEntities = []
   for (const [, raw] of blocks) {
     let parsed
@@ -206,6 +241,7 @@ function checkPage(route, rawHtml, claimPatterns) {
       continue
     }
     const nodes = parsed['@graph'] ?? (Array.isArray(parsed) ? parsed : [parsed])
+    collectIdReferences(nodes, jsonLdReferences)
     for (const node of nodes) {
       if (node && node['@id']) ids.set(node['@id'], (ids.get(node['@id']) ?? 0) + 1)
       if (node && node['@type'] === 'FAQPage' && Array.isArray(node.mainEntity)) {
@@ -218,6 +254,25 @@ function checkPage(route, rawHtml, claimPatterns) {
   }
   for (const [id, count] of ids) {
     if (count > 1) error(route, `JSON-LD @id "${id}" appears ${count} times on one page`)
+  }
+
+  // A bare `{"@id": "..."}` is a reference, and it only means something if the
+  // node it names is defined in the same graph. Nothing checked that, so 19
+  // indexable pages shipped `author`/`provider` pointing at an `#organization` or
+  // `#localbusiness` that was absent: valid JSON, parsed fine, and the entity had
+  // no author or provider as far as a crawler was concerned.
+  //
+  // src/lib/seo/schema.ts `completeGraph()` now inserts referenced entities
+  // automatically. This is the guard that keeps a future builder from
+  // reintroducing the bug with a reference the registry does not know.
+  for (const reference of jsonLdReferences) {
+    if (!ids.has(reference)) {
+      error(
+        route,
+        `JSON-LD references @id "${reference}" but no node on the page defines it. ` +
+        `Register the entity in NODE_REGISTRY (src/lib/seo/schema.ts) so completeGraph() can resolve it.`,
+      )
+    }
   }
 
   // Google's structured-data policy: markup must describe content visible on the
@@ -273,7 +328,18 @@ function checkPage(route, rawHtml, claimPatterns) {
     }
   }
 
-  return { title, description, canonical, noindex }
+  // Hrefs are returned rather than checked here: whether a target exists can only
+  // be answered once every generated file is known, so the check runs in the
+  // cross-page section below.
+  const internalLinks = new Set()
+  for (const [, href] of html.matchAll(/<a\s[^>]*href\s*=\s*"([^"]+)"/gi)) {
+    if (!href.startsWith('/')) continue
+    if (href.startsWith('//')) continue
+    const target = href.split(/[?#]/)[0].replace(/\/+$/, '') || '/'
+    internalLinks.add(target)
+  }
+
+  return { title, description, canonical, noindex, internalLinks }
 }
 
 // ------------------------------------------------------------------ main
@@ -323,6 +389,100 @@ for (const [field, label] of [['title', 'title'], ['description', 'meta descript
         `Give one a distinct ${label} — for a blog post, the Meta title field in the admin panel.`,
       )
     }
+  }
+}
+
+// --- internal links must resolve to something this build actually produced
+//
+// A link to a route that no longer exists costs crawl budget and shows up in
+// Search Console as "Not found (404)". Three cases are legitimate and are not
+// errors:
+//
+//   /login, /register  real React routes that are deliberately not prerendered,
+//                      so they have no index.html. .htaccess serves the SPA shell.
+//   /contact-us        never existed; two blog posts link to it and .htaccess
+//                      301s it to /contact. The redirect is the patch, and the
+//                      real fix is editing those posts in the admin panel.
+//
+// Rather than hardcode that list, anything .htaccess rewrites or the router
+// serves is read from the files themselves, so this cannot rot when a rule changes.
+{
+  const generated = new Set(pages.keys())
+
+  const toPosix = (file) => `/${path.relative(distDir, file).split(path.sep).join('/')}`
+  const assets = new Set()
+  for (const file of await findAllFiles(distDir)) assets.add(toPosix(file))
+
+  let htaccess = ''
+  try {
+    htaccess = await readFile(path.join(distDir, '.htaccess'), 'utf8')
+  } catch {
+    warn('build', 'dist/.htaccess not found — internal links were checked without redirect rules')
+  }
+
+  let routerSource = ''
+  try {
+    routerSource = await readFile(path.join(root, 'src', 'App.tsx'), 'utf8')
+  } catch {
+    warn('build', 'src/App.tsx not found — internal links were checked without the route table')
+  }
+  // Static paths only: a parameterised route (`/blog/:slug`) cannot vouch for a
+  // specific target, and treating it as if it could would hide real 404s.
+  const declaredRoutes = new Set(
+    [...routerSource.matchAll(/path="(\/[^"*:]*)"/g)].map(([, routePath]) =>
+      routePath.replace(/\/+$/, '') || '/',
+    ),
+  )
+
+  /**
+   * Does an .htaccess rule plausibly claim this path?
+   *
+   * Read from the generated .htaccess rather than hardcoded, so retiring a
+   * redirect cannot leave this check silently approving a link that now 404s.
+   * Only the literal prefix of a rewrite pattern is compared — enough to accept
+   * `^contact-us/?$` for /contact-us and `^countries/.+$` for /countries/anything,
+   * without pretending to be Apache.
+   */
+  const redirected = (target) => {
+    const slug = target.startsWith('/') ? target.slice(1) : target
+    if (!slug) return false
+
+    for (const rawLine of htaccess.split('\n')) {
+      const line = rawLine.trim()
+      if (!line || line.startsWith('#')) continue
+      const fields = line.split(/\s+/)
+
+      if (fields[0] === 'RewriteRule') {
+        const pattern = (fields[1] ?? '').replace(/^\^/, '')
+        const literal = pattern.split(/[([.*+?$]/)[0].replace(/\/+$/, '')
+        if (literal && (slug === literal || slug.startsWith(`${literal}/`))) return true
+      }
+
+      if (fields[0] === 'Redirect' || fields[0] === 'RedirectMatch') {
+        if (fields.some((field) => field === target || field === slug)) return true
+      }
+    }
+
+    return false
+  }
+
+  const unresolved = new Map()
+  for (const [route, page] of pages) {
+    for (const target of page.internalLinks ?? []) {
+      if (generated.has(target) || assets.has(target)) continue
+      if (declaredRoutes.has(target) || redirected(target)) continue
+      if (!unresolved.has(target)) unresolved.set(target, [])
+      unresolved.get(target).push(route)
+    }
+  }
+
+  for (const [target, sources] of unresolved) {
+    error(
+      target,
+      `is linked from ${sources.length} page(s) (${sources.slice(0, 3).join(', ')}` +
+      `${sources.length > 3 ? `, +${sources.length - 3} more` : ''}) ` +
+      `but no page, asset, route or redirect provides it`,
+    )
   }
 }
 

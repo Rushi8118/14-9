@@ -16,6 +16,8 @@
  * build-time validator enforces both.
  */
 
+import { completeGraph } from '@/lib/seo/schema'
+
 const SCHEMA_CONTEXT = 'https://schema.org'
 
 type SchemaObject = Record<string, unknown>
@@ -28,14 +30,19 @@ function toGraph(data: unknown): string | null {
   )
   if (!items.length) return null
 
-  if (items.length === 1) {
-    const only = items[0]
+  // Pulls in any entity the page refers to by `@id` without defining it, so a
+  // `provider`/`author` reference always resolves inside this block. See
+  // completeGraph() for the 19 pages this was silently wrong on.
+  const complete = completeGraph(items)
+
+  if (complete.length === 1) {
+    const only = complete[0]
     return JSON.stringify(only['@context'] ? only : { '@context': SCHEMA_CONTEXT, ...only })
   }
 
   // One @context for the document, none on the members — repeating it inside a
   // graph is redundant and makes the block noticeably larger on every page.
-  const graph = items.map(({ '@context': _context, ...rest }) => rest)
+  const graph = complete.map(({ '@context': _context, ...rest }) => rest)
   return JSON.stringify({ '@context': SCHEMA_CONTEXT, '@graph': graph })
 }
 

@@ -119,17 +119,39 @@ non-blocking.
 | `npm run check:similarity` | Near-duplicate detection |
 | `npx tsc --noEmit` | Typecheck |
 
-`npm run lint` is `eslint .` but eslint is not installed and there is no config. There is no
-test runner.
+`npm run lint` is `eslint .` but eslint is not installed and there is no config.
+
+There **is** a test runner: `npm test` runs `node --test` over `scripts/**/*.test.mjs` and
+`workers/**/test/*.test.mjs`. As of 2026-10-07 the 44 script tests pass and
+`workers/seo-head/test/worker.test.mjs` fails on `ERR_MODULE_NOT_FOUND: wrangler` — the
+package is imported by the test but is not a dependency. Install it or scope the test script
+to `scripts/` if the worker tests are not meant to run locally. Use
+`node --test "scripts/**/*.test.mjs"` for a green run meanwhile.
 
 ## Known outstanding
 
-- Two vacancies are published as both a blog post and an urgent requirement with identical
-  titles (Malta, New Zealand), which fails `validate-seo`. Fix in the admin panel: the
-  **Meta title** field, or the **Canonical path** field. These are Supabase rows — the local
-  `.env.local` has only the publishable key, so RLS blocks writing them from here.
-- 17 pages under 350 words; 5 indexable work-visa pages 82–92% identical (`belarus`,
-  `italy`, `malta`, `israel`, `new-zealand`). Needs real facts.
+- ~~Two vacancies published as both a blog post and an urgent requirement with identical
+  titles (Malta, New Zealand)~~ — **resolved.** Verified 2026-10-07 against `dist/`: the
+  titles now differ ("Malta Hospitality Jobs: 40 Vacancies Guide & Details" vs "…40 Urgent
+  Vacancies"; "New Zealand AEWV Warehouse Jobs: NZD 3,000 Guide" vs "…NZD 2,500–3,000"), and
+  `validate-seo`'s cross-page uniqueness check reports 0 duplicate titles and 0 duplicate
+  descriptions across all 105 indexable pages.
+- Thin and near-duplicate content, re-measured 2026-10-07 over the 105 URLs in
+  `sitemap-pages.xml` (main-content text only, nav/header/footer stripped — so these numbers
+  are lower than `npm run check:similarity`, which scores whole pages including the 29
+  noindex work-visa pages):
+  - 9 indexable pages under 350 words. Six are legitimately short by type (`/contact` 207,
+    `/about` 231, `/services` 231, `/guides` 264, `/immigration-disclaimer` 286,
+    `/for-business/contact` 160). Three are guides that should not be:
+    `/guides/australia-student-visa-requirements` 287, `/guides/ielts-requirements-for-study-abroad`
+    335, `/guides/uk-student-visa-requirements` 344.
+  - 4 near-duplicate pairs at or above 0.80, all north-east India state pages:
+    `meghalaya`/`mizoram`/`nagaland`/`manipur` (~0.802–0.803, ~1145 words each).
+  - The 5 named work-visa pages are **0.69–0.77**, not 82–92%: `belarus`↔`italy` 0.765,
+    `malta`↔`belarus` 0.762, `israel`↔`malta` 0.717, `new-zealand`↔`malta` 0.688. Below the
+    0.80 fail threshold but still the weakest cluster. Needs real country facts, not rewording.
+  - The 396 pairs `npm run check:similarity` fails on are overwhelmingly **noindex** pages,
+    which Google never compares. Filter to indexable before treating that count as a problem.
 - `supabase/migrations/20261005000001_log_environment_separation.sql` and
   `20261005000002_dashboard_analytics_production_only.sql` have not been run yet. Until they
   are, logs stay mixed and every environment switch shows the same rows.

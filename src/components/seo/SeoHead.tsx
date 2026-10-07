@@ -1,6 +1,12 @@
 import { useEffect } from 'react'
 import { JsonLd } from './JsonLd'
-import { absoluteUrl, DEFAULT_OG_IMAGE, SITE_NAME } from '@/lib/seo/site'
+import {
+  absoluteUrl,
+  DEFAULT_OG_IMAGE,
+  DEFAULT_OG_IMAGE_HEIGHT,
+  DEFAULT_OG_IMAGE_WIDTH,
+  SITE_NAME,
+} from '@/lib/seo/site'
 import { claimServerRenderedMetadata } from '@/lib/seo/server-metadata'
 
 /**
@@ -34,7 +40,7 @@ type SeoHeadProps = {
   /** Kept so content files can carry keyword notes; deliberately not emitted. */
   keywords?: string
   image?: string
-  /** Pixel size of `image`. Defaults to the 1024x1024 site image. */
+  /** Pixel size of `image`. Defaults to the 1200x630 site social card. */
   imageWidth?: number
   imageHeight?: number
   type?: 'website' | 'article'
@@ -77,8 +83,8 @@ export function SeoHead({
   const documentTitle = shortenTitle(fullTitle)
 
   const isDefaultImage = image === DEFAULT_OG_IMAGE
-  const width = imageWidth ?? (isDefaultImage ? 1024 : undefined)
-  const height = imageHeight ?? (isDefaultImage ? 1024 : undefined)
+  const width = imageWidth ?? (isDefaultImage ? DEFAULT_OG_IMAGE_WIDTH : undefined)
+  const height = imageHeight ?? (isDefaultImage ? DEFAULT_OG_IMAGE_HEIGHT : undefined)
 
   const schemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : []
 
