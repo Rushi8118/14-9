@@ -34,6 +34,15 @@ DirectorySlash Off
   # in the admin panel, because a redirect is a patch, not a correct link.
   RewriteRule ^contact-us/?$ /contact [R=301,L]
 
+  # /signup never existed either -- the account route is /register. Search Console
+  # reported www.siddhivinayakoverseas.com/signup as the property's only "Not
+  # found (404)" on 5 Oct 2026, and nothing in this codebase links to it, so the
+  # source is an external link or a typed URL rather than a bug to fix upstream.
+  # A 301 passes whatever little signal it carries to the page it was meant to be
+  # and empties the 404 report, which matters because a single 404 is easy to
+  # mistake for a crawl problem when reading the report later.
+  RewriteRule ^signup/?$ /register [R=301,L]
+
   # /sitemap-content.xml is generated from the database by the sitemap Edge
   # Function, so publishing a post reaches the sitemap without a build or an
   # upload. This is a redirect and not a proxy because mod_proxy is not
