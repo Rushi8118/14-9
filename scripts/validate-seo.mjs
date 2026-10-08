@@ -495,11 +495,13 @@ try {
 }
 
 if (manifest) {
-  // sitemap.xml is an index now, so the URLs to cross-check live in the pages
-  // shard. The other half (sitemap-content.xml) is generated from the database
-  // on request and has no build-time file to read — by design, since that is
-  // what lets publishing reach the sitemap without a build. Its URLs are
-  // verified by the Edge Function's own tests, not here.
+  // sitemap.xml is an index, so the prerendered URLs to cross-check live in the
+  // pages shard. The content shard (sitemap-content.xml) holds the
+  // database-driven URLs and IS checked below: it was previously skipped on the
+  // grounds that it had no build-time file, which stopped being true when
+  // generate-sitemap.mjs started writing a snapshot. Skipping it meant an index
+  // could name a shard that nothing answered, or ship a shard that overlapped
+  // the pages half, and nothing failed the build.
   const sitemapXml = await readFile(path.join(distDir, 'sitemap-pages.xml'), 'utf8').catch(() => '')
   if (!sitemapXml) {
     error('build', 'dist/sitemap-pages.xml is missing — the sitemap step did not run')
@@ -512,9 +514,62 @@ if (manifest) {
   if (!indexXml.includes('<sitemapindex')) {
     error('build', 'dist/sitemap.xml is not a sitemap index — the sitemap step did not run')
   } else {
-    for (const shard of ['sitemap-pages.xml', 'sitemap-content.xml']) {
-      if (!indexXml.includes(`${SITE_URL}/${shard}`)) {
-        error('build', `dist/sitemap.xml does not list ${shard}`)
+    if (!indexXml.includes(`${SITE_URL}/sitemap-pages.xml`)) {
+      error('build', 'dist/sitemap.xml does not list sitemap-pages.xml')
+    }
+
+    // ---- the content shard: listed, present and disjoint, or none of the three
+    const contentListed = indexXml.includes(`${SITE_URL}/sitemap-content.xml`)
+    const contentXml = await readFile(path.join(distDir, 'sitemap-content.xml'), 'utf8').catch(
+      () => '',
+    )
+
+    if (contentListed && !contentXml) {
+      // Apache sends /sitemap-content.xml to the sitemap Edge Function only when
+      // the file is absent. If that function is not deployed the shard 404s, and
+      // Search Console reports the index as broken on every fetch.
+      error(
+        'build',
+        'dist/sitemap.xml lists sitemap-content.xml but dist/ has no such file — the shard ' +
+          'falls through to the sitemap Edge Function, which must be deployed ' +
+          '(`supabase functions deploy sitemap`) or the index must not name it',
+      )
+    } else if (contentXml && !contentListed) {
+      error(
+        'build',
+        'dist/sitemap-content.xml exists but dist/sitemap.xml does not list it — its URLs are ' +
+          'uploaded but never submitted',
+      )
+    } else if (!contentXml && !contentListed) {
+      warn(
+        'build',
+        'no sitemap-content.xml and the index does not list one, so no database-driven URL ' +
+          '(/blog, /urgent-requirements, /services, /jobs) is submitted to Google',
+      )
+    }
+
+    if (contentXml) {
+      if (!contentXml.includes('<urlset')) {
+        error('build', 'dist/sitemap-content.xml is not a urlset')
+      }
+      const contentUrls = new Set(
+        [...contentXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(([, u]) => u),
+      )
+      if (contentUrls.size === 0) {
+        error('build', 'dist/sitemap-content.xml contains no URLs')
+      }
+      for (const url of contentUrls) {
+        if (!url.startsWith(`${SITE_URL}/`)) {
+          error('build', `sitemap-content.xml lists an off-site or relative URL: ${url}`)
+        }
+      }
+      // The halves must stay disjoint or the index submits a URL twice. The
+      // split is by path prefix and both sides derive it from CONTENT_SOURCES,
+      // so an overlap means that list was edited on one side only.
+      for (const url of contentUrls) {
+        if (sitemapUrls.has(url)) {
+          error('build', `${url} is in BOTH sitemap-pages.xml and sitemap-content.xml`)
+        }
       }
     }
   }

@@ -7,7 +7,13 @@
   <xsl:template match="/">
     <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
       <head>
-        <title>XML Sitemap | Siddhivinayak Overseas</title>
+        <title>
+          <xsl:choose>
+            <xsl:when test="count(sitemap:sitemapindex/sitemap:sitemap) &gt; 0">XML Sitemap Index | Siddhivinayak Overseas</xsl:when>
+            <xsl:when test="count(sitemap:urlset/sitemap:url) &gt; 0">XML Sitemap | Siddhivinayak Overseas</xsl:when>
+            <xsl:otherwise>XML Sitemap Template | Siddhivinayak Overseas</xsl:otherwise>
+          </xsl:choose>
+        </title>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <script type="text/javascript">
@@ -76,6 +82,23 @@
             color: var(--text-muted);
             font-size: 0.95rem;
             margin-bottom: 1rem;
+          }
+          .breadcrumb {
+            margin-bottom: 1.25rem;
+          }
+          .breadcrumb-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: color 0.15s ease;
+          }
+          .breadcrumb-link:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
           }
           .stats-card {
             background: var(--card-bg);
@@ -180,7 +203,7 @@
             font-family: monospace;
           }
           .date-col {
-            width: 160px;
+            width: 180px;
             color: var(--text-muted);
             white-space: nowrap;
             font-family: monospace;
@@ -205,17 +228,44 @@
           <div class="header">
             <div class="brand">
               <h1 class="brand-title">Siddhivinayak Overseas</h1>
-              <span class="badge">XML Sitemap</span>
+              <xsl:choose>
+                <xsl:when test="count(sitemap:sitemapindex/sitemap:sitemap) &gt; 0">
+                  <span class="badge">XML Sitemap Index</span>
+                </xsl:when>
+                <xsl:when test="count(sitemap:urlset/sitemap:url) &gt; 0">
+                  <span class="badge">XML Sitemap</span>
+                </xsl:when>
+                <xsl:otherwise>
+                  <span class="badge">XSL Template</span>
+                </xsl:otherwise>
+              </xsl:choose>
             </div>
             <p class="tagline">
-              Official XML Sitemap for search engines (Google, Bing). This file helps web crawlers discover all indexed pages.
+              <xsl:choose>
+                <xsl:when test="count(sitemap:sitemapindex/sitemap:sitemap) &gt; 0">
+                  Official XML Sitemap Index for search engines (Google, Bing). This index coordinates all individual sitemaps.
+                </xsl:when>
+                <xsl:otherwise>
+                  Official XML Sitemap for search engines (Google, Bing). This file helps web crawlers discover all indexed pages.
+                </xsl:otherwise>
+              </xsl:choose>
             </p>
             <div class="stats-card">
               <div class="stats-info">
-                This sitemap indexes all verified public routes, study destinations, visa guides, and regional branches.
+                <xsl:choose>
+                  <xsl:when test="count(sitemap:sitemapindex/sitemap:sitemap) &gt; 0">
+                    This index references all verified sub-sitemaps for static pages and dynamic content. Click any sitemap to view its indexed URLs.
+                  </xsl:when>
+                  <xsl:otherwise>
+                    This sitemap indexes all verified public routes, study destinations, visa guides, and regional branches.
+                  </xsl:otherwise>
+                </xsl:choose>
               </div>
               <div class="stats-count">
                 <xsl:choose>
+                  <xsl:when test="count(sitemap:sitemapindex/sitemap:sitemap) &gt; 0">
+                    Total Sitemaps: <xsl:value-of select="count(sitemap:sitemapindex/sitemap:sitemap)"/>
+                  </xsl:when>
                   <xsl:when test="count(sitemap:urlset/sitemap:url) &gt; 0">
                     Total URLs: <xsl:value-of select="count(sitemap:urlset/sitemap:url)"/>
                   </xsl:when>
@@ -228,7 +278,50 @@
           </div>
 
           <xsl:choose>
+            <!-- 1. SITEMAP INDEX MODE (e.g. /sitemap.xml) -->
+            <xsl:when test="count(sitemap:sitemapindex/sitemap:sitemap) &gt; 0">
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th class="index-col">#</th>
+                      <th>Sitemap Address</th>
+                      <th class="date-col">Last Modified</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <xsl:for-each select="sitemap:sitemapindex/sitemap:sitemap">
+                      <tr>
+                        <td class="index-col">
+                          <xsl:value-of select="position()"/>
+                        </td>
+                        <td>
+                          <a href="{sitemap:loc}" class="url-link">
+                            <xsl:value-of select="sitemap:loc"/>
+                          </a>
+                        </td>
+                        <td class="date-col">
+                          <xsl:choose>
+                            <xsl:when test="sitemap:lastmod">
+                              <xsl:value-of select="sitemap:lastmod"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                              &#x2014;
+                            </xsl:otherwise>
+                          </xsl:choose>
+                        </td>
+                      </tr>
+                    </xsl:for-each>
+                  </tbody>
+                </table>
+              </div>
+            </xsl:when>
+
+            <!-- 2. URLSET MODE (e.g. /sitemap-pages.xml, /sitemap-content.xml) -->
             <xsl:when test="count(sitemap:urlset/sitemap:url) &gt; 0">
+              <div class="breadcrumb">
+                <a href="/sitemap.xml" class="breadcrumb-link">&#x2190; Back to Sitemap Index (/sitemap.xml)</a>
+              </div>
               <div class="table-container">
                 <table>
                   <thead>
@@ -250,7 +343,14 @@
                           </a>
                         </td>
                         <td class="date-col">
-                          <xsl:value-of select="sitemap:lastmod"/>
+                          <xsl:choose>
+                            <xsl:when test="sitemap:lastmod">
+                              <xsl:value-of select="sitemap:lastmod"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                              &#x2014;
+                            </xsl:otherwise>
+                          </xsl:choose>
                         </td>
                       </tr>
                     </xsl:for-each>
@@ -258,18 +358,20 @@
                 </table>
               </div>
             </xsl:when>
+
+            <!-- 3. FALLBACK (Previewing .xsl file directly) -->
             <xsl:otherwise>
               <div class="notice-box">
                 <h3>You are viewing the XSL Stylesheet Template</h3>
-                <p>This file provides styling for the XML sitemap. To view all 126 indexed URLs, please open the actual data file:</p>
-                <a href="/sitemap.xml" class="btn-link">View sitemap.xml with 126 URLs</a>
+                <p>This file provides styling for XML sitemaps. To view the actual indexed URLs, please open the sitemap index:</p>
+                <a href="/sitemap.xml" class="btn-link">View sitemap.xml</a>
               </div>
             </xsl:otherwise>
           </xsl:choose>
 
           <div class="footer">
             <p>
-              &#169; 2026 Siddhivinayak Overseas · 
+              &#169; 2026 Siddhivinayak Overseas &#183; 
               <a href="https://siddhivinayakoverseas.com/">Visit Website</a>
             </p>
           </div>

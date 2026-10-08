@@ -1,8 +1,32 @@
 # Dynamic sitemap
 
-Publishing a blog post, urgent requirement, service or job listing now reaches
-`sitemap.xml` **without a build and without an upload**. Prerendered pages still
-come from the build, because they only exist because a build produced their HTML.
+> **STATUS, verified 2026-10-08: not live. This document describes the design,
+> not production.** Two things must change before any of it is true:
+>
+> 1. **The `sitemap` Edge Function is not deployed.**
+>    `https://<project>.supabase.co/functions/v1/sitemap` answers
+>    `{"code":"NOT_FOUND"}`. (No Edge Function in the project is deployed —
+>    `notify-enquiry` answers the same.) Deploy with
+>    `supabase functions deploy sitemap`.
+> 2. **A static `sitemap-content.xml` shadows it.**
+>    `scripts/generate-sitemap.mjs` writes a build-time snapshot into `dist/`,
+>    and `public/.htaccess` only redirects to the function when the file is
+>    absent (`RewriteCond %{REQUEST_FILENAME} !-f`). The uploaded file always
+>    wins, so the function would not be reached even once deployed. Stop writing
+>    `CONTENT_SITEMAP` to `outputs` in that script — keep it in the index — to
+>    hand the URL back to the function.
+>
+> Until both are done, the content shard is a **build-time snapshot**: the
+> sitemap is valid and complete as of the last build, and a post published in
+> the admin panel is reachable for visitors immediately but absent from
+> `sitemap.xml` until the next `npm run build` and manual upload. `npm run
+> validate:seo` now fails if the index names a shard that no file answers, so
+> this cannot regress into a 404 silently.
+
+Publishing a blog post, urgent requirement, service or job listing is *designed*
+to reach `sitemap.xml` **without a build and without an upload**. Prerendered
+pages still come from the build, because they only exist because a build
+produced their HTML.
 
 ## Why it is split in two
 
