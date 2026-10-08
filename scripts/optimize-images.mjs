@@ -126,20 +126,25 @@ async function buildSocial() {
 /**
  * Browser-tab favicons.
  *
- * TWO THINGS WERE WRONG, and only the second is about colour.
+ * WHAT WAS WRONG: favicon-16x16.png and favicon-32x32.png were the full brand
+ * lockup — globe *plus* the "SIDDHIVINAYAK" and "OVERSEAS" wordmark — scaled to
+ * 32px. Two lines of type across 32 pixels is roughly 1.5px per letter, so the
+ * wordmark rendered as a grey smear and squashed the globe into the top third.
+ * A favicon has room for a mark, never a lockup. Cropping to the globe is what
+ * actually fixed legibility.
  *
- * 1. WRONG CROP. favicon-16x16.png and favicon-32x32.png were the full brand
- *    lockup — globe *plus* the "SIDDHIVINAYAK" and "OVERSEAS" wordmark — scaled
- *    to 32px. Two lines of type across 32 pixels is roughly 1.5px per letter, so
- *    the wordmark rendered as a grey smear and squashed the globe into the top
- *    third. A favicon has room for a mark, never a lockup.
+ * NO BACKGROUND PLATE, BY DECISION
  *
- * 2. DARK ON TRANSPARENT. The artwork is navy on a transparent background, so on
- *    Chrome's dark tab strip a dark mark sat on a dark bar and effectively
- *    disappeared. Flattening onto the logo's own white keeps it legible on a dark
- *    strip, and the navy-and-gold mark keeps it legible against the white tile on
- *    a light one. White is not a new brand colour — it is the background the
- *    master logo is already drawn on.
+ * An earlier version flattened these onto white. That guaranteed contrast on a
+ * dark tab strip, but it reads as a sticker rather than a logo, so the plate was
+ * dropped and the mark now ships on transparency like the master artwork.
+ *
+ * The tradeoff is real and is accepted, not overlooked: on a dark tab strip the
+ * navy sphere has little contrast against the bar, so what carries the shape
+ * there is the gold ring and swoosh and the white continents. That is enough to
+ * identify at 16px — but if someone later finds it faint on dark and is tempted
+ * to "fix" it, re-adding a white plate is a brand decision, not a bug fix. Ask
+ * first.
  *
  * THE CROP IS MEASURED, NOT EYEBALLED
  *
@@ -164,11 +169,15 @@ const FAVICON = {
 const faviconPng = (size) =>
   sharp(at(FAVICON.source))
     .extract(FAVICON.crop)
-    .resize(size, size, { fit: 'contain', kernel: 'lanczos3' })
-    // Opaque: a transparent favicon inherits the tab strip's colour, which is
-    // the whole bug. flatten() must come after resize so the edges antialias
-    // against white rather than against nothing.
-    .flatten({ background: '#ffffff' })
+    .resize(size, size, {
+      fit: 'contain',
+      kernel: 'lanczos3',
+      // Keep the master's transparency rather than padding with a colour.
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    // No flatten(): the mark ships on transparency. The 512px master is 91%
+    // fully-transparent and contains no opaque white, so there is no plate to
+    // strip and no white fringe to antialias against.
     .png({ compressionLevel: 9 })
     .toBuffer()
 
