@@ -86,10 +86,17 @@ everything falls back to unseparated logging rather than failing.
 ## Publishing
 
 Publishing a blog post or urgent requirement in the admin panel makes it reachable for
-visitors immediately (Apache serves `app-shell.html`, React fetches from Supabase), and it
-now reaches `sitemap.xml` within 60 seconds with **no build and no upload**: `sitemap.xml`
-is an index over `sitemap-pages.xml` (built) and `sitemap-content.xml` (served from the
-database by the `sitemap` Edge Function). See `docs/dynamic-sitemap.md`.
+visitors immediately (Apache serves `app-shell.html`, React fetches from Supabase).
+
+`sitemap.xml` is an index over `sitemap-pages.xml` and `sitemap-content.xml`. The design is
+that the content half is served per request from the database by the `sitemap` Edge
+Function, so publishing reaches the sitemap in ~60 seconds with no build and no upload.
+**That is not what production does.** Verified 2026-10-08: the Edge Function is not
+deployed (`/functions/v1/sitemap` → `NOT_FOUND`; no function in the project is deployed),
+and `scripts/generate-sitemap.mjs` writes a static `sitemap-content.xml` that the
+`RewriteCond %{REQUEST_FILENAME} !-f` rule lets win regardless. So **both halves are
+build-time snapshots, and publishing needs a build and an upload to reach the sitemap.**
+The restoration steps are at the top of `docs/dynamic-sitemap.md`.
 
 It still does **not** give the page server-rendered metadata. That needs `npm run build`
 and a manual upload of all of `dist/`, because per-request HTML needs a runtime in front of

@@ -12,10 +12,30 @@
  *   sitemap-pages.xml     written here, from the manifest. The prerendered
  *                         pages. These only exist because a build produced
  *                         their HTML, so a build-time file costs nothing.
- *   sitemap-content.xml   NOT written here. public/.htaccess redirects it to
- *                         the sitemap Edge Function, which queries Supabase on
- *                         request. Publishing a post adds it within one cache
- *                         TTL with no build and no upload.
+ *   sitemap-content.xml   written here too, as a build-time snapshot queried
+ *                         straight from Supabase.
+ *
+ * READ THIS BEFORE BELIEVING docs/dynamic-sitemap.md
+ *
+ * That document describes the content shard as served per request by the
+ * `sitemap` Edge Function, so that publishing a post reaches the sitemap with no
+ * build and no upload. That is NOT what production does today, for two reasons
+ * that compound:
+ *
+ *   1. The `sitemap` Edge Function is not deployed. The project answers
+ *      /functions/v1/sitemap with NOT_FOUND.
+ *   2. public/.htaccess only redirects /sitemap-content.xml to the function when
+ *      the file is absent (`RewriteCond %{REQUEST_FILENAME} !-f`). Because this
+ *      script writes a static snapshot into dist/, the uploaded file always
+ *      wins and the function would never be reached even once deployed.
+ *
+ * The snapshot is correct XML and keeps the shard from dangling, but it freezes
+ * at build time: a post published in the admin panel is reachable for visitors
+ * immediately and absent from the sitemap until the next build and upload.
+ *
+ * To restore the documented live behaviour: deploy the function
+ * (`supabase functions deploy sitemap`), then stop writing CONTENT_SITEMAP here
+ * — keep it in the index, omit it from `outputs` — so the !-f rule can fire.
  *
  * The halves must stay disjoint or a URL appears in both and the index double-
  * counts it. The split is by path prefix, taken from CONTENT_SOURCES — the same
@@ -135,13 +155,29 @@ if (supabaseUrl && supabaseKey) {
 }
 
 /**
- * The index. Points to both the prerendered static pages shard and the
- * dynamic content shard.
+ * The index.
+ *
+ * The content shard is listed ONLY when this run actually produced it. Listing
+ * it unconditionally used to ship an index naming a shard that no file and no
+ * deployed function answered: Apache's `RewriteCond %{REQUEST_FILENAME} !-f`
+ * sends /sitemap-content.xml to the Edge Function when the file is absent, so a
+ * build without Supabase credentials — or with the function undeployed —
+ * submitted a sitemap index pointing at a 404. A short index is recoverable; a
+ * dangling shard is an error in Search Console on every fetch.
  */
-const indexItems = [
-  { loc: `${SITE_URL}/${PAGES_SITEMAP}`, lastmod: stats.lastmod },
-  { loc: `${SITE_URL}/${CONTENT_SITEMAP}`, ...(contentLastmod ? { lastmod: contentLastmod } : {}) },
-]
+const indexItems = [{ loc: `${SITE_URL}/${PAGES_SITEMAP}`, lastmod: stats.lastmod }]
+if (contentXml) {
+  indexItems.push({
+    loc: `${SITE_URL}/${CONTENT_SITEMAP}`,
+    ...(contentLastmod ? { lastmod: contentLastmod } : {}),
+  })
+} else {
+  console.warn(
+    `\nWARNING: ${CONTENT_SITEMAP} was not produced, so sitemap.xml does not list it.\n` +
+      '  Database-driven URLs (/blog, /urgent-requirements, /services, /jobs) are NOT submitted.\n' +
+      '  Cause: VITE_SUPABASE_URL / key unset, the query failed, or no published rows.',
+  )
+}
 const indexXml = renderSitemapIndex(indexItems)
 
 const outputs = [
@@ -152,12 +188,25 @@ if (contentXml) {
   outputs.push([CONTENT_SITEMAP, contentXml])
 }
 
-const dirs = [path.join(root, 'public')]
+/**
+ * dist/ only.
+ *
+ * These three files are build output. Writing them into public/ as well put
+ * three generated, committed files in the repository that every build rewrote,
+ * so each build produced a spurious git diff and a stale snapshot could be
+ * uploaded by hand without the build that justified it. public/ is copied into
+ * dist/ by `vite build`, which runs BEFORE this script, so the public/ copies
+ * were never read by anything — they were overwritten moments later.
+ */
+const dirs = [path.join(root, 'dist')]
 try {
-  await access(path.join(root, 'dist'))
-  dirs.push(path.join(root, 'dist'))
+  await access(dirs[0])
 } catch {
-  // dist not built yet; public/ copy is enough
+  console.error(
+    'dist/ does not exist. Run `vite build && node scripts/prerender.mjs` first — ' +
+      '`npm run build` does this in order.',
+  )
+  process.exit(1)
 }
 
 for (const dir of dirs) {
@@ -204,7 +253,13 @@ if (withheld.length) {
 const dynamicCount = candidates.filter((r) => isDynamic(r.route)).length
 console.log(
   `\n${dynamicCount} database-driven URL(s) are not in ${PAGES_SITEMAP} by design — ` +
-    `${CONTENT_SITEMAP} serves them from Supabase on request.`,
+    `${CONTENT_SITEMAP} carries them (${dynamicRecordCount} record(s) read from Supabase).`,
+)
+console.log(
+  `  ${CONTENT_SITEMAP} is a BUILD-TIME SNAPSHOT, not served live: the sitemap Edge\n` +
+    '  Function is not deployed, and this static file would shadow it anyway. A post\n' +
+    '  published after this build will not be in the sitemap until the next build and\n' +
+    '  upload. See the status note at the top of docs/dynamic-sitemap.md.',
 )
 
 if (htaccessState.startsWith('TOKEN NOT FILLED')) {
