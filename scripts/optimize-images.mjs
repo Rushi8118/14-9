@@ -6,7 +6,7 @@
  * rather than reusing the full-resolution globe texture.
  */
 import sharp from 'sharp'
-import { stat } from 'node:fs/promises'
+import { stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -123,6 +123,109 @@ async function buildSocial() {
   )
 }
 
+/**
+ * Browser-tab favicons.
+ *
+ * TWO THINGS WERE WRONG, and only the second is about colour.
+ *
+ * 1. WRONG CROP. favicon-16x16.png and favicon-32x32.png were the full brand
+ *    lockup — globe *plus* the "SIDDHIVINAYAK" and "OVERSEAS" wordmark — scaled
+ *    to 32px. Two lines of type across 32 pixels is roughly 1.5px per letter, so
+ *    the wordmark rendered as a grey smear and squashed the globe into the top
+ *    third. A favicon has room for a mark, never a lockup.
+ *
+ * 2. DARK ON TRANSPARENT. The artwork is navy on a transparent background, so on
+ *    Chrome's dark tab strip a dark mark sat on a dark bar and effectively
+ *    disappeared. Flattening onto the logo's own white keeps it legible on a dark
+ *    strip, and the navy-and-gold mark keeps it legible against the white tile on
+ *    a light one. White is not a new brand colour — it is the background the
+ *    master logo is already drawn on.
+ *
+ * THE CROP IS MEASURED, NOT EYEBALLED
+ *
+ * The mark's bounding box in the 512px master is x 153-346, y 120-302 (194x183),
+ * found by scanning for pixels that are neither transparent nor near-white. The
+ * blank band separating the globe from the wordmark is rows 303-319, so the crop
+ * must end before row 320 or the tops of the letters reappear as a smear along
+ * the bottom edge — which is exactly what a first attempt at 232px did.
+ *
+ * `crop` is therefore a 208px square centred on the mark (centre 249.5, 211),
+ * giving ~8px of horizontal and ~13px of vertical breathing room and stopping at
+ * row 315, comfortably inside the blank band. Re-run the measurement if the
+ * master logo is ever replaced.
+ */
+const FAVICON = {
+  source: path.join('favicon', 'android-chrome-512x512.png'),
+  // Square region of the master containing the globe mark and nothing else.
+  crop: { left: 145, top: 107, width: 208, height: 208 },
+  sizes: [16, 32, 48],
+}
+
+const faviconPng = (size) =>
+  sharp(at(FAVICON.source))
+    .extract(FAVICON.crop)
+    .resize(size, size, { fit: 'contain', kernel: 'lanczos3' })
+    // Opaque: a transparent favicon inherits the tab strip's colour, which is
+    // the whole bug. flatten() must come after resize so the edges antialias
+    // against white rather than against nothing.
+    .flatten({ background: '#ffffff' })
+    .png({ compressionLevel: 9 })
+    .toBuffer()
+
+/**
+ * Packs PNGs into a multi-resolution .ico.
+ *
+ * sharp has no ICO encoder, but the format has allowed a whole PNG as an entry's
+ * payload since Vista and every browser in use reads it — so this is a 6-byte
+ * header, one 16-byte directory entry per size, then the PNG bytes unchanged.
+ * A byte of 0 in the width/height field means 256, which is why nothing here may
+ * exceed 255px.
+ */
+function packIco(pngs) {
+  const header = Buffer.alloc(6)
+  header.writeUInt16LE(0, 0) // reserved
+  header.writeUInt16LE(1, 2) // 1 = icon
+  header.writeUInt16LE(pngs.length, 4)
+
+  let offset = 6 + pngs.length * 16
+  const entries = []
+  for (const { size, data } of pngs) {
+    const entry = Buffer.alloc(16)
+    entry.writeUInt8(size >= 256 ? 0 : size, 0)
+    entry.writeUInt8(size >= 256 ? 0 : size, 1)
+    entry.writeUInt8(0, 2) // palette colours
+    entry.writeUInt8(0, 3) // reserved
+    entry.writeUInt16LE(1, 4) // colour planes
+    entry.writeUInt16LE(32, 6) // bits per pixel
+    entry.writeUInt32LE(data.length, 8)
+    entry.writeUInt32LE(offset, 12)
+    entries.push(entry)
+    offset += data.length
+  }
+
+  return Buffer.concat([header, ...entries, ...pngs.map(({ data }) => data)])
+}
+
+async function buildFavicons() {
+  console.log(`favicons: ${FAVICON.source} ${await sizeKb(FAVICON.source)}KB ->`)
+
+  const rendered = []
+  for (const size of FAVICON.sizes) {
+    const data = await faviconPng(size)
+    rendered.push({ size, data })
+    const output = path.join('favicon', `favicon-${size}x${size}.png`)
+    await writeFile(at(output), data)
+    console.log(`  ${output} ${await sizeKb(output)}KB`)
+  }
+
+  // Clients that ignore <link rel="icon"> — some crawlers, feed readers and link
+  // previewers — request /favicon.ico from the site root regardless. There was no
+  // file there (the only .ico lived at /favicon/favicon.ico), so that request
+  // returned 404 on the live site.
+  await writeFile(at('favicon.ico'), packIco(rendered))
+  console.log(`  favicon.ico ${await sizeKb('favicon.ico')}KB (${FAVICON.sizes.join(', ')}px)`)
+}
+
 /** The logo keeps PNG: it is a flat-colour mark with transparency and is already tiny. */
 const LOGO = {
   source: path.join('favicon', 'android-chrome-512x512.png'),
@@ -184,5 +287,6 @@ async function buildTextures() {
 
 await buildPoster()
 await buildSocial()
+await buildFavicons()
 await buildResponsive()
 await buildTextures()
