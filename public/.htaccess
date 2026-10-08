@@ -44,15 +44,9 @@ DirectorySlash Off
   RewriteRule ^signup/?$ /register [R=301,L]
 
   # /sitemap-content.xml is generated from the database by the sitemap Edge
-  # Function, so publishing a post reaches the sitemap without a build or an
-  # upload. This is a redirect and not a proxy because mod_proxy is not
-  # available on this hosting plan -- an [P] rule would 500. Google follows
-  # redirects when fetching a sitemap.
-  #
-  # 302, not 301: the target moves if a runtime is ever put in front of the
-  # domain, and crawlers cache a 301 hard. The origin is filled into dist/ at
-  # build time by scripts/generate-sitemap.mjs -- the committed file keeps the
-  # token so the Supabase project is not baked into git.
+  # Function or pre-built at deploy time. If the static file is uploaded,
+  # serve it directly (rule 4 below). If not, redirect to the Edge Function.
+  RewriteCond %{REQUEST_FILENAME} !-f
   RewriteRule ^sitemap-content\.xml$ %%SITEMAP_FUNCTION_ORIGIN%%/functions/v1/sitemap/sitemap-content.xml [R=302,L]
 
   # 2. Canonical URLs have no trailing slash (root excepted)

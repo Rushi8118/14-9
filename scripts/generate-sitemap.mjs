@@ -42,7 +42,7 @@ import { fileURLToPath } from 'node:url'
 import { loadEnv } from 'vite'
 import { SITE_URL } from './seo-routes.mjs'
 import { buildSitemap, renderSitemapIndex } from './lib/sitemap.mjs'
-import { CONTENT_SOURCES } from '../supabase/functions/_shared/sitemap-sources.mjs'
+import { CONTENT_SOURCES, loadRecords } from '../supabase/functions/_shared/sitemap-sources.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const manifestPath = path.join(root, 'dist', 'prerender-manifest.json')
@@ -110,22 +110,47 @@ if (rejected.length) {
 
 const pagesXml = files[0].xml
 
+const env = loadEnv('production', root, '')
+const supabaseUrl = env.VITE_SUPABASE_URL ?? ''
+const supabaseKey = env.VITE_SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_PUBLISHABLE_KEY ?? ''
+
+let contentXml = null
+let contentLastmod = undefined
+let dynamicRecordCount = 0
+if (supabaseUrl && supabaseKey) {
+  try {
+    const { records: contentRecords } = await loadRecords({ baseUrl: supabaseUrl, key: supabaseKey })
+    if (contentRecords && contentRecords.length > 0) {
+      dynamicRecordCount = contentRecords.length
+      const { files: contentFiles, stats: contentStats } = buildSitemap({
+        baseUrl: SITE_URL,
+        records: contentRecords,
+      })
+      contentXml = contentFiles[0].xml
+      contentLastmod = contentStats.lastmod
+    }
+  } catch (err) {
+    console.warn(`Could not query dynamic content from Supabase: ${err.message}`)
+  }
+}
+
 /**
- * The index. `lastmod` is given for the pages half (the newest page we just
- * listed) and deliberately omitted for the content half: this script cannot
- * know when a blog post last changed without querying the database, and the
- * Edge Function reports it per-URL inside the shard anyway. Guessing would be
- * inventing a modification date.
+ * The index. Points to both the prerendered static pages shard and the
+ * dynamic content shard.
  */
-const indexXml = renderSitemapIndex([
+const indexItems = [
   { loc: `${SITE_URL}/${PAGES_SITEMAP}`, lastmod: stats.lastmod },
-  { loc: `${SITE_URL}/${CONTENT_SITEMAP}` },
-])
+  { loc: `${SITE_URL}/${CONTENT_SITEMAP}`, ...(contentLastmod ? { lastmod: contentLastmod } : {}) },
+]
+const indexXml = renderSitemapIndex(indexItems)
 
 const outputs = [
   [PAGES_SITEMAP, pagesXml],
   ['sitemap.xml', indexXml],
 ]
+if (contentXml) {
+  outputs.push([CONTENT_SITEMAP, contentXml])
+}
 
 const dirs = [path.join(root, 'public')]
 try {
@@ -142,18 +167,6 @@ for (const dir of dirs) {
   }
 }
 
-/**
- * The redirect that makes sitemap-content.xml resolve has to name the Supabase
- * functions host, which differs per project and is not in git. public/.htaccess
- * carries a %%SITEMAP_FUNCTION_ORIGIN%% token; fill it in dist/ at build time so
- * the uploaded file is correct and the committed one stays environment-free.
- *
- * If the variable is absent the token is left in place and the build says so,
- * loudly — an .htaccess containing a literal %% token would make
- * sitemap-content.xml 404, so this must not pass quietly.
- */
-const env = loadEnv('production', root, '')
-const supabaseUrl = env.VITE_SUPABASE_URL ?? ''
 let functionOrigin = ''
 try {
   if (supabaseUrl) functionOrigin = new URL(supabaseUrl).origin
