@@ -154,20 +154,44 @@ async function buildSocial() {
  * must end before row 320 or the tops of the letters reappear as a smear along
  * the bottom edge — which is exactly what a first attempt at 232px did.
  *
- * `crop` is therefore a 208px square centred on the mark (centre 249.5, 211),
- * giving ~8px of horizontal and ~13px of vertical breathing room and stopping at
- * row 315, comfortably inside the blank band. Re-run the measurement if the
- * master logo is ever replaced.
+ * CENTRED ON THE GLOBE, NOT ON THE ARTWORK'S BOUNDING BOX
+ *
+ * Measured separately, the navy sphere is 172x149 centred at (245.5, 211) while
+ * the gold ring and its arrowhead reach 194x183 centred at (249.5, 211). The
+ * arrow overshoots up and to the right, so a crop fitted to the whole bounding
+ * box pushes the globe off-centre and shrinks it — at 16px that is the
+ * difference between a readable globe and a smudge.
+ *
+ * `crop` is therefore a 190px square centred on the *sphere*, and `round` masks
+ * it to a disc. The gold ring already traces that circle, so the mask reads as
+ * the edge of the emblem rather than as something cut off; the arrowhead is
+ * trimmed where it leaves the disc, which is deliberate. Re-run the measurement
+ * if the master logo is ever replaced.
  */
 const FAVICON = {
   source: path.join('favicon', 'android-chrome-512x512.png'),
   // Square region of the master containing the globe mark and nothing else.
-  crop: { left: 145, top: 107, width: 208, height: 208 },
+  crop: { left: 150, top: 116, width: 190, height: 190 },
+  round: true,
   sizes: [16, 32, 48],
 }
 
-const faviconPng = (size) =>
-  sharp(at(FAVICON.source))
+/** Circular alpha mask, composited with `dest-in` to clip a square render to a disc. */
+const discMask = (size) =>
+  Buffer.from(
+    `<svg width="${size}" height="${size}">` +
+      `<circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="#fff"/></svg>`,
+  )
+
+/**
+ * The globe emblem at one size, as a transparent disc.
+ *
+ * No flatten(): the mark ships on transparency. The 512px master is 91%
+ * fully-transparent and contains no opaque white, so there is no plate to strip
+ * and no white fringe to antialias against.
+ */
+const markPng = (size, { round = true, palette = false } = {}) => {
+  const pipeline = sharp(at(FAVICON.source))
     .extract(FAVICON.crop)
     .resize(size, size, {
       fit: 'contain',
@@ -175,11 +199,14 @@ const faviconPng = (size) =>
       // Keep the master's transparency rather than padding with a colour.
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     })
-    // No flatten(): the mark ships on transparency. The 512px master is 91%
-    // fully-transparent and contains no opaque white, so there is no plate to
-    // strip and no white fringe to antialias against.
-    .png({ compressionLevel: 9 })
+
+  // Masking after the resize means the disc edge is antialiased at the final
+  // size. Masking first and then scaling would resample an already-hard edge
+  // and leave it visibly stepped at 16px.
+  return (round ? pipeline.composite([{ input: discMask(size), blend: 'dest-in' }]) : pipeline)
+    .png({ compressionLevel: 9, palette })
     .toBuffer()
+}
 
 /**
  * Packs PNGs into a multi-resolution .ico.
@@ -220,7 +247,7 @@ async function buildFavicons() {
 
   const rendered = []
   for (const size of FAVICON.sizes) {
-    const data = await faviconPng(size)
+    const data = await markPng(size, { round: FAVICON.round })
     rendered.push({ size, data })
     const output = path.join('favicon', `favicon-${size}x${size}.png`)
     await writeFile(at(output), data)
@@ -263,15 +290,23 @@ async function buildResponsive() {
     }
   }
 
-  // Generated from the 512px master rather than the 192px file, so downscaling
-  // starts from the most detail available.
+  // The header badge draws this at 24px, and it had exactly the bug the favicons
+  // had: the full lockup — globe plus both lines of wordmark — scaled down until
+  // the type was an unreadable band and the globe was a third of its height. It
+  // now uses the same cropped disc as the favicons, which is also the right call
+  // editorially: site-header.tsx already renders "Siddhivinayak / OVERSEAS" as
+  // live text immediately beside the badge, so the wordmark inside it was
+  // duplicating that in a form nobody could read.
   console.log(`responsive: ${LOGO.source} ${await sizeKb(LOGO.source)}KB ->`)
   for (const width of LOGO.widths) {
     const output = path.join('favicon', `${LOGO.name}-${width}.png`)
-    await sharp(at(LOGO.source))
-      .resize(width, width, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-      .png({ compressionLevel: 9, palette: true })
-      .toFile(at(output))
+    // Palette-quantised, as it was before. Measured rather than assumed: against
+    // the full RGBA encode, the mean per-channel difference across solidly
+    // visible pixels is 1.0/255 and the largest alpha difference anywhere on the
+    // antialiased rim is 14/255, while the file drops from 14.8KB to 5.9KB at
+    // 96px. This image is above the fold on every page, so 9KB matters and the
+    // difference does not.
+    await writeFile(at(output), await markPng(width, { round: FAVICON.round, palette: true }))
     console.log(`  ${output} ${await sizeKb(output)}KB`)
   }
 }
