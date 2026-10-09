@@ -10,7 +10,7 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { CONTENT_SOURCES, loadRecords } from '../../supabase/functions/_shared/sitemap-sources.mjs'
+import { CONTENT_SOURCES, loadRecords, servedSources } from '../../supabase/functions/_shared/sitemap-sources.mjs'
 
 const BASE = 'https://project.supabase.co'
 const KEY = 'publishable-key'
@@ -171,4 +171,36 @@ test('missing configuration is reported rather than producing an empty sitemap q
 
   const noKey = await loadRecords({ baseUrl: BASE, key: '', fetchImpl: stubFetch({}) })
   assert.match(noKey.errors[0], /SUPABASE_URL or SUPABASE_ANON_KEY/)
+})
+
+test('a source marked serve:false is declared but never queried', async () => {
+  // `services` and `jobs` are off because no route exists for their prefix:
+  // /services/<slug> and /jobs/<slug> both 404 in production. A sitemap that
+  // submits URLs which do not resolve is a generator of crawl errors, so the
+  // gate is on serving, not on the table being absent — job_listings DOES
+  // exist and has an active row.
+  const queried = []
+  const fetchImpl = (url) => {
+    queried.push(new URL(url).pathname.replace('/rest/v1/', ''))
+    return json([])
+  }
+  await loadRecords({ baseUrl: BASE, key: KEY, fetchImpl })
+
+  assert.deepEqual(queried.sort(), ['blog_posts', 'urgent_requirements'])
+  assert.ok(
+    CONTENT_SOURCES.some((s) => s.type === 'jobs' && s.serve === false),
+    'jobs must stay declared so re-enabling it is one word next to the reason it is off',
+  )
+})
+
+test('servedSources is what both sitemap halves split on, so no prefix falls in the gap', async () => {
+  // The build claims every prefix the function does not serve. If the two
+  // derived the split from different lists, a /jobs page would be in neither
+  // half (served nowhere, claimed nowhere) or in both (double-counted).
+  const served = servedSources().map((s) => s.prefix)
+  assert.deepEqual(served, ['/blog', '/urgent-requirements'])
+  assert.ok(served.length < CONTENT_SOURCES.length, 'at least one source is declared but not served')
+  for (const source of CONTENT_SOURCES) {
+    if (source.serve === false) assert.ok(!served.includes(source.prefix))
+  }
 })

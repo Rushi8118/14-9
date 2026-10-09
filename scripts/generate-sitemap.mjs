@@ -33,14 +33,28 @@
  * at build time: a post published in the admin panel is reachable for visitors
  * immediately and absent from the sitemap until the next build and upload.
  *
- * To restore the documented live behaviour: deploy the function
- * (`supabase functions deploy sitemap`), then stop writing CONTENT_SITEMAP here
- * — keep it in the index, omit it from `outputs` — so the !-f rule can fire.
+ * To restore the documented live behaviour, in this order:
+ *
+ *   1. `supabase functions deploy sitemap --no-verify-jwt`
+ *   2. Verify it answers: `curl -s "<project>.supabase.co/functions/v1/sitemap"`
+ *      must return a <urlset>, not {"code":"NOT_FOUND"}.
+ *   3. Build with SITEMAP_DYNAMIC_CONTENT=1. This keeps the shard in the index
+ *      and stops writing the file, so Apache's !-f rule can finally fire.
+ *   4. Upload dist/, then confirm /sitemap-content.xml answers 302 -> the
+ *      function and that following it yields the same URL set as before.
+ *
+ * The order is not advice, it is a safety property: with the file gone and the
+ * function still undeployed, /sitemap-content.xml 404s and every database-driven
+ * URL drops out of a sitemap index that still names the shard. That is why the
+ * flag defaults OFF and why validate-seo.mjs refuses to pass a build that names
+ * a shard nothing answers unless the flag was set deliberately.
  *
  * The halves must stay disjoint or a URL appears in both and the index double-
- * counts it. The split is by path prefix, taken from CONTENT_SOURCES — the same
- * list the Edge Function serves — so the two cannot drift. Add a content type
- * there and this file stops claiming its URLs automatically.
+ * counts it. The split is by path prefix, taken from the SERVED sources — the
+ * same list the Edge Function emits — so the two cannot drift, and a content
+ * type the function does not serve is claimed here instead of falling through
+ * the gap between them. Add a content type there and this file stops claiming
+ * its URLs automatically.
  *
  * WHY THE INDEX IS AT sitemap.xml
  *
@@ -56,13 +70,13 @@
  *
  * Run order matters: `vite build && prerender && generate-sitemap`.
  */
-import { mkdir, writeFile, access, readFile } from 'node:fs/promises'
+import { mkdir, writeFile, access, readFile, unlink } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadEnv } from 'vite'
 import { SITE_URL } from './seo-routes.mjs'
 import { buildSitemap, renderSitemapIndex } from './lib/sitemap.mjs'
-import { CONTENT_SOURCES, loadRecords } from '../supabase/functions/_shared/sitemap-sources.mjs'
+import { loadRecords, servedSources } from '../supabase/functions/_shared/sitemap-sources.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const manifestPath = path.join(root, 'dist', 'prerender-manifest.json')
@@ -71,8 +85,24 @@ const manifestPath = path.join(root, 'dist', 'prerender-manifest.json')
 const CONTENT_SITEMAP = 'sitemap-content.xml'
 const PAGES_SITEMAP = 'sitemap-pages.xml'
 
+/**
+ * Hand /sitemap-content.xml back to the Edge Function instead of shipping a
+ * snapshot of it: keep the shard in the index, do NOT write the file, so
+ * public/.htaccess's `RewriteCond %{REQUEST_FILENAME} !-f` can finally fire.
+ *
+ * Set it only once the function is deployed AND verified to answer. With the
+ * file absent and the function missing, /sitemap-content.xml 404s and every
+ * database-driven URL drops out of an index that still names the shard.
+ * validate-seo.mjs enforces the same condition from the other side, so a build
+ * with this set and no deployed function still fails rather than shipping.
+ *
+ * Off by default: the snapshot is stale but correct, and stale-but-correct beats
+ * a dangling shard.
+ */
+const DYNAMIC_CONTENT = /^(1|true|yes)$/i.test(process.env.SITEMAP_DYNAMIC_CONTENT ?? '')
+
 /** `/blog`, `/urgent-requirements`, ... — whatever the Edge Function serves. */
-const DYNAMIC_PREFIXES = CONTENT_SOURCES.map((source) => `${source.prefix}/`)
+const DYNAMIC_PREFIXES = servedSources().map((source) => `${source.prefix}/`)
 
 const isDynamic = (route) => DYNAMIC_PREFIXES.some((prefix) => route.startsWith(prefix))
 
@@ -184,7 +214,10 @@ const outputs = [
   [PAGES_SITEMAP, pagesXml],
   ['sitemap.xml', indexXml],
 ]
-if (contentXml) {
+// Under SITEMAP_DYNAMIC_CONTENT the shard stays in the index (built above from
+// the same records) but no file is written, which is what lets Apache fall
+// through to the Edge Function.
+if (contentXml && !DYNAMIC_CONTENT) {
   outputs.push([CONTENT_SITEMAP, contentXml])
 }
 
@@ -213,6 +246,28 @@ for (const dir of dirs) {
   await mkdir(dir, { recursive: true })
   for (const [name, xml] of outputs) {
     await writeFile(path.join(dir, name), xml, 'utf8')
+  }
+}
+
+/**
+ * Not writing the shard is not the same as the shard being absent.
+ *
+ * `npm run build` empties dist/ first (vite.config.ts, emptyOutDir: true), so a
+ * full build cannot leave a stale copy. `npm run sitemap` on its own does not,
+ * and a leftover sitemap-content.xml from an earlier build satisfies Apache's
+ * `RewriteCond %{REQUEST_FILENAME} !-f` just as well as a fresh one — the file
+ * would keep shadowing the Edge Function, and the switch would look applied
+ * while changing nothing. Delete it explicitly.
+ */
+if (DYNAMIC_CONTENT) {
+  for (const dir of dirs) {
+    const stale = path.join(dir, CONTENT_SITEMAP)
+    try {
+      await unlink(stale)
+      console.log(`  removed stale ${path.relative(root, stale)} so the Edge Function is reached`)
+    } catch (err) {
+      if (err.code !== 'ENOENT') throw err
+    }
   }
 }
 
@@ -256,10 +311,17 @@ console.log(
     `${CONTENT_SITEMAP} carries them (${dynamicRecordCount} record(s) read from Supabase).`,
 )
 console.log(
-  `  ${CONTENT_SITEMAP} is a BUILD-TIME SNAPSHOT, not served live: the sitemap Edge\n` +
-    '  Function is not deployed, and this static file would shadow it anyway. A post\n' +
-    '  published after this build will not be in the sitemap until the next build and\n' +
-    '  upload. See the status note at the top of docs/dynamic-sitemap.md.',
+  DYNAMIC_CONTENT
+    ? `  ${CONTENT_SITEMAP} was NOT written (SITEMAP_DYNAMIC_CONTENT=1): the index names it and\n` +
+        '  Apache falls through to the sitemap Edge Function, so publishing reaches the\n' +
+        '  sitemap within one cache TTL with no build. After upload, verify:\n' +
+        `    curl -sI ${SITE_URL}/${CONTENT_SITEMAP}        # expect 302 to the function\n` +
+        `    curl -sL ${SITE_URL}/${CONTENT_SITEMAP} | head  # expect <urlset>`
+    : `  ${CONTENT_SITEMAP} is a BUILD-TIME SNAPSHOT, not served live: the sitemap Edge\n` +
+        '  Function is not deployed, and this static file would shadow it anyway. A post\n' +
+        '  published after this build will not be in the sitemap until the next build and\n' +
+        '  upload. Set SITEMAP_DYNAMIC_CONTENT=1 to switch, but deploy and verify the\n' +
+        '  function first. See the status note at the top of docs/dynamic-sitemap.md.',
 )
 
 if (htaccessState.startsWith('TOKEN NOT FILLED')) {

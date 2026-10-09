@@ -133,6 +133,40 @@ test('scheduled publishing: a future published_at is excluded until it arrives',
   assert.deepEqual(locsOf([arrived]), [`${BASE}/blog/future`])
 })
 
+test('an expired urgent requirement is excluded once its expires_at passes', () => {
+  // The other end of the scheduled-publishing window. urgent_requirements keeps
+  // status = 'active' until someone closes it by hand, so expiry is what ends
+  // the listing; the detail page goes noindex at the same moment
+  // (UrgentRequirementDetailPage, noindex={isClosed}). Without this rule the
+  // sitemap submits a URL whose own page says not to index it.
+  const expired = {
+    type: 'requirements',
+    path: '/urgent-requirements/closed-opening',
+    status: 'active',
+    expires_at: '2026-10-01T00:00:00Z',
+  }
+  assert.deepEqual(locsOf([expired]), [])
+  assert.equal(reasonFor(expired), 'expired')
+
+  const live = { ...expired, expires_at: '2026-12-01T00:00:00Z' }
+  assert.deepEqual(locsOf([live]), [`${BASE}/urgent-requirements/closed-opening`])
+
+  // camelCase spelling, as a record built in JS rather than read from PostgREST.
+  assert.equal(reasonFor({ ...expired, expires_at: undefined, expiresAt: '2026-10-01T00:00:00Z' }), 'expired')
+})
+
+test('an unparseable or absent expires_at never drops a live URL', () => {
+  // Losing a real URL to a malformed timestamp is worse than keeping one a
+  // little too long, so an undecidable date is ignored rather than fatal.
+  for (const expires_at of [undefined, null, '', 'not a date', 'tomorrow']) {
+    assert.deepEqual(
+      locsOf([{ path: '/urgent-requirements/live', status: 'active', expires_at }]),
+      [`${BASE}/urgent-requirements/live`],
+      String(expires_at),
+    )
+  }
+})
+
 test('noindex content is excluded, however the directive is spelled', () => {
   for (const robots of ['noindex', 'noindex, follow', 'NOINDEX,NOFOLLOW', 'none']) {
     assert.deepEqual(locsOf([{ path: '/thin-page', status: 'published', robots }]), [], robots)
