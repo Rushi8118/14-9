@@ -135,7 +135,30 @@ ErrorDocument 404 /404/index.html
   <FilesMatch "\.(js|css|png|jpg|jpeg|webp|avif|svg|ico|woff2?)$">
     Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
-  
+
+  # ...but the rule above says "hashed" and the pattern is not.
+  #
+  # Vite's build output carries a content hash in the filename, so a changed file
+  # arrives at a new URL and `immutable` is exactly right for it. These files do
+  # not: their names are fixed, referenced from index.html, manifest.json or the
+  # browser's own /favicon.ico request, and the bytes change underneath the same
+  # URL whenever the artwork is regenerated.
+  #
+  # `immutable` means "never revalidate, not even on a forced reload", so a
+  # visitor who loaded the old icon once was pinned to it for a year with no way
+  # to get the new one short of clearing their cache. That is how a corrected
+  # favicon can be live and verified on the server while every returning visitor
+  # still sees the old one -- and the same trap applies to og-default.jpg, where
+  # the stale copy is what social platforms would re-scrape.
+  #
+  # A day is long enough that these are effectively free to serve and short
+  # enough that an artwork fix reaches people. This block must stay AFTER the one
+  # above: for the same header, the last matching `Header set` wins.
+  <FilesMatch "^(favicon\.ico|favicon-\d+x\d+\.png|logo-\d+\.png|apple-touch-icon\.png|android-chrome-\d+x\d+\.png|og-default\.jpg|icon\.svg|manifest\.json|site\.webmanifest)$">
+    Header set Cache-Control "public, max-age=86400"
+  </FilesMatch>
+
+
   # Always revalidate HTML so a new deploy's chunk names are picked up immediately.
   <FilesMatch "\.(html)$">
     Header set Cache-Control "no-cache, must-revalidate"
