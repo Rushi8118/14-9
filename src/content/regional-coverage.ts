@@ -22,7 +22,39 @@ export const INDIAN_STATES_DATA: RegionalLocation[] = [
     type: 'state',
     country: 'India',
     capital: 'Gandhinagar',
-    majorCities: ['Surat (Head Office)', 'Ahmedabad', 'Vadodara', 'Rajkot', 'Bhavnagar', 'Jamnagar', 'Navsari', 'Anand', 'Mehsana', 'Vapi'],
+    /**
+     * Gujarat is the only state whose cities each get their own page, so this
+     * array is a route list, not just prose. See regional-pages.ts and
+     * scripts/seo-routes.mjs, which both read it.
+     *
+     * Scope: all 33 Gujarat district headquarters, plus Vapi — not a district
+     * headquarters (it sits in Valsad district) but a major industrial town
+     * already covered here. Surat carries the "(Head Office)" annotation and
+     * has its own hand-written page at /visa-consultants-in-surat; the route
+     * parser strips the parenthetical and skips it.
+     *
+     * The district and headquarters list was checked against the published
+     * list of Gujarat districts rather than written from memory, because these
+     * names become URLs in sitemap.xml. One caveat on the count: Gujarat has
+     * approved splitting Banaskantha to create a 34th district, Vav-Tharad,
+     * with its headquarters at Tharad. Whether that is operational was not
+     * confirmed, so Tharad is deliberately absent — add it once the
+     * notification is verified.
+     *
+     * Order is load-bearing for the Gujarat state page, which takes the first
+     * 3 for its meta description, the first 4 for a highlight and the first 8
+     * for its hero line. The ten original entries keep their positions so that
+     * copy does not move; the district headquarters added afterwards are
+     * ordered roughly by prominence.
+     */
+    majorCities: [
+      'Surat (Head Office)', 'Ahmedabad', 'Vadodara', 'Rajkot', 'Bhavnagar', 'Jamnagar',
+      'Navsari', 'Anand', 'Mehsana', 'Vapi',
+      'Gandhinagar', 'Bharuch', 'Junagadh', 'Bhuj', 'Nadiad', 'Morbi', 'Valsad', 'Patan',
+      'Porbandar', 'Surendranagar', 'Amreli', 'Veraval', 'Godhra', 'Palanpur', 'Himatnagar',
+      'Botad', 'Dahod', 'Modasa', 'Khambhalia', 'Rajpipla', 'Lunavada', 'Vyara',
+      'Chhota Udaipur', 'Ahwa',
+    ],
     regionalHub: 'Surat Office (Pragti IT Park) / VFS Ahmedabad / RPO Ahmedabad & Surat',
     popularDestinations: ['United Kingdom', 'Canada', 'Australia', 'Germany', 'United States', 'New Zealand', 'Japan', 'Poland'],
     localDocumentNotes: 'Gujarat University / GTU transcript verification, Gujarat State Home Department apostille in Gandhinagar, Surat RPO clearance.',

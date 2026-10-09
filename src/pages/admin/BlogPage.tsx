@@ -8,6 +8,8 @@ import { PermissionGuard } from '@/components/auth/PermissionGuard'
 import { AiBlogWriter } from '@/components/admin/blog/AiBlogWriter'
 import { BlogContent } from '@/components/blog/BlogContent'
 import { SeoPanel } from '@/components/admin/SeoPanel'
+import { KeywordSuggestPanel, useKeywordSuggestions } from '@/components/admin/KeywordSuggestPanel'
+import { detectCountryFrom, mergeKeywords, pickAutoKeywords, splitByLength } from '@/lib/seo/keyword-suggest'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -77,6 +79,60 @@ export default function AdminBlogPage() {
   const updateEditor = (patch: Partial<EditorState>) => {
     setEditor((current) => (current ? { ...current, ...patch } : current))
     setDirty(true)
+  }
+
+  // ── Keyword suggestions (Google autocomplete + the site's keyword plan) ──
+  //
+  // The same panel the urgent-requirement editor uses. It needs a country, and
+  // a blog post has no country column, so one is derived from the title,
+  // category and tags. `keywordCountry` is the editor's override and is NOT
+  // persisted: it steers which suggestions load, nothing more.
+  //
+  // Suggestions populate focus_keyword / related_keywords / long_tail_keywords,
+  // which feed the title and description a human writes. Nothing here writes a
+  // keyword into the article body — see scripts/audit-keyword-placement.mjs and
+  // commit 225c8b1 for why that line exists.
+  const [keywordCountry, setKeywordCountry] = useState('')
+  const detectedCountry = useMemo(
+    () => detectCountryFrom(editor?.title, editor?.category, editor?.tags),
+    [editor?.title, editor?.category, editor?.tags],
+  )
+  const keywordCountryInUse = keywordCountry.trim() || detectedCountry
+
+  // Reset the override when a different post is opened, so one post's country
+  // cannot leak into the next one's suggestions.
+  useEffect(() => setKeywordCountry(''), [editor?.id])
+
+  const keywordSuggestions = useKeywordSuggestions(
+    { title: editor?.title ?? '', country: keywordCountryInUse, category: editor?.category },
+    Boolean(editor) && activeEditorTab === 'seo' && Boolean(keywordCountryInUse),
+  )
+
+  const addBlogKeywords = (keywords: string[]) => {
+    if (!editor) return
+    const { related, longTail } = splitByLength(keywords)
+    updateEditor({
+      related_keywords: mergeKeywords(editor.related_keywords, related),
+      long_tail_keywords: mergeKeywords(editor.long_tail_keywords, longTail),
+    })
+  }
+
+  const autoAddBlogKeywords = () => {
+    if (!editor || !keywordSuggestions.data) return
+    const picked = pickAutoKeywords(keywordSuggestions.data)
+    const added =
+      mergeKeywords(editor.related_keywords, picked.related).length - editor.related_keywords.length +
+      mergeKeywords(editor.long_tail_keywords, picked.longTail).length - editor.long_tail_keywords.length
+    updateEditor({
+      focus_keyword: editor.focus_keyword || keywordSuggestions.data.google[0] || '',
+      related_keywords: mergeKeywords(editor.related_keywords, picked.related),
+      long_tail_keywords: mergeKeywords(editor.long_tail_keywords, picked.longTail),
+    })
+    toast[added > 0 ? 'success' : 'info'](
+      added > 0
+        ? `Added ${added} popular keywords for ${keywordCountryInUse}. Review them in the fields below.`
+        : 'Those suggestions are already in the keyword fields.',
+    )
   }
 
   const requestClose = () => {
@@ -324,6 +380,44 @@ export default function AdminBlogPage() {
               <Field label="Focus keyword">
                 <Input value={editor.focus_keyword} onChange={(e) => updateEditor({ focus_keyword: e.target.value })} />
               </Field>
+
+              <Field label="Country for keyword suggestions">
+                <Input
+                  value={keywordCountry}
+                  onChange={(e) => setKeywordCountry(e.target.value)}
+                  placeholder={detectedCountry ? `Detected: ${detectedCountry} — type to override` : 'e.g. Germany'}
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {detectedCountry
+                    ? `Read from the title, category and tags. Not saved with the post — it only decides which keywords are suggested.`
+                    : `No country found in the title, category or tags. Enter one to load suggestions.`}
+                </p>
+              </Field>
+
+              {keywordCountryInUse && (
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={autoAddBlogKeywords}
+                    disabled={!keywordSuggestions.isCurrent || !keywordSuggestions.data}
+                  >
+                    {keywordSuggestions.loading ? 'Searching…' : 'Auto-add top keywords'}
+                  </Button>
+                </div>
+              )}
+
+              <KeywordSuggestPanel
+                suggestions={keywordSuggestions}
+                country={keywordCountryInUse}
+                focusKeyword={editor.focus_keyword}
+                selected={[...editor.related_keywords, ...editor.long_tail_keywords]}
+                onAdd={addBlogKeywords}
+                onSetFocus={(k) => updateEditor({ focus_keyword: k })}
+              />
+
               {chipsField('Related keywords (AI suggestions)', editor.related_keywords, (v) => updateEditor({ related_keywords: v }), 'Add and press Enter…')}
               {chipsField('Long-tail keywords (AI suggestions)', editor.long_tail_keywords, (v) => updateEditor({ long_tail_keywords: v }), 'Add and press Enter…')}
               {chipsField('Tags', editor.tags, (v) => updateEditor({ tags: v }), 'Add and press Enter…')}

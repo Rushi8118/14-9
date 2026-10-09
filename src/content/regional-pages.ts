@@ -263,12 +263,31 @@ function buildGujaratCityPage(city: string, gujarat: RegionalLocation): Destinat
     /**
      * Live and crawlable, deliberately out of the index.
      *
-     * Measured on the first build of these pages: the nine Gujarat city pages
-     * scored 0.877-0.889 pairwise similarity, every one of them exactly 1442
-     * words. That is not a near-miss, it is the signature of a template with the
-     * city name swapped -- the doorway pattern these pages were designed to
-     * avoid, and worse than the 0.82-0.92 work-visa pages already flagged as a
-     * problem on this site.
+     * Measured on the first build of these pages, when there were nine of
+     * them: they scored 0.877-0.889 pairwise similarity, every one of them
+     * exactly 1442 words. That is not a near-miss, it is the signature of a
+     * template with the city name swapped -- the doorway pattern these pages
+     * were designed to avoid, and worse than the 0.82-0.92 work-visa pages
+     * already flagged as a problem on this site.
+     *
+     * There are now 33 of them: all Gujarat district headquarters plus Vapi,
+     * expanded on 2026-10-09 on the site owner's explicit instruction after
+     * the trade-off was put to them. Nothing about the template changed, and
+     * re-measuring the generated pages in dist/ confirms the finding scaled
+     * with the count rather than improving:
+     *
+     *   33 pages, 528 pairs, EVERY pair at or above 0.80
+     *   similarity 0.835 min / 0.851 mean / 0.869 max
+     *   word counts 1181-1196 -- three distinct values across 33 pages
+     *
+     * (Main-content text only, 5-word-shingle Jaccard, so these run lower than
+     * npm run check:similarity, which scores whole pages.)
+     *
+     * Every one is still noindex and still absent from sitemap.xml, so the
+     * expansion buys nothing in search until per-city facts exist. It was made
+     * knowingly; this comment records that rather than implying the pages are
+     * ready. The way out is unchanged and is per city: give that city
+     * something true and specific, then drop its flag.
      *
      * The cause is that regional-coverage.ts holds no per-city facts. Everything
      * that differs between Rajkot and Mehsana on these pages is the name.
