@@ -237,6 +237,15 @@ export default function UrgentRequirementDetailPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col justify-between">
+      {/*
+        An opening past its expires_at is still readable (the row stays
+        status=active until someone closes it), and the page still renders so a
+        visitor following an old link sees why it is closed. It must not stay in
+        the index, though: the next build drops it from sitemap-content.xml, but
+        without this the URL would go on answering 200 with "index, follow" and
+        JobPosting schema for a vacancy that has ended. isClosed is the same
+        expiry check the listing page filters on.
+      */}
       <SeoHead
         title={metaTitle}
         description={metaDescription}
@@ -244,6 +253,7 @@ export default function UrgentRequirementDetailPage() {
         canonical={canonical}
         image={requirement.detail_image_url || requirement.image_url || undefined}
         jsonLd={schemas}
+        noindex={isClosed}
       />
       <SiteHeader />
 

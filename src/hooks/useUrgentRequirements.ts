@@ -110,427 +110,57 @@ export function getRemainingDays(expiresAt: string | null): number | null {
 }
 
 /**
- * True for the placeholder rows below, which are NOT real openings: they are
- * sample content shown when Supabase cannot be reached, with invented
- * employers, salaries and vacancy counts.
+ * There is deliberately no hardcoded list of openings here.
  *
- * Anywhere a listing could be read as a genuine job offer — a country page, a
- * count of "current openings", a decision about whether a page has real
- * content — filter these out first. A visitor must never be shown an invented
- * vacancy as though we were recruiting for it.
+ * This file used to carry a ten-row placeholder array with invented
+ * employers, salaries ("EUR 42,000 - 65,000 / year") and vacancy counts,
+ * substituted whenever Supabase could not be reached. Nine of the ten slugs
+ * matched no database row, and useUrgentRequirementBySlug resolved an unknown
+ * slug against them -- so /urgent-requirements/<any of those slugs> answered
+ * 200 with ~800 words of invented vacancy content and "index, follow",
+ * outside the sitemap and with no internal link to it. Search Console had
+ * already picked one up: /urgent-requirements/ireland-it-critical-skills-urgent,
+ * 5 impressions at average position 12.6 over the 90 days to 2026-10-06.
+ *
+ * Inventing a job offer is the one thing this codebase must never do, so the
+ * rows are gone rather than guarded. When the database is unreachable the
+ * public pages show an empty state and an error; a real, previously-fetched
+ * list may still come from the localStorage cache below.
+ */
+
+/**
+ * True for a placeholder row: `id` begins with `fallback-`.
+ *
+ * No code produces one any more, but a browser that visited before those rows
+ * were removed may still hold them in its localStorage cache — the old failure
+ * path wrote them there — so every read of that cache filters them out. The
+ * two components that count a country's live openings
+ * (components/seo/CountryVacancies, pages/work-visa/WorkVisaCountryPage) also
+ * still apply it: an invented vacancy must never be the reason a thin country
+ * page claims openings or gets indexed.
  */
 export const isFallbackRequirement = (r: Pick<UrgentRequirement, 'id'>) =>
   typeof r.id === 'string' && r.id.startsWith('fallback-')
 
-const FALLBACK_URGENT_REQUIREMENTS: UrgentRequirement[] = [
-  {
-    id: 'fallback-1',
-    title: 'Urgent: 25 Specified Skilled Workers (SSW Caregivers) for Japan',
-    slug: 'japan-ssw-caregiver-urgent',
-    country: 'Japan',
-    country_code: 'JP',
-    category: 'Specified Skilled Worker (SSW-1)',
-    vacancies: 25,
-    salary: '¥220,000 - ¥280,000 / month (~₹1.25L - ₹1.6L)',
-    experience_required: 'JLPT N4 / NAT-TEST & Caregiving Skill Test',
-    image_url: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&auto=format&fit=crop&q=80',
-    summary: 'Direct hospital placement in Tokyo and Osaka with fast-track visa sponsorship, subsidized accommodation, and JLPT training support.',
-    content: `### Urgent Placement Mandate for Japan SSW Caregivers
-Siddhivinayak Overseas Surat has received an official priority mandate to recruit **25 Qualified Caregivers** for leading healthcare groups in Tokyo and Osaka.
-
-#### Key Benefits:
-- **Direct Employer Sponsorship:** 5-year renewable SSW-1 visa.
-- **Flight & Housing:** Flight ticket allowance & subsidized accommodation.
-- **High Salary:** Up to ¥280,000/month with overtime opportunities.
-- **Fast-Track Processing:** COE (Certificate of Eligibility) issued within 45-60 days.
-
-#### Requirements:
-1. JLPT N4 or NAT-TEST Level 4 certification (or currently enrolled).
-2. Nursing / GNM diploma OR Nursing Assistant training certificate.
-3. Valid Indian Passport with minimum 18 months validity.`,
-    status: 'active',
-    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'fallback-2',
-    title: 'Urgent: 15 Health & Care Staff for UK NHS Trust Hospitals',
-    slug: 'uk-nhs-healthcare-assistant-urgent',
-    country: 'United Kingdom',
-    country_code: 'GB',
-    category: 'Health & Care Worker Visa',
-    vacancies: 15,
-    salary: '£23,400 - £28,000 / year (~₹24L - ₹29L)',
-    experience_required: '1+ Year Healthcare / Nursing experience & IELTS 5.0+',
-    image_url: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop&q=80',
-    summary: 'NHS-approved healthcare assistant positions with COS (Certificate of Sponsorship) and fast 3-week UK visa processing.',
-    content: `### Immediate Openings for UK NHS Healthcare Support Workers
-Recruiting 15 dedicated Health & Care workers for NHS Trust Partner Hospitals across London, Manchester, and Birmingham.
-
-#### Offer Details:
-- **COS Provided:** Tier 2 / Health & Care Worker Sponsorship (3-Year renewable).
-- **Relocation Package:** First month free accommodation + NHS relocation grant.
-- **Family Visa:** Spousal work permit & free NHS healthcare coverage for dependents.
-
-#### Eligibility Criteria:
-1. GNM Nursing / B.Sc Nursing / ANM diploma with minimum 1 year clinical experience.
-2. UKVI IELTS General score 5.0+ or PTE Academic UKVI 43+.
-3. Clean Police Clearance Certificate from RPO Gujarat.`,
-    status: 'active',
-    expires_at: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'fallback-3',
-    title: 'Urgent: 30 Opportunity Card IT & Engineering Candidates for Germany',
-    slug: 'germany-chancenkarte-it-engineers-urgent',
-    country: 'Germany',
-    country_code: 'DE',
-    category: 'Opportunity Card (Chancenkarte)',
-    vacancies: 30,
-    salary: '€45,000 - €65,000 / year (~₹40L - ₹58L)',
-    experience_required: 'Degree in Engineering / CS & German A2 or English B2',
-    image_url: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&auto=format&fit=crop&q=80',
-    summary: 'Fast-track Chancenkarte visa processing for software developers, CNC machinists, electrical engineers, and mechanical technicians.',
-    content: `### Germany Opportunity Card (Chancenkarte) Priority Pool
-Siddhivinayak Overseas is facilitating direct Opportunity Card applications for qualified Indian engineers and tech professionals looking to work in Munich, Stuttgart, and Berlin.
-
-#### Key Advantages:
-- **No Prior Job Offer Required:** Move to Germany on a 1-year job seeker visa with work rights.
-- **Part-Time Work Allowed:** Earn up to 20 hours/week while interviewing.
-- **Fast-Track PR:** Convert to EU Blue Card after securing employment.
-
-#### Qualification Points:
-1. Recognized Engineering or IT Degree (Anabin H+ listed).
-2. German language A2 certificate OR English B2 score.
-3. 2+ years of relevant industry experience.`,
-    status: 'active',
-    expires_at: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'fallback-4',
-    title: 'Urgent: 20 Construction & MEP Supervisors for Croatia (Schengen)',
-    slug: 'croatia-mep-construction-supervisors-urgent',
-    country: 'Croatia',
-    country_code: 'HR',
-    category: 'Work & Residence Permit (Schengen)',
-    vacancies: 20,
-    salary: '€1,200 - €1,600 / month (~₹1.1L - ₹1.45L)',
-    experience_required: 'ITI / Diploma & 3+ Years Site Experience',
-    image_url: 'https://images.unsplash.com/photo-1541888946425-d0fbb186a5b3?w=800&auto=format&fit=crop&q=80',
-    summary: 'Schengen work permit mandate for commercial construction projects in Zagreb and Split with free food and accommodation provided.',
-    content: `### Croatia Schengen Work Permit Placement Drive
-Urgent opening for 20 Construction Foremen, MEP Technicians, Electricians, and Welders for major infrastructure projects in Croatia.
-
-#### Package Details:
-- **Free Accommodation & Food:** Provided by employer.
-- **Schengen Visa:** Full travel rights across 29 Schengen member states.
-- **Contract Duration:** 1-Year renewable work permit.
-
-#### Candidate Requirements:
-1. ITI / Vocational Diploma in Civil, Electrical, or Mechanical.
-2. Minimum 3 years site experience in India or Gulf.
-3. Clean Police Clearance Certificate with MEA Apostille.`,
-    status: 'active',
-    expires_at: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'fallback-5',
-    title: 'Urgent: 40 Manufacturing Workers for Poland (Automotive & Electronics)',
-    slug: 'poland-manufacturing-workers-urgent',
-    country: 'Poland',
-    country_code: 'PL',
-    category: 'Type A Work Permit',
-    vacancies: 40,
-    salary: '4,500 - 6,000 PLN / month (~₹95K - ₹1.3L)',
-    experience_required: 'ITI / 12th Pass & Manufacturing Experience',
-    image_url: 'https://images.unsplash.com/photo-1565043589221-1a6fd9ae45c7?w=800&auto=format&fit=crop&q=80',
-    summary: 'Direct recruitment for automotive assembly line workers and electronics manufacturing technicians with company-provided accommodation.',
-    content: `### Poland Manufacturing Sector Urgent Hiring
-Major automotive and electronics manufacturers in Warsaw and Wrocław are recruiting 40 production workers immediately.
-
-#### Key Benefits:
-- **Work Permit Provided:** Type A Zezwolenie na pracę with 2-year validity.
-- **Accommodation:** Company dormitory or housing allowance.
-- **EU Access:** Schengen visa for 29 European countries.
-- **Overtime Pay:** Time-and-a-half for extra hours.
-
-#### Requirements:
-1. 12th pass or ITI certificate.
-2. 1+ year experience in manufacturing/assembly.
-3. Basic English communication.
-4. Apostilled PCC from RPO.`,
-    status: 'active',
-    expires_at: new Date(Date.now() + 18 * 24 * 60 * 60 * 1000).toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'fallback-6',
-    title: 'Urgent: 35 Restaurant & Hospitality Staff for Dubai UAE',
-    slug: 'dubai-hospitality-restaurant-staff-urgent',
-    country: 'United Arab Emirates',
-    country_code: 'AE',
-    category: 'Employment Visa',
-    vacancies: 35,
-    salary: 'AED 2,500 - 4,500 / month (~₹58K - ₹1L)',
-    experience_required: 'Hotel/Restaurant Experience & Basic English',
-    image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80',
-    summary: '5-star hotel and premium restaurant chain hiring chefs, waiters, housekeeping staff with visa and accommodation provided.',
-    content: `### Dubai Premium Hospitality Urgent Recruitment
-Leading 5-star hotel groups and restaurant chains in Dubai are urgently recruiting hospitality professionals.
-
-#### Positions Available:
-- Commis Chef / Chef de Partie (10 positions)
-- Waiters / Stewards (15 positions)
-- Housekeeping Staff (10 positions)
-
-#### Package:
-- **Visa Sponsored:** 2-year employment visa.
-- **Accommodation:** Shared company housing.
-- **Free Food:** Staff meals during duty hours.
-- **Medical Insurance:** Covered by employer.
-- **Service Charge:** Monthly tips distributed to staff.
-
-#### Requirements:
-1. 2+ years experience in hospitality sector.
-2. Basic English communication skills.
-3. Attested certificates from UAE Embassy.
-4. Medical fitness certificate.`,
-    status: 'active',
-    expires_at: new Date(Date.now() + 22 * 24 * 60 * 60 * 1000).toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'fallback-7',
-    title: 'Urgent: 12 Agriculture Workers for Canada LMIA Jobs',
-    slug: 'canada-agriculture-lmia-workers-urgent',
-    country: 'Canada',
-    country_code: 'CA',
-    category: 'LMIA Work Permit',
-    vacancies: 12,
-    salary: 'CAD 16 - 19 / hour (~₹1L - ₹1.25L per month)',
-    experience_required: 'Farm/Agriculture Experience (Training Provided)',
-    image_url: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=800&auto=format&fit=crop&q=80',
-    summary: 'LMIA-approved farm positions in Ontario and British Columbia with direct PR pathway after 1 year of work.',
-    content: `### Canada Agriculture LMIA Work Permit Program
-Approved LMIA positions for greenhouse workers, farm laborers, and livestock handlers with clear pathway to Permanent Residence.
-
-#### Why This Program:
-- **PR Pathway:** Qualify for Express Entry after 1 year.
-- **LMIA Approved:** No need to search for employer.
-- **Family Sponsorship:** Bring spouse and children.
-- **Free Healthcare:** Canadian health insurance coverage.
-
-#### Job Duties:
-- Planting, harvesting, and crop maintenance
-- Operating farm equipment
-- Greenhouse operations
-- Livestock feeding and care
-
-#### Requirements:
-1. 10th pass (minimum education).
-2. Physical fitness for farm work.
-3. Basic English (IELTS 4.0+ preferred but not mandatory).
-4. Valid passport and PCC.
-
-#### PR Eligibility:
-After 1 year of work, apply for:
-- Canadian Experience Class (CEC)
-- Provincial Nominee Program (PNP)
-- Atlantic Immigration Program (AIP)`,
-    status: 'active',
-    expires_at: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'fallback-8',
-    title: 'Urgent: 18 IT Professionals for Ireland Critical Skills Permit',
-    slug: 'ireland-it-critical-skills-urgent',
-    country: 'Ireland',
-    country_code: 'IE',
-    category: 'Critical Skills Employment Permit',
-    vacancies: 18,
-    salary: '€42,000 - €65,000 / year (~₹38L - ₹58L)',
-    experience_required: 'IT Degree + 2 Years Experience in Software/Cloud',
-    image_url: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&auto=format&fit=crop&q=80',
-    summary: 'Critical Skills Permit for software developers, cloud engineers, and data analysts with fast 2-year PR pathway.',
-    content: `### Ireland Critical Skills Tech Jobs - Direct PR Route
-Dublin-based tech companies are hiring Indian IT professionals for Critical Skills Employment Permit with accelerated PR pathway.
-
-#### Positions:
-- Software Developers (Java, Python, React, Node.js)
-- Cloud Engineers (AWS, Azure, GCP)
-- Data Analysts & Data Engineers
-- DevOps Engineers
-
-#### Benefits:
-- **Fast PR:** Eligible for Stamp 4 after just 2 years.
-- **Family Rights:** Spouse can work immediately.
-- **EU Access:** Irish passport = EU citizenship.
-- **High Salaries:** €42K - €65K starting range.
-- **No Labour Market Test:** Critical Skills permit exempt.
-
-#### Requirements:
-1. Bachelor's degree in Computer Science/IT/Engineering.
-2. 2+ years of professional IT experience.
-3. IELTS 6.5+ or equivalent.
-4. Resume demonstrating relevant skills.
-
-#### Processing:
-- Critical Skills Permit: 6-8 weeks
-- Visa processing: 4-6 weeks
-- Total timeline: 3 months approx`,
-    status: 'active',
-    expires_at: new Date(Date.now() + 35 * 24 * 60 * 60 * 1000).toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'fallback-9',
-    title: 'Urgent: 25 Welders & Pipefitters for Romania Oil & Gas Projects',
-    slug: 'romania-welders-pipefitters-urgent',
-    country: 'Romania',
-    country_code: 'RO',
-    category: 'Work Authorization (EU Schengen)',
-    vacancies: 25,
-    salary: '€1,400 - €2,200 / month (~₹1.25L - ₹2L)',
-    experience_required: 'Welding Certification & 3+ Years Industrial Experience',
-    image_url: 'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=800&auto=format&fit=crop&q=80',
-    summary: 'Oil & gas infrastructure projects hiring certified welders and pipefitters with free accommodation and Schengen work permit.',
-    content: `### Romania Oil & Gas Sector Urgent Welding Jobs
-Major energy infrastructure projects in Bucharest and Ploiești require skilled welders and pipefitters immediately.
-
-#### Job Details:
-- **Welding Types:** TIG, MIG, Arc, Gas welding
-- **Projects:** Pipeline construction, refineries, petrochemical plants
-- **Contract:** 1-2 year renewable contracts
-- **Schengen Benefits:** Travel across 29 EU countries
-
-#### Salary & Benefits:
-- Base: €1,400 - €2,200/month
-- Overtime: 150% of hourly rate
-- Free accommodation in work camps
-- Free transportation to site
-- Medical insurance covered
-
-#### Requirements:
-1. Valid welding certification (ASME, AWS, or equivalent).
-2. 3+ years industrial welding experience.
-3. ITI/Diploma in welding or mechanical.
-4. Apostilled PCC from India.
-5. Medical fitness certificate.
-
-#### Documents Needed:
-- Welding certificates (original + apostilled)
-- Work experience certificates
-- Passport with 18+ months validity
-- Educational certificates`,
-    status: 'active',
-    expires_at: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000).toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'fallback-10',
-    title: 'Urgent: 50 Warehouse & Logistics Workers for Netherlands',
-    slug: 'netherlands-warehouse-logistics-urgent',
-    country: 'Netherlands',
-    country_code: 'NL',
-    category: 'TWV Work Permit',
-    vacancies: 50,
-    salary: '€2,100 - €2,800 / month (~₹1.9L - ₹2.5L)',
-    experience_required: 'Warehouse/Logistics Experience Preferred',
-    image_url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&auto=format&fit=crop&q=80',
-    summary: 'Major logistics hubs in Amsterdam and Rotterdam hiring warehouse workers, forklift operators, and inventory specialists.',
-    content: `### Netherlands Logistics Sector Mass Recruitment
-Dutch logistics and warehouse companies urgently need 50 workers for e-commerce fulfillment centers and distribution hubs.
-
-#### Positions Available:
-- Warehouse Operators (30 positions)
-- Forklift Drivers (10 positions)  
-- Inventory Controllers (5 positions)
-- Packing & Dispatch Staff (5 positions)
-
-#### Why Netherlands:
-- **High Wages:** €2,100 - €2,800/month + overtime
-- **Schengen Access:** Work and travel in EU
-- **Quality of Life:** Excellent healthcare and safety
-- **Bike Culture:** Free bicycle for commute
-- **English Friendly:** Most Dutch speak English
-
-#### Package:
-- TWV (Tewerkstellingsvergunning) work permit
-- Shared accommodation (€300-400/month deducted)
-- Medical insurance
-- Bicycle provided
-- Shift allowances (evening/night extra pay)
-
-#### Requirements:
-1. 12th pass minimum.
-2. Previous warehouse/logistics experience (preferred).
-3. Forklift license (for operator roles).
-4. Basic English communication.
-5. Physically fit for standing/walking shifts.
-
-#### Work Schedule:
-- 40 hours/week standard
-- Overtime available
-- 3-shift rotation possible
-- Weekend work with extra pay`,
-    status: 'active',
-    expires_at: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-]
-
-const FALLBACK_URGENT_REQUIREMENTS_OLD = [
-  {
-    id: 'fallback-1',
-    title: 'Urgent: 25 Specified Skilled Workers (SSW Caregivers) for Japan',
-    slug: 'japan-ssw-caregiver-urgent',
-    country: 'Japan',
-    country_code: 'JP',
-    category: 'Specified Skilled Worker (SSW-1)',
-    vacancies: 25,
-    salary: '¥220,000 - ¥280,000 / month (~₹1.25L - ₹1.6L)',
-    content: `### Croatia Schengen Work Permit Placement Drive
-Urgent opening for 20 Construction Foremen, MEP Technicians, Electricians, and Welders for major infrastructure projects in Croatia.
-
-#### Package Details:
-- **Free Accommodation & Food:** Provided by employer.
-- **Schengen Visa:** Full travel rights across 29 Schengen member states.
-- **Contract Duration:** 1-Year renewable work permit.
-
-#### Candidate Requirements:
-1. ITI / Vocational Diploma in Civil, Electrical, or Mechanical.
-2. Minimum 3 years site experience in India or Gulf.
-3. Clean Police Clearance Certificate with MEA Apostille.`,
-    status: 'active',
-    expires_at: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-]
-
-function getInitialRequirements(): UrgentRequirement[] {
+/**
+ * Real openings this browser has already fetched. Empty on a first visit and
+ * for every crawler, which is correct: an empty list is honest, an invented
+ * one is not.
+ */
+function getCachedRequirements(): UrgentRequirement[] {
   try {
     const cached = localStorage.getItem(LOCAL_URGENT_KEY)
     if (cached) {
       const parsed = JSON.parse(cached)
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      if (Array.isArray(parsed)) {
+        // A cache written before the placeholder rows were removed can still
+        // contain them. Drop those rather than serve an invented opening.
+        const real = (parsed as UrgentRequirement[]).filter((r) => !isFallbackRequirement(r))
+        if (real.length > 0) return real
+      }
     }
   } catch {}
-  return FALLBACK_URGENT_REQUIREMENTS
+  return []
 }
 
 /**
@@ -569,14 +199,16 @@ export function usePublicUrgentRequirements() {
           localStorage.setItem(LOCAL_URGENT_KEY, JSON.stringify(active))
         } catch {}
       } else {
-        // Database query failed - use fallback
+        // The query failed. Serve this browser's cache if it has one,
+        // otherwise nothing -- never a placeholder opening.
         console.warn('[usePublicUrgentRequirements] Database error:', dbError?.message || 'Unknown error')
-        setRequirements(FALLBACK_URGENT_REQUIREMENTS)
+        setError(dbError?.message || 'Could not load current openings')
+        setRequirements(getCachedRequirements())
       }
     } catch (err: any) {
       console.warn('[usePublicUrgentRequirements] fetch error:', err)
-      // Use fallback data on error
-      setRequirements(FALLBACK_URGENT_REQUIREMENTS)
+      setError(err?.message || 'Could not load current openings')
+      setRequirements(getCachedRequirements())
     } finally {
       setIsLoading(false)
     }
@@ -644,14 +276,16 @@ export function useUrgentRequirementBySlug(slug: string | undefined) {
       if (data) {
         setRequirement(data as UrgentRequirement)
       } else {
-        const local = getInitialRequirements()
-        const found = local.find(r => r.slug === slug || r.id === slug)
-        setRequirement(found || null)
+        // The query succeeded and no public row has this slug. The page
+        // renders its noindex "Requirement Not Found" branch.
+        setRequirement(null)
       }
     } catch (err: any) {
-      const local = getInitialRequirements()
-      const found = local.find(r => r.slug === slug || r.id === slug)
-      setRequirement(found || null)
+      // A transport failure, not a verdict on the slug. Only a real opening
+      // this browser has already seen may stand in for it.
+      setError(err?.message || 'Could not load this opening')
+      const cached = getCachedRequirements().find((r) => r.slug === slug || r.id === slug)
+      setRequirement(cached || null)
     } finally {
       setIsLoading(false)
     }
@@ -673,7 +307,7 @@ export function useUrgentRequirementBySlug(slug: string | undefined) {
  * Admin Hook for Managing Urgent Requirements (Full CRUD)
  */
 export function useAdminUrgentRequirements() {
-  const [requirements, setRequirements] = useState<UrgentRequirement[]>(FALLBACK_URGENT_REQUIREMENTS)
+  const [requirements, setRequirements] = useState<UrgentRequirement[]>(getCachedRequirements())
   const [isLoading, setIsLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -703,14 +337,12 @@ export function useAdminUrgentRequirements() {
         saveToLocal(result.data as UrgentRequirement[])
       } else {
         // Use fallback data if database is not set up yet
-        setRequirements(FALLBACK_URGENT_REQUIREMENTS)
-        saveToLocal(FALLBACK_URGENT_REQUIREMENTS)
+        setRequirements(getCachedRequirements())
       }
     } catch (err: any) {
       console.warn('[useAdminUrgentRequirements] fetch warning:', err)
       // Use fallback data on error
-      setRequirements(FALLBACK_URGENT_REQUIREMENTS)
-      saveToLocal(FALLBACK_URGENT_REQUIREMENTS)
+      setRequirements(getCachedRequirements())
     } finally {
       setIsLoading(false)
     }
