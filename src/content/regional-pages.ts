@@ -274,8 +274,14 @@ function buildGujaratCityPage(city: string, gujarat: RegionalLocation): Destinat
      * that differs between Rajkot and Mehsana on these pages is the name.
      *
      * They stay live because they are genuinely useful to someone who lands on
-     * one, and noindex keeps them out of sitemap.xml automatically (see
-     * scripts/seo-routes.mjs). Remove this flag per city once that city's page
+     * one, and noindex keeps them out of sitemap.xml automatically — via the
+     * rendered page, not the route list: scripts/prerender.mjs reads the robots
+     * tag the page actually emitted into dist/prerender-manifest.json, and
+     * scripts/generate-sitemap.mjs drops any route whose manifest entry says
+     * noindex. getPublicRoutes() in scripts/seo-routes.mjs does NOT know about
+     * this flag and still reports these nine as indexable, so anything that
+     * decides indexability from the route list alone would publish them.
+     * Remove this flag per city once that city's page
      * carries something true and specific to it -- which Regional Passport
      * Office has jurisdiction, which university its colleges affiliate to,
      * travel to the Surat office -- rather than sooner.
