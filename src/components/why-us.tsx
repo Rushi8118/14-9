@@ -31,30 +31,52 @@ export function WhyUs() {
           <div className="lg:col-span-6">
             <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-card/40 shadow-xl">
               {/*
-                Drawn 588px wide on desktop (max-w-7xl less 48px padding, half of
-                a 12-column grid with a 56px gap) and full-viewport below `lg`,
-                which is what `sizes` describes. Before this it served one
-                1024x1024 file to every viewport and relied on `object-cover` to
-                crop it to 3:2 — so a phone downloaded 93KB to display roughly a
-                tenth of those pixels. The variants are pre-cropped to 3:2 by
-                scripts/optimize-images.mjs, so the intrinsic dimensions below
-                now describe the actual file and `object-cover` has nothing left
-                to crop.
+                Half of a 12-column grid with a 56px gap, inside max-w-7xl less
+                48px of padding — so (container - 48 - 56) / 2.
+
+                `sizes` used to say a flat 588px above `lg`. That is the right
+                answer only at exactly 1280px wide. src/index.css widens
+                max-w-7xl past Tailwind's 1280 on large screens (1536px from
+                1280, 1720px from 1536, 1800px from 1920), and this `sizes` was
+                never updated to match, so the declared width drifted further
+                below the real one the wider the screen got: measured 659px at a
+                1440px viewport against 588px declared, and ~848px at 1920px.
+
+                Under-declaring makes the browser choose a smaller candidate than
+                the box needs and upscale it, which is exactly the soft-image
+                problem `sizes` exists to prevent. The calc below tracks the
+                layout instead of restating one breakpoint's answer, and rounds
+                up rather than down — 100vw counts the scrollbar the content does
+                not get, and over-declaring only ever costs bytes, while
+                under-declaring costs sharpness.
+
+                Before any of this it served one 1024x1024 file to every viewport
+                and relied on `object-cover` to crop it to 3:2 — a phone
+                downloaded 93KB to display roughly a tenth of those pixels. The
+                variants are pre-cropped to 3:2 by scripts/optimize-images.mjs,
+                so the intrinsic dimensions below describe the actual file and
+                `object-cover` has nothing left to crop.
 
                 WebP first, JPEG second: the WebP is a little over half the size
                 and every browser that cannot read it falls through to the JPEG
                 srcset rather than to a single large file.
+
+                NOTE: the largest variant is 1024w because the master is only
+                1024px wide. On a wide, high-DPR screen the box now asks for more
+                than that and there is nothing bigger to give it. Replacing
+                public/consultant-office.jpg with a wider original and re-running
+                `npm run images` is what would close that gap.
               */}
               <picture>
                 <source
                   type="image/webp"
                   srcSet="/consultant-office-400.webp 400w, /consultant-office-800.webp 800w, /consultant-office-1024.webp 1024w"
-                  sizes="(min-width: 1024px) 588px, 100vw"
+                  sizes="(min-width: 1024px) calc((100vw - 104px) / 2), 100vw"
                 />
                 <img
                   src="/consultant-office-800.jpg"
                   srcSet="/consultant-office-400.jpg 400w, /consultant-office-800.jpg 800w, /consultant-office-1024.jpg 1024w"
-                  sizes="(min-width: 1024px) 588px, 100vw"
+                  sizes="(min-width: 1024px) calc((100vw - 104px) / 2), 100vw"
                   alt="Siddhivinayak Overseas consultant guiding a client through visa documentation"
                   width={800}
                   height={533}

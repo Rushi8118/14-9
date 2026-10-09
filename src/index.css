@@ -251,6 +251,41 @@ html {
   }
 }
 
+/* ---------- TAP TARGETS ---------- */
+/*
+ * Expands a control's *hit* area to 44x44 without changing how it looks.
+ *
+ * Apple asks for 44x44 and Google for 48x48; several icon-only controls on the
+ * public pages are drawn 40x40, which is deliberate visually -- a 44px header
+ * button would sit badly against a 40px row. Growing the element would change
+ * the layout, so the overlay grows instead: a centred, absolutely-positioned
+ * pseudo-element that catches the same taps.
+ *
+ * `position: relative` is set here rather than assumed. The overlay carries no
+ * z-index on purpose: a first attempt used `z-index: -1` to keep it clear of the
+ * icon, which painted it behind the surrounding content and meant
+ * `elementFromPoint` 3px above the button returned the section wrapper, not the
+ * button -- a 44px overlay that looked right and caught nothing. It is fully
+ * transparent, so sitting above the icon costs nothing visually, and because it
+ * is the button's own pseudo-element a pointer event on it targets the button.
+ *
+ * `max()` means a control already larger than 44px keeps its real size rather
+ * than being shrunk to 44.
+ */
+.tap-target {
+  position: relative;
+}
+
+.tap-target::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+}
+
 /* ---------- SKIP TO CONTENT ---------- */
 
 .skip-to-content {
