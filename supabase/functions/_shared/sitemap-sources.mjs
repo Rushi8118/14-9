@@ -44,7 +44,19 @@
 /** Columns every source would like, in the order we degrade through. */
 const SELECT_SHAPES = [
   'slug,updated_at,published_at,status,canonical_url,robots,is_indexable,deleted_at',
+  'slug,updated_at,published_at,status,canonical_url,expires_at',
   'slug,updated_at,published_at,status,canonical_url',
+  // For `urgent_requirements`, which has `expires_at` but no `published_at` or
+  // `canonical_url`. Without this shape it degrades straight past the expiry
+  // column to `slug,updated_at,status`, and an opening whose expires_at has
+  // passed stays in the sitemap. The page itself goes noindex at that point
+  // (UrgentRequirementDetailPage sets noindex={isClosed}), so the two halves
+  // would disagree about whether the URL is indexable.
+  //
+  // Measured against production on 2026-10-09: blog_posts accepts shape 3
+  // (it has published_at and canonical_url, no expires_at), urgent_requirements
+  // accepts this one, job_listings falls through to slug,updated_at,status.
+  'slug,updated_at,status,expires_at',
   'slug,updated_at,status',
   'slug,status',
   'slug',
@@ -125,6 +137,41 @@ const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
  * optimisation, the core is the guarantee. `urgent_requirements` uses `active`
  * where everything else uses `published`, which is why the filter is per-source
  * rather than global.
+ *
+ * `serve: false` means "declared, not emitted". A source is only served once a
+ * ROUTE EXISTS for its prefix. A sitemap's job is to submit URLs that resolve;
+ * a type whose table has rows but whose prefix 404s turns the sitemap into a
+ * generator of crawl errors, and no amount of correct XML fixes that. The flag
+ * is here rather than the entries being deleted so that re-enabling one is a
+ * single word next to the reason it was off.
+ *
+ * Checked against production on 2026-10-09 (status codes from live requests,
+ * row counts and columns from the REST API as the anon role):
+ *
+ *   blog          blog_posts           11 published rows   /blog/<slug> resolves
+ *   requirements  urgent_requirements  14 active rows      /urgent-requirements/<slug> resolves
+ *   services      services             table absent (PGRST205)
+ *   jobs          job_listings         1 active row
+ *
+ * Why `jobs` is off, specifically — three faults that currently cancel out:
+ *
+ *   1. The filter asked for `status=eq.published`; the table uses `active`, as
+ *      `urgent_requirements` does. So it reads 0 rows and looks empty.
+ *   2. There is no `/jobs` route. React Router declares none and public/.htaccess
+ *      app-shells only `blog|urgent-requirements`, so `/jobs/<slug>` falls to the
+ *      404 rule. Verified live: 404.
+ *   3. Its single row's slug, `hotel-jobs-australia-overseas-workers`, is ALSO an
+ *      active `urgent_requirements` slug and is already submitted as
+ *      /urgent-requirements/hotel-jobs-australia-overseas-workers. Serving it
+ *      under /jobs would submit a second URL for the same content.
+ *
+ * So "fixing" the filter alone — the obvious next edit — would start submitting a
+ * duplicate URL that 404s. Turn `serve` on in the same change that adds the route
+ * and resolves the slug collision, not before.
+ *
+ * `services` is off for the same reason minus the data: `/services/<slug>` 404s
+ * too (verified live). `/services` itself is a real prerendered page and stays in
+ * sitemap-pages.xml — the prefix match is on `/services/`, so it is unaffected.
  */
 export const CONTENT_SOURCES = Object.freeze([
   { type: 'blog', table: 'blog_posts', prefix: '/blog', filter: 'status=eq.published' },
@@ -134,9 +181,32 @@ export const CONTENT_SOURCES = Object.freeze([
     prefix: '/urgent-requirements',
     filter: 'status=eq.active',
   },
-  { type: 'services', table: 'services', prefix: '/services', filter: 'status=eq.published' },
-  { type: 'jobs', table: 'job_listings', prefix: '/jobs', filter: 'status=eq.published' },
+  {
+    type: 'services',
+    table: 'services',
+    prefix: '/services',
+    filter: 'status=eq.published',
+    serve: false,
+  },
+  {
+    type: 'jobs',
+    table: 'job_listings',
+    prefix: '/jobs',
+    // Left as `published` deliberately: the table uses `active`, and correcting
+    // this without also adding the route and fixing the slug collision above
+    // would submit a duplicate 404. See the comment on CONTENT_SOURCES.
+    filter: 'status=eq.published',
+    serve: false,
+  },
 ])
+
+/**
+ * The sources actually emitted. Both halves of the sitemap derive their split
+ * from this, not from CONTENT_SOURCES: the build claims every prefix the
+ * function does not serve, so the two halves stay exactly complementary whatever
+ * the flags say, and no URL can land in both or neither.
+ */
+export const servedSources = () => CONTENT_SOURCES.filter((source) => source.serve !== false)
 
 /** Maps a content row onto the record shape sitemap.mjs expects. */
 function toRecord(row, { type, prefix }) {
@@ -147,6 +217,7 @@ function toRecord(row, { type, prefix }) {
     status: row.status,
     updated_at: row.updated_at,
     published_at: row.published_at,
+    expires_at: row.expires_at,
     deleted_at: row.deleted_at,
     canonical_url: row.canonical_url,
     robots: row.robots,
@@ -164,7 +235,7 @@ function toRecord(row, { type, prefix }) {
  *   counts: Record<string, number>,
  * }>}
  */
-export async function loadRecords({ baseUrl, key, fetchImpl = fetch, sources = CONTENT_SOURCES }) {
+export async function loadRecords({ baseUrl, key, fetchImpl = fetch, sources = servedSources() }) {
   if (!baseUrl || !key) {
     return {
       records: [],

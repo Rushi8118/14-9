@@ -528,12 +528,41 @@ if (manifest) {
       // Apache sends /sitemap-content.xml to the sitemap Edge Function only when
       // the file is absent. If that function is not deployed the shard 404s, and
       // Search Console reports the index as broken on every fetch.
-      error(
-        'build',
-        'dist/sitemap.xml lists sitemap-content.xml but dist/ has no such file — the shard ' +
-          'falls through to the sitemap Edge Function, which must be deployed ' +
-          '(`supabase functions deploy sitemap`) or the index must not name it',
-      )
+      //
+      // SITEMAP_DYNAMIC_CONTENT=1 is the deliberate switch to that arrangement
+      // (see generate-sitemap.mjs). It is still not a licence to ship blind:
+      // the function has to be answering before the file goes away, so this
+      // stays an error unless the operator ALSO states that it is deployed, by
+      // setting SITEMAP_FUNCTION_VERIFIED=1 in the same build. Two flags
+      // because they are two different claims — "I want the dynamic shard" and
+      // "I have checked that it answers" — and only the second one makes
+      // removing the file safe.
+      const intended = /^(1|true|yes)$/i.test(process.env.SITEMAP_DYNAMIC_CONTENT ?? '')
+      const verified = /^(1|true|yes)$/i.test(process.env.SITEMAP_FUNCTION_VERIFIED ?? '')
+      if (intended && verified) {
+        warn(
+          'build',
+          'sitemap-content.xml is served by the sitemap Edge Function, not shipped as a file ' +
+            '(SITEMAP_DYNAMIC_CONTENT=1, SITEMAP_FUNCTION_VERIFIED=1). After uploading, confirm ' +
+            '/sitemap-content.xml answers 302 and that following it returns a <urlset>.',
+        )
+      } else if (intended) {
+        error(
+          'build',
+          'SITEMAP_DYNAMIC_CONTENT=1 omitted dist/sitemap-content.xml, but the build cannot ' +
+            'confirm the sitemap Edge Function answers. Deploy it ' +
+            '(`supabase functions deploy sitemap --no-verify-jwt`), verify it returns a <urlset>, ' +
+            'then rebuild with SITEMAP_FUNCTION_VERIFIED=1. Without the function the shard 404s ' +
+            'and every database-driven URL drops out of the sitemap.',
+        )
+      } else {
+        error(
+          'build',
+          'dist/sitemap.xml lists sitemap-content.xml but dist/ has no such file — the shard ' +
+            'falls through to the sitemap Edge Function, which must be deployed ' +
+            '(`supabase functions deploy sitemap`) or the index must not name it',
+        )
+      }
     } else if (contentXml && !contentListed) {
       error(
         'build',

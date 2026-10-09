@@ -239,6 +239,21 @@ export function toEntry(record, baseUrl, now = Date.now()) {
     if (!Number.isNaN(at) && at > now) return { reason: 'publish date is in the future' }
   }
 
+  // The other end of the same window. An urgent requirement keeps
+  // status = 'active' until someone closes it by hand, so expiry is what
+  // actually ends it: the listing page filters on it, and the detail page goes
+  // noindex once it passes (UrgentRequirementDetailPage, noindex={isClosed}).
+  // Without this the sitemap would keep submitting a URL whose own page says
+  // not to index it, and the build-time half — which reads the rendered robots
+  // tag — would already have dropped it. An unparseable date is ignored rather
+  // than treated as expired: losing a live URL to a bad timestamp is worse than
+  // keeping one a little too long.
+  const expiresAt = record.expiresAt ?? record.expires_at
+  if (expiresAt) {
+    const at = Date.parse(String(expiresAt))
+    if (!Number.isNaN(at) && at <= now) return { reason: 'expired' }
+  }
+
   if (record.isIndexable === false || record.is_indexable === false) {
     return { reason: 'isIndexable is false' }
   }
