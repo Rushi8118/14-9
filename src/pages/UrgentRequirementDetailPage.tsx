@@ -370,11 +370,24 @@ export default function UrgentRequirementDetailPage() {
               {/* Cover Image */}
               {(requirement.detail_image_url || requirement.image_url) && (
                 <div className="relative rounded-2xl overflow-hidden border border-border/60 bg-muted/30 shadow-md">
+                  {/*
+                    This is the hero, above the fold, and almost certainly the
+                    largest element on the page — so it is the LCP candidate.
+                    It was loading="lazy", which defers precisely the fetch that
+                    decides LCP: the browser waits until layout proves the image
+                    is in view before it starts downloading. Eager plus a high
+                    fetch priority starts it immediately.
+                    No width/height here: the image keeps its intrinsic ratio
+                    under `h-auto … object-contain`, so stating a fixed pair
+                    would be a guess at someone else's upload.
+                  */}
                   <img
                     src={requirement.detail_image_url || requirement.image_url}
                     alt={requirement.title}
                     className="block h-auto max-h-[75vh] w-full object-contain"
-                    loading="lazy"
+                    loading="eager"
+                    fetchPriority="high"
+                    decoding="async"
                   />
                 </div>
               )}

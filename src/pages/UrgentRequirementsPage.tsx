@@ -1,7 +1,6 @@
 import { ImmigrationDisclaimer } from '@/components/seo/ImmigrationDisclaimer'
 import React, { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import {
   Flame, Clock, Users, ArrowRight, Search, MapPin, Briefcase,
   DollarSign, Sparkles, Filter, CheckCircle2
@@ -157,13 +156,25 @@ export default function UrgentRequirementsPage() {
                 const remainingDays = getRemainingDays(req.expires_at)
                 const isClosed = isRequirementExpired(req)
 
+                /*
+                  Entrance is CSS, not framer-motion.
+
+                  This was a motion.div per card with a delay of idx * 0.05s:
+                  with 14 openings that is 14 JS-driven animations plus a 650ms
+                  stagger tail, all on the main thread, and the grid grows with
+                  the business. Under a 4x CPU throttle this page spent ~4s in
+                  long tasks. `.slide-up` is the site's existing entrance
+                  utility over the same slide-up-fade keyframes, so it runs on
+                  the compositor and costs no JS.
+
+                  The delay is capped at 8 cards: past that the tail is longer
+                  than anyone waits, and it must not scale with the row count.
+                */
                 return (
-                  <motion.div
+                  <div
                     key={req.id}
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05, duration: 0.3 }}
-                    className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-md hover:shadow-xl hover:border-primary/50 transition-all"
+                    className="slide-up group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-md hover:shadow-xl hover:border-primary/50 transition-all"
+                    style={{ animationDelay: `${Math.min(idx, 8) * 50}ms` }}
                   >
                     {/* Urgency glow on hover */}
                     <div className="absolute -top-10 -right-10 h-28 w-28 rounded-full bg-amber-500/5 group-hover:bg-amber-500/15 blur-2xl transition pointer-events-none" />
@@ -187,11 +198,24 @@ export default function UrgentRequirementsPage() {
                       {/* Image Thumbnail if available */}
                       {req.image_url && (
                         <div className="relative rounded-xl overflow-hidden aspect-[16/9] mb-4 border border-border/50 bg-muted/30">
+                          {/*
+                            width/height are the 16/9 box this renders in, not
+                            the file's own size: they give the browser the
+                            aspect ratio before the bytes arrive, so a card does
+                            not jump when its image lands. decoding="async"
+                            keeps the decode off the main thread — these files
+                            are large enough for that to be measurable (the
+                            listing pulled 6.9 MB of them before uploads were
+                            downscaled; see src/lib/images/downscale.ts).
+                          */}
                           <img
                             src={req.image_url}
                             alt={req.title}
+                            width={640}
+                            height={360}
                             className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-[1.02]"
                             loading="lazy"
+                            decoding="async"
                           />
                           <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-background/90 backdrop-blur-md text-[10px] font-semibold text-primary">
                             {req.category}
@@ -243,7 +267,7 @@ export default function UrgentRequirementsPage() {
                         </Link>
                       </Button>
                     </div>
-                  </motion.div>
+                  </div>
                 )
               })}
             </div>

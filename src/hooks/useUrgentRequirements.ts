@@ -143,6 +143,41 @@ export const isFallbackRequirement = (r: Pick<UrgentRequirement, 'id'>) =>
   typeof r.id === 'string' && r.id.startsWith('fallback-')
 
 /**
+ * The columns the public LIST views actually read, rather than `*`.
+ *
+ * Measured against production on 2026-10-09: `select('*')` returned **136 kB**
+ * for 14 rows where these columns return **~15 kB**. The difference is not the
+ * job descriptions — it is SEO research being shipped to visitors. Per row, the
+ * heaviest fields were `long_tail_keywords` (3,761 B) and `related_keywords`
+ * (3,421 B), neither of which any public view renders, plus 48 kB of `content`
+ * markdown across all rows that only the detail page uses.
+ *
+ * It was paid three times over, because the same hook backs
+ * /urgent-requirements, RelatedRequirements on every detail page, and
+ * CountryVacancies on every /work-visa/* country page. It was then
+ * JSON.stringify'd into localStorage at that size on each fetch.
+ *
+ * The union of what the three consumers read:
+ *   UrgentRequirementsPage  id title slug country country_code category
+ *                           vacancies salary summary image_url expires_at
+ *   RelatedRequirements     title slug country category
+ *   CountryVacancies        id title slug country city salary vacancies
+ *                           contract_type working_hours
+ * plus `status` and `expires_at` for this hook's own active/expiry filtering and
+ * `created_at` for the ordering.
+ *
+ * The by-slug detail query deliberately keeps `select('*')`: that page renders
+ * the content, the FAQ and the schema, so it needs the whole row. Narrowing
+ * this list means a new field on a card needs adding here too — which is the
+ * trade, and the reason the list is spelled out next to what reads it.
+ */
+// One unbroken literal, deliberately: supabase-js derives the row type from the
+// literal type of this string, so splitting it across a `+` concatenation turns
+// the result into GenericStringError[] and the cast below stops compiling.
+const PUBLIC_LIST_COLUMNS =
+  'id,title,slug,country,country_code,city,category,vacancies,salary,summary,image_url,contract_type,working_hours,status,expires_at,created_at' as const
+
+/**
  * Real openings this browser has already fetched. Empty on a first visit and
  * for every crawler, which is correct: an empty list is honest, an invented
  * one is not.
@@ -178,7 +213,7 @@ export function usePublicUrgentRequirements() {
       // Always try database first
       const { data, error: dbError } = await supabase
         .from('urgent_requirements')
-        .select('*')
+        .select(PUBLIC_LIST_COLUMNS)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
 

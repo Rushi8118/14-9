@@ -41,6 +41,7 @@ import { synthesizeUrgentRequirement, type GeneratedUrgentRequirement } from '@/
 import { BlogContent } from '@/components/blog/BlogContent'
 import { KeywordSuggestPanel, useKeywordSuggestions } from '@/components/admin/KeywordSuggestPanel'
 import { mergeKeywords, pickAutoKeywords, splitByLength } from '@/lib/seo/keyword-suggest'
+import { describeSaving, downscaleImage } from '@/lib/images/downscale'
 import { SeoPanel } from '@/components/admin/SeoPanel'
 import { FlagIcon } from '@/components/flag-icon'
 import { toast } from 'sonner'
@@ -550,8 +551,12 @@ export default function UrgentRequirementsAdminPage() {
    * image_url is used instead.
    */
   const uploadPendingImage = async (): Promise<string | undefined> => {
-    const file = pendingImages[0]
-    if (!file) return undefined
+    const original = pendingImages[0]
+    if (!original) return undefined
+    // Shrink before storing: these posters arrive as ~2 MB PNG exports and are
+    // served to every visitor at their full size, because this project's
+    // Supabase plan cannot resize on delivery. See src/lib/images/downscale.ts.
+    const file = await downscaleImage(original)
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
     const path = `urgent-requirements/main-${Date.now()}-${safeName}`
     const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file, {
@@ -600,9 +605,10 @@ export default function UrgentRequirementsAdminPage() {
     setUploadingImage(true)
     setUploadTarget(target)
     try {
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const optimised = await downscaleImage(file)
+      const safeName = optimised.name.replace(/[^a-zA-Z0-9._-]/g, '_')
       const path = `urgent-requirements/${target}-${Date.now()}-${safeName}`
-      const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file, {
+      const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, optimised, {
         cacheControl: '15552000',
         upsert: false,
       })
@@ -611,7 +617,10 @@ export default function UrgentRequirementsAdminPage() {
       const { data } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(path)
       if (target === 'main') updateForm({ imageUrl: data.publicUrl })
       else updateForm({ detailImageUrl: data.publicUrl })
-      toast.success(target === 'main' ? 'Main image uploaded' : 'Detail image uploaded')
+      const saving = describeSaving(file.size, optimised.size)
+      toast.success(
+        `${target === 'main' ? 'Main' : 'Detail'} image uploaded${saving ? ` — ${saving}` : ''}`,
+      )
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to upload cover image')
     } finally {
