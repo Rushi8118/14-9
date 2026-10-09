@@ -12,6 +12,11 @@ html {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    /* Duration alone is not enough for a staggered entrance: the animation is
+       instant but the delay still holds, so a reduced-motion visitor waits out
+       a tail for content that never animates. Affects .stagger-children and
+       the urgent-requirements grid. */
+    animation-delay: 0ms !important;
   }
 }
 @source "../index.html";
