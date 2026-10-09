@@ -1,6 +1,6 @@
 import { fetchTrendingKeywords } from '@/lib/ai/providers'
 import { containsUnsafeClaims } from '@/lib/ai/guardrails'
-import { hasPageKeywords, loadPageKeywords } from '@/content/keyword-files'
+import { hasPageKeywords, loadPageKeywords, workVisaKeywordSlugs } from '@/content/keyword-files'
 
 /**
  * Keyword suggestions for an urgent requirement, from two sources:
@@ -50,6 +50,57 @@ export function workVisaPathFor(country: string): string | null {
   }
   const path = `/work-visa/${slugify(name)}`
   return hasPageKeywords(path) ? path : null
+}
+
+/** How an aliased slug should read back in the admin UI. */
+const ALIAS_LABELS: Record<string, string> = {
+  uk: 'UK',
+  usa: 'USA',
+  gulf: 'Gulf',
+  'new-zealand': 'New Zealand',
+  'saudi-arabia': 'Saudi Arabia',
+  'czech-republic': 'Czech Republic',
+  'south-korea': 'South Korea',
+}
+
+const titleCase = (v: string) => v.replace(/\b[a-z]/g, (c) => c.toUpperCase())
+
+/**
+ * Best guess at the country a piece of text is about, for keyword suggestion.
+ *
+ * An urgent requirement has a `country` column; a blog post does not, so the
+ * blog editor derives one from the title, category and tags instead of asking
+ * the writer to retype it. It is only ever a starting point — the editor can
+ * override it, and nothing is stored, because a guess must not become a
+ * business fact on the page.
+ *
+ * Aliases are tried first, so "England vs Ireland" resolves to UK by the same
+ * rule workVisaPathFor uses. Then the countries that actually have a keyword
+ * plan, longest name first so "Saudi Arabia" is not shadowed by a shorter
+ * match. Returns '' when nothing matches, which leaves the panel in its
+ * "enter a country" state rather than guessing wrongly.
+ */
+export function detectCountryFrom(...texts: Array<string | string[] | undefined | null>): string {
+  const haystack = texts
+    .flatMap((t) => (Array.isArray(t) ? t : [t]))
+    .filter((t): t is string => Boolean(t && t.trim()))
+    .join(' ')
+    .toLowerCase()
+  if (!haystack.trim()) return ''
+
+  for (const [pattern, slug] of COUNTRY_ALIASES) {
+    if (pattern.test(haystack)) return ALIAS_LABELS[slug] ?? titleCase(slug.replace(/-/g, ' '))
+  }
+
+  const names = workVisaKeywordSlugs()
+    .map((slug) => slug.replace(/-/g, ' '))
+    .sort((a, b) => b.length - a.length)
+  for (const name of names) {
+    if (new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(haystack)) {
+      return ALIAS_LABELS[slugify(name)] ?? titleCase(name)
+    }
+  }
+  return ''
 }
 
 /** Claims the warning list in docs/seo/keyword-strategy.md rules out. */

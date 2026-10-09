@@ -65,4 +65,32 @@ export const LOCATION_ROUTE_PATHS = [
   '/visa-consultants-in-anand',
   '/visa-consultants-in-mehsana',
   '/visa-consultants-in-vapi',
+  // The remaining Gujarat district headquarters. Same order as majorCities in
+  // regional-coverage.ts, which is what generates these routes — if the two
+  // lists disagree, the prerender step fails the build rather than shipping a
+  // route that renders the 404 (see the header above).
+  '/visa-consultants-in-gandhinagar',
+  '/visa-consultants-in-bharuch',
+  '/visa-consultants-in-junagadh',
+  '/visa-consultants-in-bhuj',
+  '/visa-consultants-in-nadiad',
+  '/visa-consultants-in-morbi',
+  '/visa-consultants-in-valsad',
+  '/visa-consultants-in-patan',
+  '/visa-consultants-in-porbandar',
+  '/visa-consultants-in-surendranagar',
+  '/visa-consultants-in-amreli',
+  '/visa-consultants-in-veraval',
+  '/visa-consultants-in-godhra',
+  '/visa-consultants-in-palanpur',
+  '/visa-consultants-in-himatnagar',
+  '/visa-consultants-in-botad',
+  '/visa-consultants-in-dahod',
+  '/visa-consultants-in-modasa',
+  '/visa-consultants-in-khambhalia',
+  '/visa-consultants-in-rajpipla',
+  '/visa-consultants-in-lunavada',
+  '/visa-consultants-in-vyara',
+  '/visa-consultants-in-chhota-udaipur',
+  '/visa-consultants-in-ahwa',
 ] as const
