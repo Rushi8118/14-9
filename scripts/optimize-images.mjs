@@ -173,6 +173,10 @@ const FAVICON = {
   // Square region of the master containing the globe mark and nothing else.
   crop: { left: 150, top: 116, width: 190, height: 190 },
   round: true,
+  // Fills the disc behind the globe and stops at its edge. The master's own
+  // backdrop inside the gold ring is white, so this restores what the artwork
+  // already shows at full size rather than introducing a colour.
+  plate: '#ffffff',
   sizes: [16, 32, 48],
 }
 
@@ -184,14 +188,31 @@ const discMask = (size) =>
   )
 
 /**
+ * A filled disc, transparent outside it — the backing plate.
+ *
+ * Inset by half a pixel so the fill sits just inside the mask that clips the
+ * finished icon. Without that, the plate's own antialiased rim and the mask's
+ * land on the same pixels and the edge picks up a faint light fringe, which is
+ * most visible against a dark tab strip at 16px.
+ */
+const discFill = (size, colour) =>
+  Buffer.from(
+    `<svg width="${size}" height="${size}">` +
+      `<circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 0.5}" fill="${colour}"/></svg>`,
+  )
+
+/**
  * The globe emblem at one size, as a transparent disc.
  *
  * No flatten(): the mark ships on transparency. The 512px master is 91%
  * fully-transparent and contains no opaque white, so there is no plate to strip
  * and no white fringe to antialias against.
  */
-const markPng = (size, { round = true, palette = false } = {}) => {
-  const pipeline = sharp(at(FAVICON.source))
+const markPng = async (size, { round = true, palette = false, plate = null } = {}) => {
+  // Masking after the resize means the disc edge is antialiased at the final
+  // size. Masking first and then scaling would resample an already-hard edge
+  // and leave it visibly stepped at 16px.
+  const square = await sharp(at(FAVICON.source))
     .extract(FAVICON.crop)
     .resize(size, size, {
       fit: 'contain',
@@ -199,11 +220,26 @@ const markPng = (size, { round = true, palette = false } = {}) => {
       // Keep the master's transparency rather than padding with a colour.
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     })
+    .png()
+    .toBuffer()
 
-  // Masking after the resize means the disc edge is antialiased at the final
-  // size. Masking first and then scaling would resample an already-hard edge
-  // and leave it visibly stepped at 16px.
-  return (round ? pipeline.composite([{ input: discMask(size), blend: 'dest-in' }]) : pipeline)
+  // `plate` fills the disc behind the mark and stops at its edge, so the icon
+  // gains a solid backing *inside* the circle while everything outside it stays
+  // transparent. That is the difference between a badge and the full-bleed white
+  // square an earlier version shipped.
+  //
+  // Both layers go in ONE composite() call, in order. sharp's composite()
+  // *replaces* the layer list rather than appending to it, so chaining a second
+  // call silently discards the first — which here meant masking a bare white
+  // disc and dropping the globe entirely, for a 1KB blank icon that still looked
+  // plausible in a file listing.
+  const layers = []
+  if (plate) layers.push({ input: square, blend: 'over' })
+  if (round) layers.push({ input: discMask(size), blend: 'dest-in' })
+
+  const base = plate ? sharp(discFill(size, plate)) : sharp(square)
+
+  return (layers.length ? base.composite(layers) : base)
     .png({ compressionLevel: 9, palette })
     .toBuffer()
 }
@@ -247,7 +283,7 @@ async function buildFavicons() {
 
   const rendered = []
   for (const size of FAVICON.sizes) {
-    const data = await markPng(size, { round: FAVICON.round })
+    const data = await markPng(size, { round: FAVICON.round, plate: FAVICON.plate })
     rendered.push({ size, data })
     const output = path.join('favicon', `favicon-${size}x${size}.png`)
     await writeFile(at(output), data)
@@ -306,7 +342,10 @@ async function buildResponsive() {
     // antialiased rim is 14/255, while the file drops from 14.8KB to 5.9KB at
     // 96px. This image is above the fold on every page, so 9KB matters and the
     // difference does not.
-    await writeFile(at(output), await markPng(width, { round: FAVICON.round, palette: true }))
+    await writeFile(
+      at(output),
+      await markPng(width, { round: FAVICON.round, plate: FAVICON.plate, palette: true }),
+    )
     console.log(`  ${output} ${await sizeKb(output)}KB`)
   }
 }
