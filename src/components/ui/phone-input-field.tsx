@@ -380,7 +380,18 @@ export function PhoneInputField({
   // Separate height and font-size classes intended for the input control from outer wrapper classes
   const classes = (className || "").split(/\s+/).filter(Boolean)
   const heightClass = classes.find((c) => /^h-\S+/.test(c)) || "h-10"
-  const textSizeClass = classes.find((c) => /^text-(xs|sm|base|lg)/.test(c)) || "text-sm"
+  // `text-base md:text-sm` — 16px on phones, 14px from `md` up — is not a style
+  // preference, it is what stops iOS Safari auto-zooming when the field takes
+  // focus. Safari zooms any input whose computed font-size is below 16px and does
+  // not zoom back out, so on a phone the whole page is left magnified and
+  // horizontally scrollable mid-form. ui/input.tsx and ui/textarea.tsx already do
+  // this; this control defaulted to a flat `text-sm` and so rendered at 14px at
+  // every width, which put the zoom bug on all four phone and WhatsApp fields of
+  // the contact form — the site's main lead capture.
+  //
+  // An explicit size passed by a caller still wins, so a caller can opt into
+  // something denser; none currently does.
+  const textSizeClass = classes.find((c) => /^text-(xs|sm|base|lg)/.test(c)) || "text-base md:text-sm"
   const outerClasses = classes.filter((c) => !/^h-\S+/.test(c) && !/^text-(xs|sm|base|lg)/.test(c)).join(" ")
 
   const showHelper = !hideHint || (invalid && touched)

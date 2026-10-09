@@ -189,6 +189,16 @@ export default function StudyVisaPage() {
                     the w=1200 file to fill a column that is ~592px on desktop
                     (max-w-7xl, two columns, 48px gap) and 100vw on a phone.
 
+                    That flat 592px is no longer true above 1280px: src/index.css
+                    widens max-w-7xl past Tailwind's 1280 on large screens, and
+                    this column grows with it. Measured here: 554px at a 1280px
+                    viewport, 630px at 1440px, 831px at 1920px — a steady ~43.5%
+                    of the viewport rather than a fixed number, so `sizes` now
+                    says 45vw. Slightly over at every width measured, which is the
+                    safe direction: over-declaring costs bytes, under-declaring
+                    makes the browser pick a smaller file and upscale it, which is
+                    the soft-image problem `sizes` exists to prevent.
+
                     `auto=format` is already in each URL, so Unsplash serves
                     WebP or AVIF to browsers that accept it and JPEG to the rest
                     — which is why there is no <picture> element here.
@@ -196,7 +206,7 @@ export default function StudyVisaPage() {
                   <img
                     src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=800&q=80"
                     srcSet="https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=400&q=80 400w, https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=600&q=80 600w, https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=800&q=80 800w, https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=1200&q=80 1200w"
-                    sizes="(min-width: 1024px) 592px, 100vw"
+                    sizes="(min-width: 1024px) 45vw, 100vw"
                     alt="Students with passports and global study visa planning"
                     width={1200}
                     height={800}

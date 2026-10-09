@@ -140,7 +140,7 @@ export function UrgentRequirementBanner() {
                         (prev) => (prev - 1 + requirements.length) % requirements.length,
                       )
                     }
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#1A2340]/12 bg-white text-[#1A2340] transition hover:border-primary/40 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C49A2B] focus-visible:ring-offset-2"
+                    className="tap-target inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#1A2340]/12 bg-white text-[#1A2340] transition hover:border-primary/40 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C49A2B] focus-visible:ring-offset-2"
                     aria-label="Previous urgent opening"
                   >
                     <ChevronLeft className="h-4 w-4" aria-hidden="true" />
@@ -155,7 +155,7 @@ export function UrgentRequirementBanner() {
                   <button
                     type="button"
                     onClick={() => setCurrentIndex((prev) => (prev + 1) % requirements.length)}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#1A2340]/12 bg-white text-[#1A2340] transition hover:border-primary/40 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C49A2B] focus-visible:ring-offset-2"
+                    className="tap-target inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#1A2340]/12 bg-white text-[#1A2340] transition hover:border-primary/40 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C49A2B] focus-visible:ring-offset-2"
                     aria-label="Next urgent opening"
                   >
                     <ChevronRight className="h-4 w-4" aria-hidden="true" />

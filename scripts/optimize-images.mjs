@@ -60,12 +60,22 @@ async function buildPoster() {
  *
  * WIDTHS ARE CHOSEN FROM THE MEASURED LAYOUT, NOT A GENERIC LADDER
  *
- * why-us.tsx draws the photo inside `max-w-7xl` (1280) less 48px of padding,
- * in a 12-column grid with a 56px gap, spanning 6 — so 588px on desktop and
- * 100vw below the `lg` breakpoint. 400 covers a phone at 1x, 800 covers a phone
- * at 2x and desktop at ~1.4x, and 1024 (the source's own width) covers desktop
- * at close to 2x. Generating a 1600px variant would mean upscaling, which adds
- * bytes and no detail.
+ * why-us.tsx draws the photo inside `max-w-7xl` less 48px of padding, in a
+ * 12-column grid with a 56px gap, spanning 6 — so (container - 104) / 2, and
+ * 100vw below the `lg` breakpoint.
+ *
+ * This used to read "`max-w-7xl` (1280) … so 588px on desktop". That is only
+ * true at exactly 1280px wide: src/index.css widens max-w-7xl beyond Tailwind's
+ * 1280 on large screens (1536px from 1280, 1720px from 1536, 1800px from 1920),
+ * which this note and the `sizes` attribute it justified had both missed.
+ * Measured against the running site, the box is 659px at a 1440px viewport and
+ * about 848px at 1920px, not 588px.
+ *
+ * 400 covers a phone at 1x and 800 a phone at 2x, but the top of the ladder no
+ * longer reaches: 1024 is the source's own width, and on a wide high-DPR screen
+ * the box now asks for more than that. Generating a larger variant would mean
+ * upscaling, which adds bytes and no detail — the fix is a wider original for
+ * public/consultant-office.jpg, after which the widths here can grow.
  *
  * The logo is drawn at 24px and 32px, so 48 and 96 cover both at 2x and the
  * 32px case at 3x. The `sizes` attribute in the markup is what tells the
