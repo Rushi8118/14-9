@@ -446,19 +446,33 @@ regionPages.forEach((page, i) => {
   })
 })
 
-gujaratCityPages.forEach((page, i) => {
-  const siblings = []
-  for (let k = 1; k <= 2 && k < gujaratCityPages.length; k++) {
-    const s = gujaratCityPages[(i + k) % gujaratCityPages.length]
-    siblings.push({ label: s.h1, to: s.path, description: s.description })
-  }
-  const seen = new Set<string>()
-  page.related = [...siblings, ...page.related].filter((l) => {
-    if (l.to === page.path || seen.has(l.to)) return false
-    seen.add(l.to)
-    return true
-  })
-})
+/**
+ * The city pages deliberately get NO sibling cycle.
+ *
+ * They used to: two siblings each, assigned as a cycle, for the same reason the
+ * region pages have one — to cure "Discovered - currently not indexed", which
+ * is what Google reports for a URL it knows from the sitemap but has not judged
+ * worth crawling. That reasoning cannot apply here, because every city page
+ * declares `noindex`. A page that cannot be indexed does not benefit from
+ * discovery links, and links out of it carry nothing onward.
+ *
+ * What the cycle did instead, measured against dist/ on 2026-10-12: 66 of the
+ * 99 internal links pointing at the 33 noindex city pages came from other
+ * noindex city pages. A closed loop of dead ends. It also served no reader —
+ * nobody on the Ahwa page is looking for Khambhalia.
+ *
+ * The cost was not hypothetical. /visa-consultants-in-gujarat, which hangs this
+ * whole cluster off itself, is the one location URL Google reports as
+ * "Discovered - currently not indexed" (URL Inspection, 2026-10-12), and 33 of
+ * its 49 resolvable body links pointed at these dead ends.
+ *
+ * Re-add a cycle here only if these pages become indexable — that is, once a
+ * city page carries something true and specific to that city and its `noindex`
+ * comes off. See buildGujaratCityPage.
+ *
+ * They are still reachable for readers: the Gujarat page links down to every
+ * one of them (below), and they keep their breadcrumb back up.
+ */
 
 /**
  * Gujarat links down to its city pages.
@@ -476,11 +490,22 @@ if (gujaratPage) {
     label: c.h1.replace(' — Study & Work Abroad', ''),
     to: c.path,
   }))
+  /*
+    Order matters, and it used to be wrong.
+    The 33 city links were prepended, ahead of everything else, so the related
+    list of a page Google already declines to index led with 33 URLs that
+    declare `noindex`. Measured against dist/ on 2026-10-12: 68 body links on
+    this page, 33 to noindex targets and only 16 to indexable ones.
+    The city links stay — a reader on the Gujarat page is often looking for
+    their own city, and they are these pages' only route in now that the
+    city-to-city cycle is gone. They just go last, so the indexable
+    destinations come first.
+  */
   const seen = new Set<string>()
   gujaratPage.related = [
     { label: 'Visa consultants in Surat', to: SURAT_PATH, description: 'Our office — counselling in person.' },
-    ...cityLinks,
     ...gujaratPage.related,
+    ...cityLinks,
   ].filter((l) => {
     if (l.to === gujaratPage.path || seen.has(l.to)) return false
     seen.add(l.to)
